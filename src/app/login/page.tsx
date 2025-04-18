@@ -34,8 +34,11 @@ export default function LoginPage() {
       password: data.password,
       redirect: false,
     });
-    if (res?.error) setError(res.error);
-    if (res?.ok) window.location.href = "/dashboard";
+    if (res?.error) {
+      setError(res.error);
+    } else {
+      window.location.href = "/dashboard";
+    }
   }
 
   return (
