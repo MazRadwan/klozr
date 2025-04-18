@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KLOZR CRM
 
-## Getting Started
+A modern, visually striking CRM dashboard built with Next.js 15, Tailwind CSS 4, TypeScript, and Shadcn UI. Designed for business professionals, KLOZR CRM combines a cutting-edge UI with robust customer and sales pipeline management.
 
-First, run the development server:
+![KLOZR Dashboard Screenshot](./public/screenshot.png)
 
+---
+
+## 🚀 Features
+- **Modern Dashboard:** Responsive layout with ChatGPT-style sidebar, floating theme toggle, and animated business metrics cards.
+- **KLOZR Branding:** Bold gradients, glassmorphism accents (optional), and a unique executive look.
+- **Authentication:** Secure login with NextAuth.js v5.
+- **Database:** Drizzle ORM (SQLite) for robust, type-safe data management.
+- **Realtime & Async:** TanStack React Query for efficient data fetching and caching.
+- **Animations:** Framer Motion for smooth transitions.
+- **Drag & Drop:** React Beautiful DnD for pipeline management.
+- **Validation & Testing:** Zod, Jest, and React Testing Library.
+
+---
+
+## 🛠️ Tech Stack
+- **Framework:** Next.js 15 (App Router)
+- **Styling:** Tailwind CSS v4, Shadcn UI (Radix UI primitives)
+- **TypeScript:** End-to-end type safety
+- **ORM:** Drizzle (SQLite)
+- **Auth:** NextAuth.js v5
+- **State/Data:** TanStack React Query
+- **Animation:** Framer Motion
+- **Testing:** Jest, React Testing Library
+
+---
+
+## 📦 Getting Started
+
+### 1. Install dependencies
 ```bash
-npm run dev
+npm install
 # or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+yarn install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Set up environment variables
+Copy `.env.local.example` to `.env.local` and fill in required values (see [NextAuth.js docs](https://next-auth.js.org/)).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Run the development server
+```bash
+npm run dev
+```
+Visit [http://localhost:3000](http://localhost:3000)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🧪 Testing
+Run the test suite:
+```bash
+npm run test
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📁 Folder Structure
+- `src/app` — Next.js app directory
+- `src/components` — UI and layout components
+- `src/lib` — Utilities, types, and helpers
+- `src/app/api` — API routes (Next.js)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🚀 Deployment
+Deploy easily to your preferred platform. See deployment documentation for your chosen provider.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🤝 Contributing
+Pull requests welcome! For major changes, please open an issue first to discuss what you’d like to change.
+
+---
+
+## 📜 License
+[MIT](./LICENSE)
