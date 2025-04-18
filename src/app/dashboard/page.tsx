@@ -89,19 +89,19 @@ export default function DashboardPage() {
         {/* Quick Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-6 py-3 rounded-lg font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 dark:from-purple-700 dark:to-indigo-800 dark:hover:from-purple-600 dark:hover:to-indigo-700 shadow-lg dark:shadow-purple-500/20 transition-all duration-200"
-          >
-            Add Customer
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-6 py-3 rounded-lg font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 dark:from-emerald-700 dark:to-teal-800 dark:hover:from-emerald-600 dark:hover:to-teal-700 shadow-lg dark:shadow-emerald-500/20 transition-all duration-200"
-          >
-            Create Deal
-          </motion.button>
+  whileHover={{ scale: 1.01 }}
+  whileTap={{ scale: 0.98 }}
+  className="px-5 py-2.5 rounded-md font-semibold border-2 border-indigo-700 text-indigo-700 bg-transparent hover:bg-indigo-700 hover:text-white transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-400/70 focus:ring-offset-2"
+>
+  Add Customer
+</motion.button>
+<motion.button
+  whileHover={{ scale: 1.01 }}
+  whileTap={{ scale: 0.98 }}
+  className="px-5 py-2.5 rounded-md font-semibold border-2 border-slate-700 text-slate-700 bg-transparent hover:bg-slate-700 hover:text-white transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-400/70 focus:ring-offset-2"
+>
+  Create Deal
+</motion.button>
         </div>
       </div>
     </ClientDashboardLayout>
