@@ -7,6 +7,7 @@ export const customers = sqliteTable('customers', {
   phone: text('phone').notNull(),
   status: text('status', { enum: ['Active', 'Inactive'] }).notNull(),
   createdAt: text('createdAt').notNull(),
+  passwordHash: text('passwordHash'), // nullable for federated users
 });
 
 export const deals = sqliteTable('deals', {

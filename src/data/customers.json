@@ -5,7 +5,8 @@
     "email": "alice.johnson@example.com",
     "phone": "+1-555-1234",
     "status": "Active",
-    "createdAt": "2025-04-01T09:00:00Z"
+    "createdAt": "2025-04-01T09:00:00Z",
+    "passwordHash": "$2b$10$mJmNni5VPLWWMlq//qDrSOHqdfgvzHCwuqUrTUXumgImHueNZdDPO"
   },
   {
     "id": "c2",
