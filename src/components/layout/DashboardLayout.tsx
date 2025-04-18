@@ -6,6 +6,7 @@ import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 /**
  * DashboardLayout component provides the main structure for the CRM dashboard
@@ -55,30 +56,30 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <aside
-  ref={sidebarRef}
-  className={cn(
-    // Vibrant vertical gradient for sidebar
-    "fixed inset-y-0 left-0 z-40 flex flex-col h-screen bg-gradient-to-b from-indigo-500 via-sky-400 to-blue-600 shadow-xl border-r-4 border-blue-400/60 dark:border-indigo-900/60 backdrop-blur-lg transition-all duration-300 overflow-hidden",
-    "group/sidebar",
-    sidebarOpen ? "w-64" : "w-16 md:w-20 hover:w-64 focus-within:w-64",
-    sidebarOpen ? "md:w-64" : ""
-  )}
-  onMouseEnter={() => !sidebarOpen && window.innerWidth >= 768 && setSidebarOpen(true)}
-  onMouseLeave={() => sidebarOpen && window.innerWidth >= 768 && setSidebarOpen(false)}
-  tabIndex={-1}
-  aria-label="Sidebar navigation"
->
-  <div className="flex h-16 items-center px-4 border-b border-blue-100/40 dark:border-indigo-900/40 transition-all duration-300">
-    <div className="flex items-center gap-2">
-      {/* Collapsed: show circular K icon; Expanded: show KLOZR logo */}
-      {sidebarOpen ? (
-  <span className="text-2xl font-extrabold bg-gradient-to-r from-indigo-400 via-sky-400 to-blue-600 bg-clip-text text-transparent animate-gradient-x">KLOZR</span>
-) : (
-  <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-400 via-sky-400 to-blue-600 text-white font-extrabold text-lg">K</span>
-)}
-      <span className="hidden md:inline-block text-xs font-bold tracking-widest text-white/80 dark:text-slate-300/60 ml-1 px-2 py-1 rounded-full bg-gradient-to-r from-indigo-500/30 to-blue-600/30 backdrop-blur-md">CRM</span>
-    </div>
-  </div>
+        ref={sidebarRef}
+        className={cn(
+          // Vibrant vertical gradient for sidebar
+          "fixed inset-y-0 left-0 z-40 flex flex-col h-screen bg-gradient-to-b from-indigo-500 via-sky-400 to-blue-600 shadow-xl border-r-4 border-blue-400/60 dark:border-indigo-900/60 backdrop-blur-lg transition-all duration-300 overflow-hidden",
+          "group/sidebar",
+          sidebarOpen ? "w-64" : "w-16 md:w-20 hover:w-64 focus-within:w-64",
+          sidebarOpen ? "md:w-64" : ""
+        )}
+        onMouseEnter={() => !sidebarOpen && window.innerWidth >= 768 && setSidebarOpen(true)}
+        onMouseLeave={() => sidebarOpen && window.innerWidth >= 768 && setSidebarOpen(false)}
+        tabIndex={-1}
+        aria-label="Sidebar navigation"
+      >
+        <div className="flex h-16 items-center px-4 border-b border-blue-100/40 dark:border-indigo-900/40 transition-all duration-300">
+          <div className="flex items-center gap-2">
+            {/* Collapsed: show circular K icon; Expanded: show KLOZR logo */}
+            {sidebarOpen ? (
+              <span className="text-2xl font-extrabold bg-gradient-to-r from-indigo-400 via-sky-400 to-blue-600 bg-clip-text text-transparent animate-gradient-x">KLOZR</span>
+            ) : (
+              <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-400 via-sky-400 to-blue-600 text-white font-extrabold text-lg">K</span>
+            )}
+            <span className="hidden md:inline-block text-xs font-bold tracking-widest text-white/80 dark:text-slate-300/60 ml-1 px-2 py-1 rounded-full bg-gradient-to-r from-indigo-500/30 to-blue-600/30 backdrop-blur-md">CRM</span>
+          </div>
+        </div>
         <nav className="flex flex-col gap-1 px-2 py-6">
           <Link
             href="/dashboard"
@@ -117,19 +118,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Header */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between px-6 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
           <h1 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-indigo-600">Dashboard</h1>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="rounded-full border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-5 w-5 text-yellow-500" />
-            ) : (
-              <Moon className="h-5 w-5 text-indigo-600" />
-            )}
-          </Button>
+          <ThemeToggle />
         </header>
 
         {/* Main Content Area */}
