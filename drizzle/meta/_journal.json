@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1744936592861,
+      "tag": "0000_black_mauler",
+      "breakpoints": true
+    }
+  ]
+}
