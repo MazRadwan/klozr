@@ -62,7 +62,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async redirect({ url, baseUrl }) {
       console.debug('[Auth] redirect callback', { url, baseUrl });
-      return url;
+      // Always redirect to dashboard after login
+      return `${baseUrl}/dashboard`;
     },
     async session({ session, token }) {
       console.debug('[Auth] session callback', { session, token });
