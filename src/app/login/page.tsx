@@ -51,19 +51,19 @@ export default function LoginPage() {
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium">Email</label>
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-900">Email</label>
               <Input id="email" type="email" {...register("email")}
-                className="mt-1" aria-invalid={!!errors.email} aria-describedby="email-error" required />
+                className="mt-1 text-gray-900 placeholder-gray-700" aria-invalid={!!errors.email} aria-describedby="email-error" required />
               {errors.email && <span id="email-error" className="text-xs text-red-600">{errors.email.message}</span>}
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium">Password</label>
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-900">Password</label>
               <Input id="password" type="password" {...register("password")}
-                className="mt-1" aria-invalid={!!errors.password} aria-describedby="password-error" required minLength={8} />
+                className="mt-1 text-gray-900 placeholder-gray-700" aria-invalid={!!errors.password} aria-describedby="password-error" required minLength={8} />
               {errors.password && <span id="password-error" className="text-xs text-red-600">{errors.password.message}</span>}
             </div>
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-sm text-gray-900">
                 <input type="checkbox" {...register("remember")} className="accent-blue-600" /> Remember Me
               </label>
               <a href="#" className="text-xs text-blue-600 hover:underline">Forgot Password?</a>
@@ -72,8 +72,8 @@ export default function LoginPage() {
             <Button type="submit" className="w-full">Sign In</Button>
           </form>
           <div className="flex flex-col gap-2 mt-6">
-            <Button variant="outline" className="w-full flex items-center gap-2 justify-center" onClick={() => signIn("google")}> <FcGoogle className="h-5 w-5" /> Sign in with Google </Button>
-            <Button variant="outline" className="w-full flex items-center gap-2 justify-center" onClick={() => signIn("github")}> <FaGithub className="h-5 w-5" /> Sign in with GitHub </Button>
+            <Button variant="outline" className="w-full flex items-center gap-2 justify-center text-gray-900" onClick={() => signIn("google")}> <FcGoogle className="h-5 w-5" /> <span className="text-gray-900">Sign in with Google</span> </Button>
+            <Button variant="outline" className="w-full flex items-center gap-2 justify-center text-gray-900" onClick={() => signIn("github")}> <FaGithub className="h-5 w-5" /> <span className="text-gray-900">Sign in with GitHub</span> </Button>
           </div>
         </CardContent>
       </Card>
