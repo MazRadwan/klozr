@@ -59,7 +59,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         ref={sidebarRef}
         className={cn(
           // Vibrant vertical gradient for sidebar
-          "fixed inset-y-0 left-0 z-40 flex flex-col h-screen bg-gradient-to-b from-indigo-500 via-sky-400 to-blue-600 shadow-xl border-r-4 border-blue-400/60 dark:border-indigo-900/60 backdrop-blur-lg transition-all duration-300 overflow-hidden",
+          "fixed inset-y-0 left-0 z-40 flex flex-col h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 shadow-xl border-r-4 border-gray-800/60 dark:border-gray-900/80 backdrop-blur-lg transition-all duration-300 overflow-hidden",
           "group/sidebar",
           sidebarOpen ? "w-64" : "w-16 md:w-20 hover:w-64 focus-within:w-64",
           sidebarOpen ? "md:w-64" : ""
@@ -73,7 +73,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             {/* Collapsed: show circular K icon; Expanded: show KLOZR logo */}
             {sidebarOpen ? (
-              <span className="text-2xl font-extrabold bg-gradient-to-r from-indigo-400 via-sky-400 to-blue-600 bg-clip-text text-transparent animate-gradient-x">KLOZR</span>
+              <span className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-sky-400 to-blue-600 animate-gradient-x">KLOZR</span>
             ) : (
               <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-400 via-sky-400 to-blue-600 text-white font-extrabold text-lg">K</span>
             )}
