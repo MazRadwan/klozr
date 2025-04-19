@@ -31,12 +31,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         console.debug('[Auth] Executing DB query for email:', email);
         const user = await db.select().from(customers).where(eq(customers.email, email)).limit(1).then(result => result[0]);
         console.debug('[Auth] DB returned user:', user);
-        if (user && typeof user.passwordHash === 'string' && await compare(password, user.passwordHash)) {
-          console.debug('[Auth] Password match succeeded for email:', email);
-          return { id: user.id, email: user.email, name: user.name };
+        const bcrypt = await import('bcryptjs');
+        if (user) {
+          if (user.passwordHash == null) {
+            // Federated user wants to set a password (upgrade to regular account)
+            const hash = await bcrypt.hash(password, 10);
+            await db.update(customers)
+              .set({ passwordHash: hash })
+              .where(eq(customers.email, email)).run?.();
+            return { id: user.id, email: user.email, name: user.name };
+          } else if (typeof user.passwordHash === 'string' && await bcrypt.compare(password, user.passwordHash)) {
+            // Regular login
+            console.debug('[Auth] Password match succeeded for email:', email);
+            return { id: user.id, email: user.email, name: user.name };
+          }
+          // Password incorrect or not set
+          console.warn('[Auth] authorize failed for email:', email);
+          return null;
+        } else {
+          // No user found, create new
+          const hash = await bcrypt.hash(password, 10);
+          const newId = crypto.randomUUID();
+          await db.insert(customers).values({
+            id: newId,
+            name: '', // Optionally prompt for name
+            email,
+            phone: '',
+            status: 'Active',
+            createdAt: new Date().toISOString(),
+            passwordHash: hash,
+          }).run?.();
+          return { id: newId, email, name: '' };
         }
-        console.warn('[Auth] authorize failed for email:', email);
-        return null;
       },
     }),
     GoogleProvider({
@@ -54,6 +80,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
       console.debug('[Auth] signIn callback', { user, account, profile, email, credentials });
+      // Insert federated users (Google/GitHub) into customers table if not already present
+      if ((account?.provider === 'google' || account?.provider === 'github') && user?.email) {
+        // Check if the user already exists
+        const existing = await db.select().from(customers).where(eq(customers.email, user.email)).limit(1);
+        if (!existing.length) {
+          await db.insert(customers).values({
+            id: user.id || crypto.randomUUID(),
+            name: user.name || '',
+            email: user.email,
+            phone: '', // Optionally prompt for phone later
+            status: 'Active',
+            createdAt: new Date().toISOString(),
+            passwordHash: null,
+          }).run?.(); // .run() for drizzle-orm, but safe if not present
+        }
+      }
       return true;
     },
     async jwt({ token, user, account, profile, isNewUser }) {
@@ -62,7 +104,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async redirect({ url, baseUrl }) {
       console.debug('[Auth] redirect callback', { url, baseUrl });
-      // Always redirect to dashboard after login
+      // If the user is logging out, redirect to home page
+      if (url === `${baseUrl}/api/auth/signout` || url === `${baseUrl}/api/auth/signout?callbackUrl=%2F`) {
+        return baseUrl;
+      }
+      // Otherwise, redirect to dashboard after login
       return `${baseUrl}/dashboard`;
     },
     async session({ session, token }) {

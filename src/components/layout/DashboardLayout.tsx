@@ -103,13 +103,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <span className={sidebarOpen ? "opacity-100 ml-2" : "opacity-0 ml-0 w-0 overflow-hidden transition-all duration-300"}>Sales Pipeline</span>
           </Link>
           <div className="flex-1" />
-          <Link
-            href="/api/auth/signout"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 my-1 text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400 transition-colors font-normal"
+          <button
+            onClick={async () => {
+              const { signOut } = await import('next-auth/react');
+              signOut({ callbackUrl: '/' });
+            }}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 my-1 text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400 transition-colors font-normal w-full text-left"
+            type="button"
           >
             <span className="inline-block w-6 text-white/90 dark:text-blue-100"><svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out"><path d="M9 16l-4-4 4-4"/><path d="M5 12h12"/><path d="M17 16v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg></span>
             <span className={sidebarOpen ? "opacity-100 ml-2" : "opacity-0 ml-0 w-0 overflow-hidden transition-all duration-300"}>Logout</span>
-          </Link>
+          </button>
         </nav>
       </aside>
 
