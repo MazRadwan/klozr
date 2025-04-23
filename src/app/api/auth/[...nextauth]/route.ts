@@ -77,23 +77,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   theme: { colorScheme: 'auto' },
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
-      console.debug('[Auth] signIn callback', { user, account, profile, email, credentials });
-      // Insert federated users (Google/GitHub) into users table if not already present
-      if ((account?.provider === 'google' || account?.provider === 'github') && user?.email) {
-        // Check if the user already exists
-        const existing = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
-        if (!existing.length) {
-          await db.insert(users).values({
-            id: user.id || crypto.randomUUID(),
-            username: user.name || user.email || '',
-            email: user.email,
-            password_hash: '', // Use empty string for federated users
-            is_active: true,
-          }).run?.(); // .run() for drizzle-orm, but safe if not present
-        }
+  try {
+    console.debug('[Auth] signIn callback', { user, account, profile, email, credentials });
+    // Insert federated users (Google/GitHub) into users table if not already present
+    if ((account?.provider === 'google' || account?.provider === 'github') && user?.email) {
+      // Check if the user already exists
+      const existing = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
+      if (!existing.length) {
+        await db.insert(users).values({
+          id: user.id || crypto.randomUUID(),
+          username: user.name || user.email || '',
+          email: user.email,
+          password_hash: '', // Use empty string for federated users
+          is_active: true,
+        }).run?.(); // .run() for drizzle-orm, but safe if not present
       }
-      return true;
-    },
+    }
+    return true;
+  } catch (e) {
+    console.error('[Auth] signIn error:', e);
+    return false;
+  }
+},
     async jwt({ token, user, account, profile, isNewUser }) {
       console.debug('[Auth] jwt callback', { token, user, account, profile, isNewUser });
       return token;
