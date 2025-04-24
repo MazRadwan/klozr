@@ -60,6 +60,10 @@ export const contacts = sqliteTable('contacts', {
   contact_type: text('contact_type'),
   company_id: text('company_id'),
   owner_user_id: text('owner_user_id'),
+  address: text('address'),
+  city: text('city'),
+  state_province: text('state_province'),
+  postal_code: text('postal_code'),
   created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
   updated_at: text('updated_at', { mode: 'text' }),
 });
