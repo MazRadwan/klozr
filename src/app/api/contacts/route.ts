@@ -16,15 +16,15 @@ const contactSchema = z.object({
   first_name: z.string().min(1),
   last_name: z.string().min(1),
   email: z.string().email(),
-  phone: z.string().min(1),
-  contact_type: z.string(),
-  company_id: z.string(),
-  owner_user_id: z.string(),
-  address: z.string(),
-  city: z.string(),
-  state_province: z.string(),
-  postal_code: z.string(),
-  createdAt: z.string()
+  phone: z.string().optional(),
+  contact_type: z.string().optional(),
+  company_id: z.string().optional(),
+  owner_user_id: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state_province: z.string().optional(),
+  postal_code: z.string().optional(),
+  created_at: z.string().optional()
 });
 
 export async function POST(req: NextRequest) {

@@ -72,14 +72,16 @@ export default function ContactsPanel() {
   const [filterType, setFilterType] = useState("all");
   const [sortField, setSortField] = useState<SortField>('first_name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [showMetrics, setShowMetrics] = useState(true);
+  const [showMetrics, setShowMetrics] = useState(false);
   
   // Modal states
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
+  const [newContact, setNewContact] = useState<Partial<Contact>>({});
 
   useEffect(() => {
     fetchContacts();
@@ -114,6 +116,11 @@ export default function ContactsPanel() {
   const handleDelete = (contact: Contact) => {
     setSelectedContact(contact);
     setDeleteModalOpen(true);
+  };
+
+  const handleAdd = () => {
+    setNewContact({});
+    setAddModalOpen(true);
   };
 
   const confirmDelete = async () => {
@@ -152,6 +159,38 @@ export default function ContactsPanel() {
       setEditModalOpen(false);
       setSelectedContact(null);
       setEditingContact({});
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  const saveNew = async () => {
+    if (!newContact.first_name || !newContact.last_name || !newContact.email) {
+      setError('Please fill in required fields: First Name, Last Name, and Email');
+      return;
+    }
+    
+    try {
+      // Generate a unique ID for the new contact
+      const contactData = {
+        ...newContact,
+        id: `contact-${Date.now()}`,
+        created_at: new Date().toISOString(),
+      };
+
+      const res = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactData),
+      });
+      if (!res.ok) throw new Error('Failed to create contact');
+      
+      // Refresh contacts list
+      await fetchContacts();
+      setAddModalOpen(false);
+      setNewContact({});
     } catch (e: any) {
       setError(e.message);
     }
@@ -281,7 +320,7 @@ export default function ContactsPanel() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600" onClick={handleAdd}>
             <UserPlus className="h-4 w-4 mr-2" />
             Add Contact
           </Button>
@@ -384,21 +423,21 @@ export default function ContactsPanel() {
                 placeholder="Search contacts by name, email, or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400"
+                className="pl-10 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
             </div>
             <div className="flex gap-2">
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
               >
                 <option value="all">All Types</option>
                 {getContactTypes().map(type => (
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
-              <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600">
+              <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
                 <Filter className="h-4 w-4 mr-2" />
                 Filters
               </Button>
@@ -723,6 +762,109 @@ export default function ContactsPanel() {
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
               Delete Contact
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Contact Modal */}
+      <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Contact</DialogTitle>
+            <DialogDescription>
+              Create a new contact with their information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="new_first_name">First Name *</Label>
+                <Input
+                  id="new_first_name"
+                  value={newContact.first_name || ''}
+                  onChange={(e) => setNewContact({ ...newContact, first_name: e.target.value })}
+                  className="text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new_last_name">Last Name *</Label>
+                <Input
+                  id="new_last_name"
+                  value={newContact.last_name || ''}
+                  onChange={(e) => setNewContact({ ...newContact, last_name: e.target.value })}
+                  className="text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new_email">Email *</Label>
+                <Input
+                  id="new_email"
+                  type="email"
+                  value={newContact.email || ''}
+                  onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                  className="text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new_phone">Phone</Label>
+                <Input
+                  id="new_phone"
+                  value={newContact.phone || ''}
+                  onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                  className="text-gray-900 dark:text-gray-100"
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="new_contact_type">Contact Type</Label>
+                <Input
+                  id="new_contact_type"
+                  value={newContact.contact_type || ''}
+                  onChange={(e) => setNewContact({ ...newContact, contact_type: e.target.value })}
+                  placeholder="e.g., Decision Maker, CEO, CTO"
+                  className="text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new_address">Address</Label>
+                <Input
+                  id="new_address"
+                  value={newContact.address || ''}
+                  onChange={(e) => setNewContact({ ...newContact, address: e.target.value })}
+                  className="text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new_city">City</Label>
+                <Input
+                  id="new_city"
+                  value={newContact.city || ''}
+                  onChange={(e) => setNewContact({ ...newContact, city: e.target.value })}
+                  className="text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <Label htmlFor="new_state_province">State/Province</Label>
+                <Input
+                  id="new_state_province"
+                  value={newContact.state_province || ''}
+                  onChange={(e) => setNewContact({ ...newContact, state_province: e.target.value })}
+                  className="text-gray-900 dark:text-gray-100"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            * Required fields
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveNew} className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+              Add Contact
             </Button>
           </DialogFooter>
         </DialogContent>
