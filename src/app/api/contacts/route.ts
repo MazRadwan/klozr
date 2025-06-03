@@ -11,18 +11,25 @@ export async function GET(req: NextRequest) {
 
 import { z } from 'zod';
 
-const customerSchema = z.object({
+const contactSchema = z.object({
   id: z.string(),
-  name: z.string().min(1),
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
   email: z.string().email(),
   phone: z.string().min(1),
-  status: z.enum(['Active', 'Inactive']),
+  contact_type: z.string(),
+  company_id: z.string(),
+  owner_user_id: z.string(),
+  address: z.string(),
+  city: z.string(),
+  state_province: z.string(),
+  postal_code: z.string(),
   createdAt: z.string()
 });
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  // TODO: Add contacts validation schema if needed
-  const inserted = db.insert(contacts).values(body).run();
+  const validated = contactSchema.parse(body);
+  const inserted = db.insert(contacts).values(validated).run();
   return NextResponse.json(inserted, { status: 201 });
 }
