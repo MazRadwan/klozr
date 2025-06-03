@@ -12,8 +12,9 @@ import { usePathname } from 'next/navigation';
 function DynamicHeaderTitle() {
   const pathname = usePathname();
   let title = 'Dashboard';
-  if (pathname === '/dashboard/contacts') title = 'Contacts';
-  else if (pathname === '/pipeline') title = 'Sales Pipeline';
+  if (pathname.startsWith('/dashboard/contacts')) title = 'Contacts';
+  else if (pathname.startsWith('/dashboard/deals')) title = 'Deals';
+  else if (pathname.startsWith('/pipeline')) title = 'Sales Pipeline';
   return (
     <h1 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-indigo-600">{title}</h1>
   );
@@ -106,6 +107,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           >
             <span className="inline-block w-6 text-white/90 dark:text-blue-100"><svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-address-book"><rect width="18" height="20" x="3" y="2" rx="2"/><path d="M7 7h10M7 11h10M7 15h10"/></svg></span>
             <span className={sidebarOpen ? "opacity-100 ml-2" : "opacity-0 ml-0 w-0 overflow-hidden transition-all duration-300"}>Contacts</span>
+          </Link>
+          <Link
+            href="/dashboard/deals"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 my-1 text-white/90 dark:text-blue-100 hover:bg-white/90 hover:text-indigo-900 dark:hover:bg-blue-100/80 dark:hover:text-indigo-900 transition-colors font-semibold shadow-sm"
+          >
+            <span className="inline-block w-6 text-white/90 dark:text-blue-100"><svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-handshake"><path d="M11 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2z"/><path d="m15 5 4-4v18l-4-4h-5"/></svg></span>
+            <span className={sidebarOpen ? "opacity-100 ml-2" : "opacity-0 ml-0 w-0 overflow-hidden transition-all duration-300"}>Deals</span>
           </Link>
           <Link
             href="/pipeline"

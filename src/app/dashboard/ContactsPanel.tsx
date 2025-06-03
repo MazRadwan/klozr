@@ -39,10 +39,7 @@ import {
   ChevronDown,
   Eye,
   Edit,
-  Trash2,
-  BarChart3,
-  Minus,
-  Plus
+  Trash2
 } from "lucide-react";
 
 interface Contact {
@@ -72,7 +69,6 @@ export default function ContactsPanel() {
   const [filterType, setFilterType] = useState("all");
   const [sortField, setSortField] = useState<SortField>('first_name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [showMetrics, setShowMetrics] = useState(false);
   
   // Modal states
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -327,91 +323,7 @@ export default function ContactsPanel() {
         </div>
       </div>
 
-      {/* Collapsible Statistics Section */}
-      <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Overview</h3>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowMetrics(!showMetrics)}
-              className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200"
-            >
-              {showMetrics ? (
-                <ChevronUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              )}
-            </Button>
-          </div>
-          
-          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
-            showMetrics ? 'max-h-96 opacity-100 mt-6' : 'max-h-0 opacity-0 mt-0'
-          }`}>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-                    <User className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Contacts</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{contacts.length}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-                    <Building className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Companies</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                      {new Set(contacts.map(c => c.company_id).filter(Boolean)).size}
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-                    <Mail className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">With Email</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                      {contacts.filter(c => c.email).length}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-                    <Phone className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">With Phone</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                      {contacts.filter(c => c.phone).length}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Filters and Search */}
       <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">

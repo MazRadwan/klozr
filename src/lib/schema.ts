@@ -71,15 +71,30 @@ export const contacts = sqliteTable('contacts', {
 // 6. Deals (depends on contacts, companies, sales_reps)
 export const deals = sqliteTable('deals', {
   id: text('id').primaryKey(),
-  title: text('title'),
+  title: text('title').notNull(),
   amount: real('amount'),
   stage: text('stage'),
   close_date: text('close_date'),
   contact_id: text('contact_id'),
   company_id: text('company_id'),
   sales_rep_id: text('sales_rep_id'),
+  offering_id: text('offering_id'), // Link to products/services
+  deal_notes: text('deal_notes'), // Deal notes field
   created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
   updated_at: text('updated_at', { mode: 'text' }),
+});
+
+// Deal Documents table for file uploads
+export const deal_documents = sqliteTable('deal_documents', {
+  id: text('id').primaryKey(),
+  deal_id: text('deal_id').notNull(),
+  filename: text('filename').notNull(),
+  original_name: text('original_name').notNull(),
+  file_size: integer('file_size'),
+  file_type: text('file_type'),
+  file_path: text('file_path').notNull(),
+  uploaded_by: text('uploaded_by'),
+  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
 });
 
 // 7. Communications / touchpoints
