@@ -15,6 +15,20 @@
       "when": 1744937590896,
       "tag": "0001_spicy_wendell_rand",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1745439921319,
+      "tag": "0002_worried_solo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1748983279625,
+      "tag": "0003_awesome_hardball",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import { db } from '@/lib/db';
-import { customers } from '@/lib/schema';
+import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { compare } from 'bcryptjs';
 
@@ -29,21 +29,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         console.debug('[Auth] Parsed email/password', { email, password });
         if (!email || !password) return null;
         console.debug('[Auth] Executing DB query for email:', email);
-        const user = await db.select().from(customers).where(eq(customers.email, email)).limit(1).then(result => result[0]);
+        const user = await db.select().from(users).where(eq(users.email, email)).limit(1).then(result => result[0]);
         console.debug('[Auth] DB returned user:', user);
         const bcrypt = await import('bcryptjs');
         if (user) {
-          if (user.passwordHash == null) {
+          if (user.password_hash == null) {
             // Federated user wants to set a password (upgrade to regular account)
             const hash = await bcrypt.hash(password, 10);
-            await db.update(customers)
-              .set({ passwordHash: hash })
-              .where(eq(customers.email, email)).run?.();
-            return { id: user.id, email: user.email, name: user.name };
-          } else if (typeof user.passwordHash === 'string' && await bcrypt.compare(password, user.passwordHash)) {
+            await db.update(users)
+              .set({ password_hash: hash })
+              .where(eq(users.email, email)).run?.();
+            return { id: user.id, email: user.email, name: user.username };
+          } else if (typeof user.password_hash === 'string' && await bcrypt.compare(password, user.password_hash)) {
             // Regular login
             console.debug('[Auth] Password match succeeded for email:', email);
-            return { id: user.id, email: user.email, name: user.name };
+            return { id: user.id, email: user.email, name: user.username };
           }
           // Password incorrect or not set
           console.warn('[Auth] authorize failed for email:', email);
@@ -52,14 +52,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // No user found, create new
           const hash = await bcrypt.hash(password, 10);
           const newId = crypto.randomUUID();
-          await db.insert(customers).values({
+          await db.insert(users).values({
             id: newId,
-            name: '', // Optionally prompt for name
+            username: '', // Optionally prompt for username
             email,
-            phone: '',
-            status: 'Active',
-            createdAt: new Date().toISOString(),
-            passwordHash: hash,
+            password_hash: hash,
+            is_active: true,
           }).run?.();
           return { id: newId, email, name: '' };
         }
@@ -79,25 +77,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   theme: { colorScheme: 'auto' },
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
-      console.debug('[Auth] signIn callback', { user, account, profile, email, credentials });
-      // Insert federated users (Google/GitHub) into customers table if not already present
-      if ((account?.provider === 'google' || account?.provider === 'github') && user?.email) {
-        // Check if the user already exists
-        const existing = await db.select().from(customers).where(eq(customers.email, user.email)).limit(1);
-        if (!existing.length) {
-          await db.insert(customers).values({
-            id: user.id || crypto.randomUUID(),
-            name: user.name || '',
-            email: user.email,
-            phone: '', // Optionally prompt for phone later
-            status: 'Active',
-            createdAt: new Date().toISOString(),
-            passwordHash: null,
-          }).run?.(); // .run() for drizzle-orm, but safe if not present
-        }
+  try {
+    console.debug('[Auth] signIn callback', { user, account, profile, email, credentials });
+    // Insert federated users (Google/GitHub) into users table if not already present
+    if ((account?.provider === 'google' || account?.provider === 'github') && user?.email) {
+      // Check if the user already exists
+      const existing = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
+      if (!existing.length) {
+        await db.insert(users).values({
+          id: user.id || crypto.randomUUID(),
+          username: user.name || user.email || '',
+          email: user.email,
+          password_hash: '', // Use empty string for federated users
+          is_active: true,
+        }).run?.(); // .run() for drizzle-orm, but safe if not present
       }
-      return true;
-    },
+    }
+    return true;
+  } catch (e) {
+    console.error('[Auth] signIn error:', e);
+    return false;
+  }
+},
     async jwt({ token, user, account, profile, isNewUser }) {
       console.debug('[Auth] jwt callback', { token, user, account, profile, isNewUser });
       return token;
