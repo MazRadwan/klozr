@@ -1,0 +1,47 @@
+[
+  {
+    "id": "1",
+    "first_name": "Alice",
+    "last_name": "Smith",
+    "email": "alice.smith@example.com",
+    "phone": "555-1234",
+    "contact_type": "Client",
+    "company_id": "1",
+    "owner_user_id": "1",
+    "address": "123 Main St",
+    "city": "Springfield",
+    "state_province": "IL",
+    "postal_code": "62701",
+    "createdAt": "2025-04-25T13:54:00-02:30"
+  },
+  {
+    "id": "2",
+    "first_name": "Bob",
+    "last_name": "Johnson",
+    "email": "bob.johnson@example.com",
+    "phone": "555-5678",
+    "contact_type": "Partner",
+    "company_id": "2",
+    "owner_user_id": "2",
+    "address": "456 Oak Ave",
+    "city": "Metropolis",
+    "state_province": "NY",
+    "postal_code": "10001",
+    "createdAt": "2025-04-25T13:54:00-02:30"
+  },
+  {
+    "id": "3",
+    "first_name": "Carol",
+    "last_name": "Williams",
+    "email": "carol.williams@example.com",
+    "phone": "555-9012",
+    "contact_type": "Lead",
+    "company_id": "3",
+    "owner_user_id": "1",
+    "address": "789 Pine Rd",
+    "city": "Gotham",
+    "state_province": "NJ",
+    "postal_code": "07001",
+    "createdAt": "2025-04-25T13:54:00-02:30"
+  }
+]
