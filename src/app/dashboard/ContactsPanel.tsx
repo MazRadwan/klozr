@@ -14,6 +14,15 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { 
   Search, 
   Filter, 
@@ -30,7 +39,10 @@ import {
   ChevronDown,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  BarChart3,
+  Minus,
+  Plus
 } from "lucide-react";
 
 interface Contact {
@@ -60,23 +72,90 @@ export default function ContactsPanel() {
   const [filterType, setFilterType] = useState("all");
   const [sortField, setSortField] = useState<SortField>('first_name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [showMetrics, setShowMetrics] = useState(true);
+  
+  // Modal states
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
 
   useEffect(() => {
-    async function fetchContacts() {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/contacts");
-        if (!res.ok) throw new Error("Failed to fetch contacts");
-        const data = await res.json();
-        setContacts(data);
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchContacts();
   }, []);
+
+  async function fetchContacts() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/contacts");
+      if (!res.ok) throw new Error("Failed to fetch contacts");
+      const data = await res.json();
+      setContacts(data);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // CRUD Operations
+  const handleView = (contact: Contact) => {
+    setSelectedContact(contact);
+    setViewModalOpen(true);
+  };
+
+  const handleEdit = (contact: Contact) => {
+    setSelectedContact(contact);
+    setEditingContact(contact);
+    setEditModalOpen(true);
+  };
+
+  const handleDelete = (contact: Contact) => {
+    setSelectedContact(contact);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedContact) return;
+    
+    try {
+      const res = await fetch(`/api/contacts/${selectedContact.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete contact');
+      
+      // Refresh contacts list
+      await fetchContacts();
+      setDeleteModalOpen(false);
+      setSelectedContact(null);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!selectedContact || !editingContact) return;
+    
+    try {
+      const res = await fetch(`/api/contacts/${selectedContact.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editingContact),
+      });
+      if (!res.ok) throw new Error('Failed to update contact');
+      
+      // Refresh contacts list
+      await fetchContacts();
+      setEditModalOpen(false);
+      setSelectedContact(null);
+      setEditingContact({});
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
 
   // Filter and sort contacts
   const filteredAndSortedContacts = useMemo(() => {
@@ -209,62 +288,91 @@ export default function ContactsPanel() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border-blue-200 dark:border-blue-800/30">
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Contacts</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{contacts.length}</p>
+      {/* Collapsible Statistics Section */}
+      <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-white" />
               </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Overview</h3>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 border-emerald-200 dark:border-emerald-800/30">
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Building className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">Companies</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {new Set(contacts.map(c => c.company_id).filter(Boolean)).size}
-                </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMetrics(!showMetrics)}
+              className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200"
+            >
+              {showMetrics ? (
+                <ChevronUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              )}
+            </Button>
+          </div>
+          
+          <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            showMetrics ? 'max-h-96 opacity-100 mt-6' : 'max-h-0 opacity-0 mt-0'
+          }`}>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <User className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Contacts</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{contacts.length}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <Building className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Companies</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      {new Set(contacts.map(c => c.company_id).filter(Boolean)).size}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-        <Card className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border-purple-200 dark:border-purple-800/30">
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Mail className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-purple-900 dark:text-purple-100">With Email</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {contacts.filter(c => c.email).length}
-                </p>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <Mail className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">With Email</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      {contacts.filter(c => c.email).length}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/20 dark:to-orange-900/20 border-orange-200 dark:border-orange-800/30">
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Phone className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-              <div className="ml-3">
-                <p className="text-sm font-medium text-orange-900 dark:text-orange-100">With Phone</p>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  {contacts.filter(c => c.phone).length}
-                </p>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <Phone className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">With Phone</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      {contacts.filter(c => c.phone).length}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters and Search */}
       <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
@@ -407,13 +515,28 @@ export default function ContactsPanel() {
                       </TableCell>
                       <TableCell className="py-4">
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
+                            onClick={() => handleView(contact)}
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
+                            onClick={() => handleEdit(contact)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+                            onClick={() => handleDelete(contact)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -433,6 +556,177 @@ export default function ContactsPanel() {
           Showing {filteredAndSortedContacts.length} of {contacts.length} contacts
         </div>
       )}
+
+      {/* View Contact Modal */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Contact Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about this contact.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedContact && (
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Name</Label>
+                  <p className="text-gray-900 dark:text-gray-100">{`${selectedContact.first_name || ''} ${selectedContact.last_name || ''}`.trim()}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
+                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone</Label>
+                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.phone || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contact Type</Label>
+                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.contact_type || 'N/A'}</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Address</Label>
+                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.address || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">City</Label>
+                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.city || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">State/Province</Label>
+                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.state_province || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Postal Code</Label>
+                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.postal_code || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Contact Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Contact</DialogTitle>
+            <DialogDescription>
+              Update the contact's information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="first_name">First Name</Label>
+                <Input
+                  id="first_name"
+                  value={editingContact.first_name || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, first_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="last_name">Last Name</Label>
+                <Input
+                  id="last_name"
+                  value={editingContact.last_name || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, last_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editingContact.email || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={editingContact.phone || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, phone: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="contact_type">Contact Type</Label>
+                <Input
+                  id="contact_type"
+                  value={editingContact.contact_type || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, contact_type: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={editingContact.address || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, address: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={editingContact.city || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, city: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="state_province">State/Province</Label>
+                <Input
+                  id="state_province"
+                  value={editingContact.state_province || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, state_province: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Contact</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this contact? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedContact && (
+            <div className="py-4">
+              <p className="text-gray-900 dark:text-gray-100">
+                <strong>{`${selectedContact.first_name || ''} ${selectedContact.last_name || ''}`.trim()}</strong>
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{selectedContact.email}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete Contact
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
