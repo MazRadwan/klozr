@@ -42,10 +42,10 @@ export async function GET(req: NextRequest) {
       .from(deals)
       .leftJoin(contacts, eq(deals.contact_id, contacts.id))
       .leftJoin(companies, eq(deals.company_id, companies.id))
-      .leftJoin(offerings, eq(deals.offering_id, offerings.id))
-      .all();
+      .leftJoin(offerings, eq(deals.offering_id, offerings.id));
 
-    return NextResponse.json(allDeals);
+    const result = allDeals.all();
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching deals:', error);
     return NextResponse.json({ error: 'Failed to fetch deals' }, { status: 500 });
@@ -71,8 +71,49 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = dealSchema.parse(body);
     
-    const inserted = db.insert(deals).values(validated).run();
-    return NextResponse.json(inserted, { status: 201 });
+    const result = db.insert(deals).values(validated).run();
+    
+    // Fetch the created deal with related data
+    const createdDeal = db
+      .select({
+        deal: deals,
+        contact: {
+          id: contacts.id,
+          first_name: contacts.first_name,
+          last_name: contacts.last_name,
+          email: contacts.email,
+          phone: contacts.phone,
+          address: contacts.address,
+          city: contacts.city,
+          state_province: contacts.state_province,
+          postal_code: contacts.postal_code,
+        },
+        company: {
+          id: companies.id,
+          name: companies.name,
+          website: companies.website,
+          address: companies.address,
+          city: companies.city,
+          state: companies.state,
+          country: companies.country,
+          phone: companies.phone,
+        },
+        offering: {
+          id: offerings.id,
+          name: offerings.name,
+          type: offerings.type,
+          description: offerings.description,
+          price: offerings.price,
+        },
+      })
+      .from(deals)
+      .leftJoin(contacts, eq(deals.contact_id, contacts.id))
+      .leftJoin(companies, eq(deals.company_id, companies.id))
+      .leftJoin(offerings, eq(deals.offering_id, offerings.id))
+      .where(eq(deals.id, validated.id))
+      .get();
+
+    return NextResponse.json(createdDeal, { status: 201 });
   } catch (error) {
     console.error('Error creating deal:', error);
     if (error instanceof z.ZodError) {
