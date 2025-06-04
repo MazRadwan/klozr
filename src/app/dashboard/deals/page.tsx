@@ -194,13 +194,71 @@ export default function DealsPage() {
   if (loading) {
     return (
       <ClientDashboardLayout>
-        <div className="p-4 sm:p-8">
-          <Card>
+        <div className="p-4 sm:p-8 space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+              <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          </div>
+
+          {/* Search/Filter Skeleton */}
+          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
             <CardContent className="p-6">
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                ))}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="flex gap-2">
+                  <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                  <div className="h-10 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Table Skeleton */}
+          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-lg">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                {/* Table Header Skeleton */}
+                <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 p-4">
+                  <div className="grid grid-cols-7 gap-4">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                  </div>
+                </div>
+                {/* Table Rows Skeleton */}
+                <div className="divide-y divide-gray-200 dark:divide-gray-800">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="p-4">
+                      <div className="grid grid-cols-7 gap-4 items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+                          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        </div>
+                        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="h-6 w-20 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+                        <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        <div className="flex gap-2">
+                          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -241,7 +299,7 @@ export default function DealsPage() {
         </div>
 
         {/* Filters and Search */}
-        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
@@ -250,7 +308,7 @@ export default function DealsPage() {
                   placeholder="Search deals by title, company, or contact..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                  className="pl-10 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 shadow-none focus:shadow-none hover:shadow-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </div>
               <div className="flex gap-2">
