@@ -43,3 +43,6 @@ project-documentation.md
 
 # windsurf files
 windsurf.rules.*
+
+# cursor files
+.cursorrules
