@@ -130,7 +130,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             )}
             {/* KLOZR Logo - now in main header */}
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600">KLOZR</span>
+              <img 
+                src="/KLOZR_LOGO_RED.svg" 
+                alt="KLOZR" 
+                className="h-16 w-auto"
+              />
             </div>
           </div>
           
