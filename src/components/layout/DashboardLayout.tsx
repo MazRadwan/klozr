@@ -55,7 +55,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside 
         ref={sidebarRef}
-        className={`bg-gray-800 text-white transition-all duration-300 ${
+        className={`sticky top-0 h-screen bg-gray-800 text-white transition-all duration-300 ${
           sidebarOpen ? 'w-64' : 'w-0'
         } overflow-hidden`}
       >
@@ -116,7 +116,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col transition-all duration-300">
         {/* Header */}
-        <header className="h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 flex items-center justify-between">
+        <header className="sticky top-0 z-50 h-16 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Open sidebar button - Professional style, only shown when sidebar is closed */}
             {!sidebarOpen && (
