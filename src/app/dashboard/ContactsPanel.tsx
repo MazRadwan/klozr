@@ -87,7 +87,6 @@ export default function ContactsPanel() {
   ]);
   
   // Modal states
-  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -122,11 +121,6 @@ export default function ContactsPanel() {
   }
 
   // CRUD Operations
-  const handleView = (contact: Contact) => {
-    setSelectedContact(contact);
-    setViewModalOpen(true);
-  };
-
   const handleEdit = (contact: Contact) => {
     setSelectedContact(contact);
     setEditingContact(contact);
@@ -788,57 +782,7 @@ export default function ContactsPanel() {
         </div>
       )}
 
-      {/* View Contact Modal */}
-      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Contact Details</DialogTitle>
-            <DialogDescription>
-              View detailed information about this contact.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedContact && (
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Name</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{`${selectedContact.first_name || ''} ${selectedContact.last_name || ''}`.trim()}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contact Type</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.contact_type || 'N/A'}</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Address</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.address || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">City</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.city || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">State/Province</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.state_province || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Postal Code</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.postal_code || 'N/A'}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
 
       {/* Edit Contact Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
