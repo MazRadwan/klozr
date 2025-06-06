@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 interface Contact {
   id: string;
@@ -180,20 +181,31 @@ export default function DealDetailPage() {
     );
   }
 
+    // Breadcrumb items
+  const breadcrumbItems = [
+    { label: "Deals", href: "/dashboard/deals" },
+    { label: deal.deal.title || "Deal", current: true }
+  ];
+
   return (
     <ClientDashboardLayout>
       <div className="p-4 sm:p-8">
         <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard/deals">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Deals
-                </Button>
-              </Link>
-              <div>
+          {/* Back Button + Breadcrumbs in single row */}
+          <div className="flex items-center gap-4 mb-8">
+            <Link href="/dashboard/deals">
+              <Button variant="ghost" size="sm" className="flex-shrink-0">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Deals
+              </Button>
+            </Link>
+            <Breadcrumb items={breadcrumbItems} />
+          </div>
+
+          {/* Header - with increased top spacing and proper alignment */}
+          <div className="pt-8">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="max-w-none">
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
                   {deal.deal.title}
                 </h1>
@@ -201,18 +213,18 @@ export default function DealDetailPage() {
                   Deal Details
                 </p>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <Link href={`/dashboard/deals/${deal.deal.id}/edit`}>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Deal
+              <div className="flex gap-2 sm:flex-shrink-0">
+                <Link href={`/dashboard/deals/${deal.deal.id}/edit`}>
+                  <Button variant="outline" size="sm">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Deal
+                  </Button>
+                </Link>
+                <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
                 </Button>
-              </Link>
-              <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
+              </div>
             </div>
           </div>
 
