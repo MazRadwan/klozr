@@ -6,6 +6,15 @@ import { eq } from 'drizzle-orm';
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
+    const dealId = parseInt(id);
+    
+    // Validate that the ID is a valid integer
+    if (isNaN(dealId)) {
+      return NextResponse.json(
+        { error: 'Invalid deal ID' },
+        { status: 400 }
+      );
+    }
     
     const deal = db
       .select({
@@ -43,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .leftJoin(contacts, eq(deals.contact_id, contacts.id))
       .leftJoin(companies, eq(deals.company_id, companies.id))
       .leftJoin(offerings, eq(deals.offering_id, offerings.id))
-      .where(eq(deals.id, id))
+      .where(eq(deals.id, dealId))
       .get();
 
     if (!deal) {
@@ -60,9 +69,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
+    const dealId = parseInt(id);
+    
+    // Validate that the ID is a valid integer
+    if (isNaN(dealId)) {
+      return NextResponse.json(
+        { error: 'Invalid deal ID' },
+        { status: 400 }
+      );
+    }
+    
     const body = await req.json();
     
-    const result = db.update(deals).set(body).where(eq(deals.id, id)).run();
+    const result = db.update(deals).set(body).where(eq(deals.id, dealId)).run();
     
     // Fetch the updated deal with related data
     const updatedDeal = db
@@ -101,7 +120,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       .leftJoin(contacts, eq(deals.contact_id, contacts.id))
       .leftJoin(companies, eq(deals.company_id, companies.id))
       .leftJoin(offerings, eq(deals.offering_id, offerings.id))
-      .where(eq(deals.id, id))
+      .where(eq(deals.id, dealId))
       .get();
 
     return NextResponse.json(updatedDeal);
@@ -114,7 +133,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = await params;
-    const deleted = db.delete(deals).where(eq(deals.id, id)).run();
+    const dealId = parseInt(id);
+    
+    // Validate that the ID is a valid integer
+    if (isNaN(dealId)) {
+      return NextResponse.json(
+        { error: 'Invalid deal ID' },
+        { status: 400 }
+      );
+    }
+    
+    const deleted = db.delete(deals).where(eq(deals.id, dealId)).run();
     return NextResponse.json(deleted);
   } catch (error) {
     console.error('Error deleting deal:', error);
