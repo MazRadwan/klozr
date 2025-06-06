@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { ClientDashboardLayout } from '@/components/layout/ClientDashboardLayout';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
@@ -218,126 +219,132 @@ export default function CompanyDetailPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="h-64 bg-gray-200 rounded-lg"></div>
-              <div className="h-48 bg-gray-200 rounded-lg"></div>
-            </div>
-            <div className="space-y-6">
-              <div className="h-32 bg-gray-200 rounded-lg"></div>
-              <div className="h-48 bg-gray-200 rounded-lg"></div>
+      <ClientDashboardLayout>
+        <div className="p-4 sm:p-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+              </div>
+              <div className="space-y-6">
+                <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </ClientDashboardLayout>
     );
   }
 
   if (!company) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Company not found</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">The company you're looking for doesn't exist.</p>
-          <Button 
-            onClick={() => router.push('/dashboard/companies')}
-            className="mt-4"
-          >
-            Back to Companies
-          </Button>
+      <ClientDashboardLayout>
+        <div className="p-4 sm:p-8">
+          <div className="text-center py-12">
+            <Building2 className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+              Company not found
+            </h3>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              The company you're looking for doesn't exist or has been removed.
+            </p>
+            <Button 
+              onClick={() => router.push('/dashboard/companies')}
+              className="mt-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Companies
+            </Button>
+          </div>
         </div>
-      </div>
+      </ClientDashboardLayout>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* Header with Back Button and Breadcrumbs */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+    <ClientDashboardLayout>
+      <div className="p-4 sm:p-8 space-y-6">
+        {/* Back Button + Breadcrumbs in single row */}
+        <div className="flex items-center gap-4 mb-8">
           <Button
-            variant="ghost" 
+            variant="ghost"
             size="sm"
             onClick={() => router.back()}
-            className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex-shrink-0"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back</span>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
           <Breadcrumb items={breadcrumbItems} />
         </div>
-      </div>
 
-      {/* Company Header */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between space-y-4 md:space-y-0 mb-8">
-        <div className="flex items-start space-x-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
-            <Building2 className="h-8 w-8" />
-          </div>
-          <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {company.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-3 mt-2">
-              {company.industry && (
-                <Badge className={getIndustryColor(company.industry)}>
-                  {company.industry}
-                </Badge>
-              )}
-              {company.employees && (
-                <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
-                  <Users className="h-3 w-3 mr-1" />
-                  {company.employees.toLocaleString()} employees
-                </span>
-              )}
-              {company.revenue && (
-                <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
-                  <DollarSign className="h-3 w-3 mr-1" />
-                  {company.revenue} revenue
-                </span>
+        {/* Header - with increased top spacing and proper alignment */}
+        <div className="pt-8">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="max-w-none">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                {company.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-3 mt-2">
+                {company.industry && (
+                  <Badge className={getIndustryColor(company.industry)}>
+                    {company.industry}
+                  </Badge>
+                )}
+                {company.employees && (
+                  <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                    <Users className="h-3 w-3 mr-1" />
+                    {company.employees.toLocaleString()} employees
+                  </span>
+                )}
+                {company.revenue && (
+                  <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                    <DollarSign className="h-3 w-3 mr-1" />
+                    {company.revenue} revenue
+                  </span>
+                )}
+              </div>
+              {company.description && (
+                <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm md:text-base">
+                  {company.description}
+                </p>
               )}
             </div>
-            {company.description && (
-              <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm md:text-base">
-                {company.description}
-              </p>
-            )}
+            <div className="flex gap-2 sm:flex-shrink-0">
+              <Button variant="outline" size="sm" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Contact
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Create Deal
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-red-600 dark:text-red-400">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Company
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Contact
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileText className="h-4 w-4 mr-2" />
-                Create Deal
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600 dark:text-red-400">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Company
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
@@ -425,7 +432,7 @@ export default function CompanyDetailPage() {
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Key Contacts ({contacts.length})
               </CardTitle>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Contact
               </Button>
@@ -530,19 +537,19 @@ export default function CompanyDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" size="sm">
+              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
                 <Mail className="h-4 w-4 mr-2" />
                 Send Email
               </Button>
-              <Button variant="outline" className="w-full justify-start" size="sm">
+              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
                 <PhoneCall className="h-4 w-4 mr-2" />
                 Schedule Call
               </Button>
-              <Button variant="outline" className="w-full justify-start" size="sm">
+              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
                 <Video className="h-4 w-4 mr-2" />
                 Schedule Meeting
               </Button>
-              <Button variant="outline" className="w-full justify-start" size="sm">
+              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
                 <FileText className="h-4 w-4 mr-2" />
                 Create Deal
               </Button>
@@ -583,6 +590,7 @@ export default function CompanyDetailPage() {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </ClientDashboardLayout>
   );
 } 
