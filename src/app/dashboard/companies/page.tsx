@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
 import { CompanyEditModal } from '@/components/companies/CompanyEditModal';
+import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 
 interface Company {
   id: string;
@@ -237,41 +238,46 @@ export default function CompaniesPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-          <CardHeader>
-            <Skeleton className="h-8 w-48" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <Skeleton className="h-10 flex-1" />
-                <Skeleton className="h-10 w-32" />
-                <Skeleton className="h-10 w-32" />
+      <ClientDashboardLayout>
+        <div className="p-4 sm:p-8">
+          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+            <CardHeader>
+              <Skeleton className="h-8 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <Skeleton className="h-10 flex-1" />
+                  <Skeleton className="h-10 w-32" />
+                  <Skeleton className="h-10 w-32" />
+                </div>
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded" />
+                ))}
               </div>
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full rounded" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      </ClientDashboardLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive" className="bg-red-50 border-red-200 dark:bg-red-950/10 dark:border-red-900">
-          <AlertTitle className="text-red-800 dark:text-red-400">Error Loading Companies</AlertTitle>
-          <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
-        </Alert>
-      </div>
+      <ClientDashboardLayout>
+        <div className="p-4 sm:p-8">
+          <Alert variant="destructive" className="bg-red-50 border-red-200 dark:bg-red-950/10 dark:border-red-900">
+            <AlertTitle className="text-red-800 dark:text-red-400">Error Loading Companies</AlertTitle>
+            <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
+          </Alert>
+        </div>
+      </ClientDashboardLayout>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <ClientDashboardLayout>
+      <div className="p-4 sm:p-8 space-y-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -654,5 +660,6 @@ export default function CompaniesPage() {
         isEditing={isEditing}
       />
     </div>
+    </ClientDashboardLayout>
   );
 } 
