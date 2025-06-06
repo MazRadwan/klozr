@@ -13,6 +13,7 @@ function DynamicHeaderTitle() {
   const pathname = usePathname();
   let title = 'Dashboard';
   if (pathname.startsWith('/dashboard/contacts')) title = 'Contacts';
+  else if (pathname.startsWith('/dashboard/companies')) title = 'Companies';
   else if (pathname.startsWith('/dashboard/deals')) title = 'Deals';
   else if (pathname.startsWith('/pipeline')) title = 'Sales Pipeline';
   return (

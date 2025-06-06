@@ -21,6 +21,12 @@ export const companies = sqliteTable('companies', {
   state: text('state'),
   country: text('country'),
   phone: text('phone'),
+  email: text('email'),
+  industry: text('industry'),
+  description: text('description'),
+  employees: integer('employees'),
+  revenue: text('revenue'),
+  founded: text('founded'),
   created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
   updated_at: text('updated_at', { mode: 'text' }),
 });
