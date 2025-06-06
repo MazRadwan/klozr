@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { companies } from '@/lib/schema';
+import { like, or } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
-    const allCompanies = db.select().from(companies).all();
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get('q');
+    
+    let allCompanies;
+    
+    if (query) {
+      // Search companies by name, phone, email, or website
+      allCompanies = db.select().from(companies)
+        .where(
+          or(
+            like(companies.name, `%${query}%`),
+            like(companies.phone, `%${query}%`),
+            like(companies.email, `%${query}%`),
+            like(companies.website, `%${query}%`)
+          )
+        )
+        .all();
+    } else {
+      allCompanies = db.select().from(companies).all();
+    }
+    
     return NextResponse.json(allCompanies);
   } catch (error) {
     console.error('Error fetching companies:', error);

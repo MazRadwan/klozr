@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
+import { CompanyPicker } from "@/components/companies/CompanyPicker";
 
 interface Contact {
   contact: {
@@ -31,7 +32,7 @@ interface Contact {
     created_at?: string;
   };
   company?: {
-    id: string;
+    id: number;
     name?: string;
     address?: string;
     city?: string;
@@ -39,6 +40,7 @@ interface Contact {
     country?: string;
     phone?: string;
     website?: string;
+    email?: string;
   };
   relatedDeals: Array<{
     deal: {
@@ -195,6 +197,16 @@ export default function ContactDetailPage() {
     } finally {
       setAddingNote(false);
     }
+  };
+
+  const handleCompanyChange = (newCompany: any) => {
+    setContact(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        company: newCompany
+      };
+    });
   };
 
   const formatCurrency = (amount?: number) => 
@@ -592,115 +604,103 @@ export default function ContactDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Company Information */}
-            {contact.company ? (
-              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                    <Building2 className="h-5 w-5" />
-                    Company
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
-                      {contact.company.name?.substring(0, 2).toUpperCase() || 'CO'}
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                        {contact.company.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Company</p>
-                    </div>
-                  </div>
-                  
-                  <Separator className="bg-gray-200 dark:bg-gray-700" />
-                  
-                  <div className="space-y-3">
-                    {contact.company.website && (
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                          Website
-                        </label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Globe className="h-4 w-4 text-gray-400" />
-                          <a
-                            href={contact.company.website.startsWith('http') ? contact.company.website : `https://${contact.company.website}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
-                          >
-                            {contact.company.website}
-                          </a>
-                        </div>
-                      </div>
-                    )}
+            {/* Company Management */}
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                  <Building2 className="h-5 w-5" />
+                  Company Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CompanyPicker
+                  contactId={parseInt(contactId)}
+                  currentCompany={contact.company || null}
+                  onCompanyChange={handleCompanyChange}
+                />
+                
+                {/* Company Details - Show when company is assigned */}
+                {contact.company && (
+                  <>
+                    <Separator className="my-4 bg-gray-200 dark:bg-gray-700" />
                     
-                    {contact.company.phone && (
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                          Phone
-                        </label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <a 
-                            href={`tel:${contact.company.phone}`}
-                            className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                          >
-                            {contact.company.phone}
-                          </a>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
+                          {contact.company.name?.substring(0, 2).toUpperCase() || 'CO'}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                            {contact.company.name}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Company</p>
                         </div>
                       </div>
-                    )}
-                    
-                    {companyFullAddress && (
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                          Address
-                        </label>
-                        <div className="flex items-start gap-2 mt-1">
-                          <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                          <p className="text-gray-900 dark:text-gray-100 text-sm">
-                            {companyFullAddress}
-                          </p>
+                      
+                      {contact.company.website && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            Website
+                          </label>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Globe className="h-4 w-4 text-gray-400" />
+                            <a
+                              href={contact.company.website.startsWith('http') ? contact.company.website : `https://${contact.company.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
+                            >
+                              {contact.company.website}
+                            </a>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <Separator className="bg-gray-200 dark:bg-gray-700" />
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    onClick={() => contact.company && window.open(`/dashboard/companies/${contact.company.id}`, '_blank')}
-                  >
-                    <Building2 className="h-4 w-4 mr-2" />
-                    View Company Details
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                    <Building2 className="h-5 w-5" />
-                    Company
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center py-6">
-                  <Building2 className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
-                  <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                    No company associated
-                  </p>
-                  <Button variant="outline" size="sm" className="mt-3">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Link Company
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                      )}
+                      
+                      {contact.company.phone && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            Phone
+                          </label>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <a 
+                              href={`tel:${contact.company.phone}`}
+                              className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                            >
+                              {contact.company.phone}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {companyFullAddress && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            Address
+                          </label>
+                          <div className="flex items-start gap-2 mt-1">
+                            <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                            <p className="text-gray-900 dark:text-gray-100 text-sm">
+                              {companyFullAddress}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 mt-3"
+                        onClick={() => contact.company && window.open(`/dashboard/companies/${contact.company.id}`, '_blank')}
+                      >
+                        <Building2 className="h-4 w-4 mr-2" />
+                        View Company Details
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Activity Timeline */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
