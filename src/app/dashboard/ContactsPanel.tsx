@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 import { 
   Search, Filter, ChevronUp, ChevronDown, Upload, Download, UserPlus, 
   Trash2, Settings, Mail, Phone, MapPin, User, Eye, MoreVertical,
@@ -63,6 +64,7 @@ type SortField = 'first_name' | 'last_name' | 'email' | 'phone' | 'contact_type'
 type SortDirection = 'asc' | 'desc';
 
 export default function ContactsPanel() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +89,6 @@ export default function ContactsPanel() {
   ]);
   
   // Modal states
-  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -122,9 +123,8 @@ export default function ContactsPanel() {
   }
 
   // CRUD Operations
-  const handleView = (contact: Contact) => {
-    setSelectedContact(contact);
-    setViewModalOpen(true);
+  const handleContactClick = (contactId: string) => {
+    router.push(`/dashboard/contacts/${contactId}`);
   };
 
   const handleEdit = (contact: Contact) => {
@@ -370,22 +370,30 @@ export default function ContactsPanel() {
             </div>
           </div>
         );
-      case 'email':
-        return contact.email ? (
-          <a href={`mailto:${contact.email}`} className="text-blue-600 dark:text-blue-400 hover:underline">
-            {contact.email}
-          </a>
-        ) : (
-          <span className="text-gray-400">—</span>
-        );
-      case 'phone':
-        return contact.phone ? (
-          <a href={`tel:${contact.phone}`} className="text-blue-600 dark:text-blue-400 hover:underline">
-            {contact.phone}
-          </a>
-        ) : (
-          <span className="text-gray-400">—</span>
-        );
+             case 'email':
+         return contact.email ? (
+           <a 
+             href={`mailto:${contact.email}`} 
+             className="text-blue-600 dark:text-blue-400 hover:underline"
+             onClick={(e) => e.stopPropagation()}
+           >
+             {contact.email}
+           </a>
+         ) : (
+           <span className="text-gray-400">—</span>
+         );
+       case 'phone':
+         return contact.phone ? (
+           <a 
+             href={`tel:${contact.phone}`} 
+             className="text-blue-600 dark:text-blue-400 hover:underline"
+             onClick={(e) => e.stopPropagation()}
+           >
+             {contact.phone}
+           </a>
+         ) : (
+           <span className="text-gray-400">—</span>
+         );
       case 'contact_type':
         return contact.contact_type ? (
           <Badge className={getContactTypeColor(contact.contact_type)}>
@@ -601,12 +609,13 @@ export default function ContactsPanel() {
                       <TableRow 
                         key={contact.id} 
                         className={`
-                          border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors
+                          border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer
                           ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 
                             i % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-gray-25 dark:bg-gray-950/50'}
                         `}
+                        onClick={() => handleContactClick(contact.id)}
                       >
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedContacts.includes(contact.id)}
                             onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
@@ -618,7 +627,7 @@ export default function ContactsPanel() {
                             {renderCellContent(contact, column.key)}
                           </TableCell>
                         ))}
-                        <TableCell className="py-3">
+                        <TableCell className="py-3" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button 
@@ -630,10 +639,6 @@ export default function ContactsPanel() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => window.location.href = `/dashboard/contacts/${contact.id}`}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleDelete(contact)}
                                 className="text-red-600 dark:text-red-400"
@@ -687,20 +692,23 @@ export default function ContactsPanel() {
                     <div 
                       key={contact.id}
                       className={`
-                        border border-gray-200 dark:border-gray-700 rounded-lg p-4 transition-colors
+                        border border-gray-200 dark:border-gray-700 rounded-lg p-4 transition-colors cursor-pointer
                         ${selectedContacts.includes(contact.id) 
                           ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-700' 
                           : 'bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-900/50'
                         }
                       `}
+                      onClick={() => handleContactClick(contact.id)}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Checkbox
-                            checked={selectedContacts.includes(contact.id)}
-                            onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
-                            aria-label={`Select ${contact.first_name} ${contact.last_name}`}
-                          />
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedContacts.includes(contact.id)}
+                              onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
+                              aria-label={`Select ${contact.first_name} ${contact.last_name}`}
+                            />
+                          </div>
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
                             {(contact.first_name?.[0] || '') + (contact.last_name?.[0] || '')}
                           </div>
@@ -715,49 +723,55 @@ export default function ContactsPanel() {
                             )}
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => window.location.href = `/dashboard/contacts/${contact.id}`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDelete(contact)}
-                              className="text-red-600 dark:text-red-400"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={() => handleDelete(contact)}
+                                className="text-red-600 dark:text-red-400"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        {contact.email && (
-                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                            <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
-                            <a href={`mailto:${contact.email}`} className="text-blue-600 dark:text-blue-400 hover:underline truncate">
-                              {contact.email}
-                            </a>
-                          </div>
-                        )}
-                        {contact.phone && (
-                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                            <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
-                            <a href={`tel:${contact.phone}`} className="text-blue-600 dark:text-blue-400 hover:underline">
-                              {contact.phone}
-                            </a>
-                          </div>
-                        )}
+                                              <div className="space-y-2">
+                          {contact.email && (
+                            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                              <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                              <a 
+                                href={`mailto:${contact.email}`} 
+                                className="text-blue-600 dark:text-blue-400 hover:underline truncate"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {contact.email}
+                              </a>
+                            </div>
+                          )}
+                          {contact.phone && (
+                            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                              <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
+                              <a 
+                                href={`tel:${contact.phone}`} 
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {contact.phone}
+                              </a>
+                            </div>
+                          )}
                         {(contact.city || contact.state_province) && (
                           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                             <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -788,57 +802,7 @@ export default function ContactsPanel() {
         </div>
       )}
 
-      {/* View Contact Modal */}
-      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Contact Details</DialogTitle>
-            <DialogDescription>
-              View detailed information about this contact.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedContact && (
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Name</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{`${selectedContact.first_name || ''} ${selectedContact.last_name || ''}`.trim()}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contact Type</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.contact_type || 'N/A'}</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Address</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.address || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">City</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.city || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">State/Province</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.state_province || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Postal Code</Label>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedContact.postal_code || 'N/A'}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
 
       {/* Edit Contact Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
