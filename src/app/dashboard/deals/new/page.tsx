@@ -94,7 +94,6 @@ export default function NewDealPage() {
 
     try {
       const dealData = {
-        id: `deal-${Date.now()}`,
         title: formData.title,
         amount: formData.amount ? parseFloat(formData.amount) : 0,
         stage: formData.stage,

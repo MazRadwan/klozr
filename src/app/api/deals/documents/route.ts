@@ -34,18 +34,16 @@ export async function POST(req: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Save file metadata to database
-    const documentId = `doc-${timestamp}`;
     const relativePath = `/temp/deal-documents/${filename}`;
     
     const document = {
-      id: documentId,
-      deal_id: dealId,
+      deal_id: parseInt(dealId),
       filename: filename,
       original_name: file.name,
       file_size: file.size,
       file_type: file.type,
       file_path: relativePath,
-      uploaded_by: 'current-user', // TODO: Get from session
+      uploaded_by: 1, // TODO: Get from session - using placeholder user ID
     };
 
     db.insert(deal_documents).values(document).run();
@@ -73,7 +71,7 @@ export async function GET(req: NextRequest) {
     const documents = db
       .select()
       .from(deal_documents)
-      .where(eq(deal_documents.deal_id, dealId))
+      .where(eq(deal_documents.deal_id, parseInt(dealId)))
       .all();
 
     return NextResponse.json(documents);

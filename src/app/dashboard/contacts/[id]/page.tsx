@@ -173,7 +173,7 @@ export default function ContactDetailPage() {
     try {
       // In real app, this would POST to API
       const note: Note = {
-        id: `note-${Date.now()}`,
+        id: Math.random().toString(36), // Temporary ID for UI
         content: newNote,
         created_at: new Date().toISOString(),
         author: "Current User"
@@ -183,7 +183,7 @@ export default function ContactDetailPage() {
       
       // Add activity for the note
       const activity: Activity = {
-        id: `activity-${Date.now()}`,
+        id: Math.random().toString(36), // Temporary ID for UI
         type: "note",
         description: `Added note: ${newNote.substring(0, 50)}${newNote.length > 50 ? '...' : ''}`,
         created_at: new Date().toISOString(),
