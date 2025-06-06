@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface Company {
-  id: string;
+  id: number;
   name?: string;
   industry?: string;
   website?: string;
@@ -52,12 +52,19 @@ interface Activity {
 }
 
 interface Contact {
-  id: string;
+  id: number;
   first_name?: string;
   last_name?: string;
   email?: string;
   phone?: string;
   contact_type?: string;
+  company_id?: number;
+  owner_user_id?: number;
+  address?: string;
+  city?: string;
+  state_province?: string;
+  postal_code?: string;
+  created_at?: string;
   avatar?: string;
 }
 
@@ -129,31 +136,18 @@ export default function CompanyDetailPage() {
         }
       ];
 
-      const mockContacts: Contact[] = [
-        {
-          id: 'contact-1',
-          first_name: 'Sarah',
-          last_name: 'Johnson',
-          email: 'sarah.johnson@acme.com',
-          phone: '+1 (555) 123-4567',
-          contact_type: 'CEO',
-          avatar: 'SJ'
-        },
-        {
-          id: 'contact-2',
-          first_name: 'Michael',
-          last_name: 'Chen',
-          email: 'michael.chen@acme.com',
-          phone: '+1 (555) 123-4568',
-          contact_type: 'CTO',
-          avatar: 'MC'
-        }
-      ];
+      // Fetch real contacts for this company
+      const contactsRes = await fetch(`/api/contacts?company_id=${companyId}`);
+      let realContacts: Contact[] = [];
+      if (contactsRes.ok) {
+        const allContacts = await contactsRes.json();
+        realContacts = allContacts.filter((contact: any) => contact.company_id === parseInt(companyId));
+      }
 
       setCompany(companyData);
       setNotes(mockNotes);
       setActivities(mockActivities);
-      setContacts(mockContacts);
+      setContacts(realContacts);
     } catch (error) {
       console.error('Error fetching company data:', error);
     } finally {
@@ -165,7 +159,7 @@ export default function CompanyDetailPage() {
     if (!newNote.trim()) return;
     
     const note: Note = {
-      id: `note-${Date.now()}`,
+      id: Math.random().toString(36), // Temporary ID for UI
       content: newNote,
       created_at: new Date().toISOString(),
       created_by: 'Current User'

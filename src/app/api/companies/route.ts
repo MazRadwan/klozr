@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     
     const newCompany = {
-      id: body.id || `comp-${Date.now()}`,
       ...body,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

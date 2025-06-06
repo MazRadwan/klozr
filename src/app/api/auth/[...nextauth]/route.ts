@@ -42,11 +42,11 @@ const authOptions: NextAuthConfig = {
             await db.update(users)
               .set({ password_hash: hash })
               .where(eq(users.email, email)).run?.();
-            return { id: user.id, email: user.email, name: user.username };
+            return { id: user.id.toString(), email: user.email, name: user.username };
           } else if (typeof user.password_hash === 'string' && await bcrypt.compare(password, user.password_hash)) {
             // Regular login
             console.debug('[Auth] Password match succeeded for email:', email);
-            return { id: user.id, email: user.email, name: user.username };
+            return { id: user.id.toString(), email: user.email, name: user.username };
           }
           // Password incorrect or not set
           console.warn('[Auth] authorize failed for email:', email);
@@ -54,15 +54,13 @@ const authOptions: NextAuthConfig = {
         } else {
           // No user found, create new
           const hash = await bcrypt.hash(password, 10);
-          const newId = crypto.randomUUID();
-          await db.insert(users).values({
-            id: newId,
+          const result = await db.insert(users).values({
             username: '', // Optionally prompt for username
             email,
             password_hash: hash,
             is_active: true,
-          }).run?.();
-          return { id: newId, email, name: '' };
+          }).returning({ id: users.id }).get();
+          return { id: result.id.toString(), email, name: '' };
         }
       },
     }),
@@ -100,7 +98,6 @@ const authOptions: NextAuthConfig = {
           const existing = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
           if (!existing.length) {
             await db.insert(users).values({
-              id: user.id || crypto.randomUUID(),
               username: user.name || user.email || '',
               email: user.email,
               password_hash: '', // Use empty string for federated users

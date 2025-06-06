@@ -213,7 +213,6 @@ export default function ContactsPanel() {
     try {
       const contactData = {
         ...newContact,
-        id: `contact-${Date.now()}`,
         created_at: new Date().toISOString(),
       };
 
