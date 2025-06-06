@@ -7,34 +7,37 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { 
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { 
   Plus, Eye, Edit, Trash2, Upload, Download, Search, Filter, 
-  ChevronUp, ChevronDown, DollarSign
+  ChevronUp, ChevronDown, DollarSign, MoreVertical
 } from "lucide-react";
 import Link from "next/link";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 
 interface Contact {
-  id: string;
+  id: number;
   first_name?: string;
   last_name?: string;
   email?: string;
-  company_id?: string;
+  company_id?: number;
 }
 
 interface Company {
-  id: string;
+  id: number;
   name?: string;
 }
 
 interface Offering {
-  id: string;
+  id: number;
   name?: string;
   type?: string;
 }
 
 interface Deal {
   deal: {
-    id: string;
+    id: number;
     title: string;
     amount?: number;
     stage?: string;
@@ -43,17 +46,17 @@ interface Deal {
     created_at?: string;
   };
   contact?: { 
-    id: string;
+    id: number;
     first_name?: string; 
     last_name?: string; 
     email?: string; 
   };
   company?: { 
-    id: string;
+    id: number;
     name?: string; 
   };
   offering?: { 
-    id: string;
+    id: number;
     name?: string; 
     type?: string; 
   };
@@ -409,9 +412,10 @@ export default function DealsPage() {
                       <TableRow 
                         key={deal.deal.id}
                         className={`
-                          border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors
+                          border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer
                           ${i % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-gray-25 dark:bg-gray-950/50'}
                         `}
+                        onClick={() => window.location.href = `/dashboard/deals/${deal.deal.id}`}
                       >
                         <TableCell className="py-4">
                           <div className="flex items-center">
@@ -460,34 +464,42 @@ export default function DealsPage() {
                         <TableCell className="py-4 text-sm text-gray-600 dark:text-gray-400">
                           {deal.deal.close_date ? new Date(deal.deal.close_date).toLocaleDateString() : 'TBD'}
                         </TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex items-center gap-1">
-                            <Link href={`/dashboard/deals/${deal.deal.id}`}>
+                        <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
+                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                               >
-                                <Eye className="h-4 w-4" />
+                                <MoreVertical className="h-4 w-4" />
                               </Button>
-                            </Link>
-                            <Link href={`/dashboard/deals/${deal.deal.id}/edit`}>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => window.location.href = `/dashboard/deals/${deal.deal.id}`}
                               >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => window.location.href = `/dashboard/deals/${deal.deal.id}/edit`}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  // Add delete functionality here
+                                  console.log('Delete deal:', deal.deal.id);
+                                }}
+                                className="text-red-600 dark:text-red-400"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}

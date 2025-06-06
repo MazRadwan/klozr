@@ -10,7 +10,17 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const company = db.select().from(companies).where(eq(companies.id, id)).get();
+    const companyId = parseInt(id);
+    
+    // Validate that the ID is a valid integer
+    if (isNaN(companyId)) {
+      return NextResponse.json(
+        { error: 'Invalid company ID' },
+        { status: 400 }
+      );
+    }
+    
+    const company = db.select().from(companies).where(eq(companies.id, companyId)).get();
     
     if (!company) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
@@ -30,6 +40,16 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const companyId = parseInt(id);
+    
+    // Validate that the ID is a valid integer
+    if (isNaN(companyId)) {
+      return NextResponse.json(
+        { error: 'Invalid company ID' },
+        { status: 400 }
+      );
+    }
+    
     const body = await req.json();
     
     const updatedData = {
@@ -40,7 +60,7 @@ export async function PUT(
     const result = db
       .update(companies)
       .set(updatedData)
-      .where(eq(companies.id, id))
+      .where(eq(companies.id, companyId))
       .run();
     
     if (result.changes === 0) {
@@ -48,7 +68,7 @@ export async function PUT(
     }
     
     // Return updated company
-    const updatedCompany = db.select().from(companies).where(eq(companies.id, id)).get();
+    const updatedCompany = db.select().from(companies).where(eq(companies.id, companyId)).get();
     return NextResponse.json(updatedCompany);
   } catch (error) {
     console.error('Error updating company:', error);
@@ -63,7 +83,17 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const result = db.delete(companies).where(eq(companies.id, id)).run();
+    const companyId = parseInt(id);
+    
+    // Validate that the ID is a valid integer
+    if (isNaN(companyId)) {
+      return NextResponse.json(
+        { error: 'Invalid company ID' },
+        { status: 400 }
+      );
+    }
+    
+    const result = db.delete(companies).where(eq(companies.id, companyId)).run();
     
     if (result.changes === 0) {
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });

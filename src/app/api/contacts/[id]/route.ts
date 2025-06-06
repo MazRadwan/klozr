@@ -5,7 +5,15 @@ import { eq } from 'drizzle-orm';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const contactId = params.id;
+    const contactId = parseInt(params.id);
+    
+    // Validate that the ID is a valid integer
+    if (isNaN(contactId)) {
+      return NextResponse.json(
+        { error: 'Invalid contact ID' },
+        { status: 400 }
+      );
+    }
     
     // Get contact details with company information
     const contactResult = db.select({
@@ -81,14 +89,32 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+  const contactId = parseInt(params.id);
+  
+  // Validate that the ID is a valid integer
+  if (isNaN(contactId)) {
+    return NextResponse.json(
+      { error: 'Invalid contact ID' },
+      { status: 400 }
+    );
+  }
+  
   const body = await req.json();
-  const updated = db.update(contacts).set(body).where(eq(contacts.id, id)).run();
+  const updated = db.update(contacts).set(body).where(eq(contacts.id, contactId)).run();
   return NextResponse.json(updated);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
-  const deleted = db.delete(contacts).where(eq(contacts.id, id)).run();
+  const contactId = parseInt(params.id);
+  
+  // Validate that the ID is a valid integer
+  if (isNaN(contactId)) {
+    return NextResponse.json(
+      { error: 'Invalid contact ID' },
+      { status: 400 }
+    );
+  }
+  
+  const deleted = db.delete(contacts).where(eq(contacts.id, contactId)).run();
   return NextResponse.json(deleted);
 }

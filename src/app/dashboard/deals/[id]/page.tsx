@@ -15,7 +15,7 @@ import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 interface Contact {
-  id: string;
+  id: number;
   first_name?: string;
   last_name?: string;
   email?: string;
@@ -27,7 +27,7 @@ interface Contact {
 }
 
 interface Company {
-  id: string;
+  id: number;
   name?: string;
   website?: string;
   address?: string;
@@ -38,7 +38,7 @@ interface Company {
 }
 
 interface Offering {
-  id: string;
+  id: number;
   name?: string;
   type?: string;
   description?: string;
@@ -47,7 +47,7 @@ interface Offering {
 
 interface Deal {
   deal: {
-    id: string;
+    id: number;
     title: string;
     amount?: number;
     stage?: string;
