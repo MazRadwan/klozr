@@ -1,4 +1,7 @@
 import NextAuth from 'next-auth';
+import type { NextAuthConfig, User, Account, Profile } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
+import type { Session } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
@@ -7,8 +10,8 @@ import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { compare } from 'bcryptjs';
 
-// NextAuth v5 with App Router requires this specific auth config pattern
-export const { handlers, auth, signIn, signOut } = NextAuth({
+// NextAuth v5 with App Router configuration
+const authOptions: NextAuthConfig = {
   debug: true,
   logger: {
     error: console.error,
@@ -76,34 +79,64 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET || 'my-temporary-secret-for-development',
   theme: { colorScheme: 'auto' },
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
-  try {
-    console.debug('[Auth] signIn callback', { user, account, profile, email, credentials });
-    // Insert federated users (Google/GitHub) into users table if not already present
-    if ((account?.provider === 'google' || account?.provider === 'github') && user?.email) {
-      // Check if the user already exists
-      const existing = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
-      if (!existing.length) {
-        await db.insert(users).values({
-          id: user.id || crypto.randomUUID(),
-          username: user.name || user.email || '',
-          email: user.email,
-          password_hash: '', // Use empty string for federated users
-          is_active: true,
-        }).run?.(); // .run() for drizzle-orm, but safe if not present
+    async signIn({ 
+      user, 
+      account, 
+      profile, 
+      email, 
+      credentials 
+    }: {
+      user: User;
+      account: Account | null;
+      profile?: Profile;
+      email?: { verificationRequest?: boolean };
+      credentials?: Record<string, any>;
+    }) {
+      try {
+        console.debug('[Auth] signIn callback', { user, account, profile, email, credentials });
+        // Insert federated users (Google/GitHub) into users table if not already present
+        if ((account?.provider === 'google' || account?.provider === 'github') && user?.email) {
+          // Check if the user already exists
+          const existing = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
+          if (!existing.length) {
+            await db.insert(users).values({
+              id: user.id || crypto.randomUUID(),
+              username: user.name || user.email || '',
+              email: user.email,
+              password_hash: '', // Use empty string for federated users
+              is_active: true,
+            }).run?.(); // .run() for drizzle-orm, but safe if not present
+          }
+        }
+        return true;
+      } catch (e) {
+        console.error('[Auth] signIn error:', e);
+        return false;
       }
-    }
-    return true;
-  } catch (e) {
-    console.error('[Auth] signIn error:', e);
-    return false;
-  }
-},
-    async jwt({ token, user, account, profile, isNewUser }) {
+    },
+    async jwt({ 
+      token, 
+      user, 
+      account, 
+      profile, 
+      isNewUser 
+    }: {
+      token: JWT;
+      user?: User;
+      account?: Account | null;
+      profile?: Profile;
+      isNewUser?: boolean;
+    }) {
       console.debug('[Auth] jwt callback', { token, user, account, profile, isNewUser });
       return token;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ 
+      url, 
+      baseUrl 
+    }: {
+      url: string;
+      baseUrl: string;
+    }) {
       console.debug('[Auth] redirect callback', { url, baseUrl });
       // If the user is logging out, redirect to home page
       if (url === `${baseUrl}/api/auth/signout` || url === `${baseUrl}/api/auth/signout?callbackUrl=%2F`) {
@@ -112,13 +145,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Otherwise, redirect to dashboard after login
       return `${baseUrl}/dashboard`;
     },
-    async session({ session, token }) {
+    async session({ 
+      session, 
+      token 
+    }: {
+      session: Session;
+      token: JWT;
+    }) {
       console.debug('[Auth] session callback', { session, token });
-      session.user.id = token.sub ?? "";
+      if (session.user) {
+        session.user.id = token.sub ?? "";
+      }
       return session;
     },
   },
-});
+};
+
+// Create NextAuth instance
+const nextAuth = NextAuth(authOptions);
+
+// Export the auth configuration
+export const { handlers, auth, signIn, signOut } = nextAuth;
 
 // The correct export for NextAuth v5 in App Router
 export const GET = handlers.GET;

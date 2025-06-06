@@ -81,23 +81,10 @@ export default function CompanyDetailPage() {
   const fetchCompanyData = async () => {
     setLoading(true);
     try {
-      // Mock data - in real app these would be API calls
-      const mockCompany: Company = {
-        id: companyId,
-        name: 'Acme Corporation',
-        industry: 'Technology',
-        website: 'acme.com',
-        phone: '+1 (555) 123-4567',
-        email: 'contact@acme.com',
-        address: '123 Innovation Drive',
-        city: 'San Francisco',
-        state: 'CA',
-        employees: 1500,
-        revenue: '$50M',
-        founded: '2010',
-        description: 'Leading technology company specializing in innovative software solutions for enterprise clients.',
-        created_at: '2023-01-15'
-      };
+      // Fetch company data from API
+      const res = await fetch(`/api/companies/${companyId}`);
+      if (!res.ok) throw new Error('Failed to fetch company');
+      const companyData = await res.json();
 
       const mockNotes: Note[] = [
         {
@@ -162,7 +149,7 @@ export default function CompanyDetailPage() {
         }
       ];
 
-      setCompany(mockCompany);
+      setCompany(companyData);
       setNotes(mockNotes);
       setActivities(mockActivities);
       setContacts(mockContacts);

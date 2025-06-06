@@ -26,6 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
+import { CompanyEditModal } from '@/components/companies/CompanyEditModal';
 
 interface Company {
   id: string;
@@ -39,6 +40,8 @@ interface Company {
   state?: string;
   employees?: number;
   revenue?: string;
+  founded?: string;
+  description?: string;
   created_at?: string;
   [key: string]: any;
 }
@@ -59,59 +62,24 @@ export default function CompaniesPage() {
   // Selection state
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  
+  // Modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
   }, []);
 
-  // Mock companies data
+  // Fetch companies from database
   async function fetchCompanies() {
     setLoading(true);
     try {
-      // Mock data - in real app this would be an API call
-      const mockCompanies: Company[] = [
-        {
-          id: 'company-1',
-          name: 'Acme Corporation',
-          industry: 'Technology',
-          website: 'acme.com',
-          phone: '+1 (555) 123-4567',
-          email: 'contact@acme.com',
-          city: 'San Francisco',
-          state: 'CA',
-          employees: 1500,
-          revenue: '$50M',
-          created_at: '2023-01-15'
-        },
-        {
-          id: 'company-2',
-          name: 'Global Solutions Inc',
-          industry: 'Consulting',
-          website: 'globalsolutions.com',
-          phone: '+1 (555) 987-6543',
-          email: 'info@globalsolutions.com',
-          city: 'New York',
-          state: 'NY',
-          employees: 850,
-          revenue: '$25M',
-          created_at: '2023-02-20'
-        },
-        {
-          id: 'company-3',
-          name: 'TechFlow Dynamics',
-          industry: 'Software',
-          website: 'techflow.io',
-          phone: '+1 (555) 456-7890',
-          email: 'hello@techflow.io',
-          city: 'Austin',
-          state: 'TX',
-          employees: 320,
-          revenue: '$12M',
-          created_at: '2023-03-10'
-        }
-      ];
-      
-      setCompanies(mockCompanies);
+      const res = await fetch("/api/companies");
+      if (!res.ok) throw new Error("Failed to fetch companies");
+      const data = await res.json();
+      setCompanies(data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -121,6 +89,58 @@ export default function CompaniesPage() {
 
   const handleCompanyClick = (companyId: string) => {
     router.push(`/dashboard/companies/${companyId}`);
+  };
+
+  const handleAddCompany = () => {
+    setSelectedCompany(null);
+    setIsEditing(false);
+    setEditModalOpen(true);
+  };
+
+  const handleEditCompany = (company: Company) => {
+    setSelectedCompany(company);
+    setIsEditing(true);
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteCompany = async (companyId: string) => {
+    try {
+      const res = await fetch(`/api/companies/${companyId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete company');
+      
+      await fetchCompanies(); // Refresh the list
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  const handleSaveCompany = async (companyData: any) => {
+    try {
+      if (isEditing && selectedCompany) {
+        // Update existing company
+        const res = await fetch(`/api/companies/${selectedCompany.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(companyData),
+        });
+        if (!res.ok) throw new Error('Failed to update company');
+      } else {
+        // Create new company
+        const res = await fetch('/api/companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(companyData),
+        });
+        if (!res.ok) throw new Error('Failed to create company');
+      }
+      
+      await fetchCompanies(); // Refresh the list
+    } catch (e: any) {
+      setError(e.message);
+      throw e; // Re-throw to let the modal handle the error
+    }
   };
 
   // Handle individual company selection
@@ -273,7 +293,11 @@ export default function CompaniesPage() {
               <span className="hidden sm:inline">Export</span>
             </Button>
           </div>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-xs md:text-sm">
+          <Button 
+            size="sm" 
+            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-xs md:text-sm"
+            onClick={handleAddCompany}
+          >
             <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
             Add Company
           </Button>
@@ -472,11 +496,14 @@ export default function CompaniesPage() {
                       <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditCompany(company)}>
                           <User className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600 dark:text-red-400">
+                        <DropdownMenuItem 
+                          className="text-red-600 dark:text-red-400"
+                          onClick={() => handleDeleteCompany(company.id)}
+                        >
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -538,11 +565,14 @@ export default function CompaniesPage() {
                   <DropdownMenuContent align="end" className="w-32">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditCompany(company)}>
                       <User className="h-4 w-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600 dark:text-red-400">
+                    <DropdownMenuItem 
+                      className="text-red-600 dark:text-red-400"
+                      onClick={() => handleDeleteCompany(company.id)}
+                    >
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -604,13 +634,25 @@ export default function CompaniesPage() {
             <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
               {searchTerm ? 'Try adjusting your search or filters.' : 'Get started by adding your first company.'}
             </p>
-            <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              onClick={handleAddCompany}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Company
             </Button>
           </CardContent>
         </Card>
       )}
+
+      {/* Company Edit Modal */}
+      <CompanyEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onSave={handleSaveCompany}
+        company={selectedCompany}
+        isEditing={isEditing}
+      />
     </div>
   );
 } 
