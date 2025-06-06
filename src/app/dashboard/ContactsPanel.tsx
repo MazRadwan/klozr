@@ -403,9 +403,17 @@ export default function ContactsPanel() {
           <span className="text-gray-400">—</span>
         );
       case 'city':
-        return contact.city || <span className="text-gray-400">—</span>;
+        return contact.city ? (
+          <span className="text-gray-900 dark:text-gray-100">{contact.city}</span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
       case 'state_province':
-        return contact.state_province || <span className="text-gray-400">—</span>;
+        return contact.state_province ? (
+          <span className="text-gray-900 dark:text-gray-100">{contact.state_province}</span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
       case 'created_at':
         return <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(contact.created_at)}</span>;
       default:
