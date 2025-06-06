@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTheme } from 'next-themes';
-import { Moon, Sun, PanelLeft, PanelLeftClose, BarChart3, Users, Handshake, Wallet, Settings, Menu, Building2 } from 'lucide-react';
+import { Moon, Sun, PanelLeft, PanelLeftClose, BarChart3, Users, Handshake, Wallet, Settings, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -127,10 +127,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <a href="/dashboard/contacts" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors text-white/80 hover:text-white">
             <Users size={20} />
             <span>Contacts</span>
-          </a>
-          <a href="/dashboard/companies" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors text-white/80 hover:text-white">
-            <Building2 size={20} />
-            <span>Companies</span>
           </a>
           <a href="/dashboard/deals" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors text-white/80 hover:text-white">
             <Handshake size={20} />
