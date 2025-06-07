@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +11,11 @@ import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { ClientDashboardLayout } from '@/components/layout/ClientDashboardLayout';
 import { ContactPicker } from '@/components/contacts/ContactPicker';
 import { NewContactModal } from '@/components/contacts/NewContactModal';
+import { CompanyDealPicker } from '@/components/deals/CompanyDealPicker';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
-  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal
+  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink
 } from 'lucide-react';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -79,12 +81,16 @@ export default function CompanyDetailPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
   
   // Modal states
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [newContactModalOpen, setNewContactModalOpen] = useState(false);
+  
+  // Edit states
+  const [isEditingDeals, setIsEditingDeals] = useState(false);
 
   useEffect(() => {
     if (companyId) {
@@ -149,10 +155,18 @@ export default function CompanyDetailPage() {
         realContacts = await contactsRes.json();
       }
 
+      // Fetch real deals for this company
+      const dealsRes = await fetch(`/api/deals?company_id=${companyId}`);
+      let realDeals: any[] = [];
+      if (dealsRes.ok) {
+        realDeals = await dealsRes.json();
+      }
+
       setCompany(companyData);
       setNotes(mockNotes);
       setActivities(mockActivities);
       setContacts(realContacts);
+      setDeals(realDeals);
     } catch (error) {
       console.error('Error fetching company data:', error);
     } finally {
@@ -185,6 +199,14 @@ export default function CompanyDetailPage() {
 
   const handleContactsUpdate = () => {
     fetchCompanyData();
+  };
+
+  const handleDealsUpdate = () => {
+    fetchCompanyData();
+  };
+
+  const handleCancelDealsEdit = () => {
+    setIsEditingDeals(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -221,6 +243,21 @@ export default function CompanyDetailPage() {
       'Finance': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
     };
     return colors[industry || ''] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+  };
+
+  const formatCurrency = (amount?: number) => 
+    amount ? `$${amount.toLocaleString()}` : '$0';
+
+  const getStageColor = (stage?: string) => {
+    const colors = {
+      'Prospecting': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+      'Qualification': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+      'Proposal': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+      'Negotiation': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+      'Closed Won': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+      'Closed Lost': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    };
+    return colors[stage as keyof typeof colors] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
   };
 
   const breadcrumbItems = [
@@ -507,6 +544,115 @@ export default function CompanyDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Related Deals */}
+          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Related Deals ({deals.length})
+                </div>
+              </CardTitle>
+              {!isEditingDeals && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingDeals(true)}
+                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Manage
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {isEditingDeals ? (
+                /* Edit Mode - Show Deal Management */
+                <div className="space-y-4">
+                  <CompanyDealPicker
+                    companyId={parseInt(companyId)}
+                    companyName={company?.name || 'Company'}
+                    currentDeals={deals.map(d => ({
+                      id: d.deal.id,
+                      title: d.deal.title,
+                      amount: d.deal.amount,
+                      stage: d.deal.stage,
+                      close_date: d.deal.close_date,
+                      created_at: d.deal.created_at,
+                      contact: d.contact ? {
+                        id: d.contact.id,
+                        first_name: d.contact.first_name,
+                        last_name: d.contact.last_name,
+                        email: d.contact.email
+                      } : undefined
+                    }))}
+                    onDealsUpdate={handleDealsUpdate}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelDealsEdit}
+                      className="text-gray-600 dark:text-gray-400"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* Read-Only Mode - Show Deal List */
+                deals.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <DollarSign className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p className="text-sm">No deals associated with this company yet.</p>
+                    <p className="text-xs mt-1">Click "Manage" to add existing deals or create new ones.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {deals.map((dealItem) => (
+                      <div
+                        key={dealItem.deal.id}
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <Link
+                              href={`/dashboard/deals/${dealItem.deal.id}`}
+                              className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-2"
+                            >
+                              {dealItem.deal.title}
+                              <ExternalLink className="h-4 w-4" />
+                            </Link>
+                            <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Amount: <span className="font-medium text-gray-900 dark:text-gray-100">
+                                  {formatCurrency(dealItem.deal.amount)}
+                                </span>
+                              </span>
+                              <Badge variant="secondary" className={`${getStageColor(dealItem.deal.stage)} transition-all duration-200 cursor-default`}>
+                                {dealItem.deal.stage || 'Unknown'}
+                              </Badge>
+                              {dealItem.deal.close_date && (
+                                <span className="text-gray-600 dark:text-gray-400">
+                                  Close: {new Date(dealItem.deal.close_date).toLocaleDateString()}
+                                </span>
+                              )}
+                              {dealItem.contact && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                  Contact: {dealItem.contact.first_name} {dealItem.contact.last_name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+            </CardContent>
+          </Card>
+
           {/* Notes Section */}
           <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
             <CardHeader>
@@ -574,9 +720,14 @@ export default function CompanyDetailPage() {
                 <Video className="h-4 w-4 mr-2" />
                 Schedule Meeting
               </Button>
-              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
-                <FileText className="h-4 w-4 mr-2" />
-                Create Deal
+              <Button 
+                variant="outline" 
+                className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" 
+                size="sm"
+                onClick={() => setIsEditingDeals(true)}
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                Manage Deals
               </Button>
             </CardContent>
           </Card>
