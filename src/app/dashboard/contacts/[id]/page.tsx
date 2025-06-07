@@ -16,10 +16,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { CompanyPicker } from "@/components/companies/CompanyPicker";
+import { DealPicker } from "@/components/deals/DealPicker";
 
 interface Contact {
   contact: {
-    id: string;
+    id: number;
     first_name?: string;
     last_name?: string;
     email?: string;
@@ -44,7 +45,7 @@ interface Contact {
   };
   relatedDeals: Array<{
     deal: {
-      id: string;
+      id: number;
       title: string;
       amount?: number;
       stage?: string;
@@ -52,7 +53,7 @@ interface Contact {
       created_at?: string;
     };
     company?: {
-      id: string;
+      id: number;
       name?: string;
     };
   }>;
@@ -84,33 +85,33 @@ export default function ContactDetailPage() {
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
+  const [isEditingDeals, setIsEditingDeals] = useState(false);
 
   const contactId = params.id as string;
 
   useEffect(() => {
     if (contactId) {
-      fetchContact();
+      fetchContactData();
       fetchNotes();
       fetchActivities();
     }
   }, [contactId]);
 
-  const fetchContact = async () => {
+  const fetchContactData = async () => {
+    if (!contactId) return;
+    
+    setLoading(true);
     try {
-      const res = await fetch(`/api/contacts/${contactId}`);
-      if (!res.ok) {
-        if (res.status === 404) {
-          setError("Contact not found");
-        } else {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        return;
+      const response = await fetch(`/api/contacts/${contactId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setContact(data);
+        setIsEditingDeals(false);
+      } else {
+        console.error('Failed to fetch contact');
       }
-      const data = await res.json();
-      setContact(data);
     } catch (error) {
-      console.error("Failed to fetch contact:", error);
-      setError("Failed to load contact");
+      console.error('Error fetching contact:', error);
     } finally {
       setLoading(false);
     }
@@ -214,6 +215,14 @@ export default function ContactDetailPage() {
 
   const handleCancelCompanyEdit = () => {
     setIsEditingCompany(false);
+  };
+
+  const handleDealsUpdate = async () => {
+    await fetchContactData();
+  };
+
+  const handleCancelDealsEdit = () => {
+    setIsEditingDeals(false);
   };
 
   const formatCurrency = (amount?: number) => 
@@ -546,64 +555,101 @@ export default function ContactDetailPage() {
                     <DollarSign className="h-5 w-5" />
                     Related Deals ({contact.relatedDeals.length})
                   </div>
-                  <Link href={`/dashboard/deals/new?contact_id=${contact.contact.id}`}>
-                    <Button size="sm" variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Deal
+                  {!isEditingDeals && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditingDeals(true)}
+                      className="text-gray-600 dark:text-gray-400"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Manage
                     </Button>
-                  </Link>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {contact.relatedDeals.length === 0 ? (
-                  <div className="text-center py-8">
-                    <DollarSign className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">
-                      No deals associated with this contact yet.
-                    </p>
-                    <Link href={`/dashboard/deals/new?contact_id=${contact.contact.id}`}>
-                      <Button className="mt-4" size="sm">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create First Deal
+                {isEditingDeals ? (
+                  /* Edit Mode - Show Deal Management */
+                  <div className="space-y-4">
+                    <DealPicker
+                      contactId={parseInt(contactId)}
+                      currentDeals={contact.relatedDeals.map(d => ({
+                        id: d.deal.id,
+                        title: d.deal.title,
+                        amount: d.deal.amount,
+                        stage: d.deal.stage,
+                        close_date: d.deal.close_date,
+                        created_at: d.deal.created_at,
+                        company: d.company ? {
+                          id: d.company.id,
+                          name: d.company.name
+                        } : undefined
+                      }))}
+                      onDealsUpdate={handleDealsUpdate}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelDealsEdit}
+                        className="text-gray-600 dark:text-gray-400"
+                      >
+                        Cancel
                       </Button>
-                    </Link>
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {contact.relatedDeals.map((dealItem) => (
-                      <div
-                        key={dealItem.deal.id}
-                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <Link
-                              href={`/dashboard/deals/${dealItem.deal.id}`}
-                              className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-2"
-                            >
-                              {dealItem.deal.title}
-                              <ExternalLink className="h-4 w-4" />
-                            </Link>
-                            <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">
-                                Amount: <span className="font-medium text-gray-900 dark:text-gray-100">
-                                  {formatCurrency(dealItem.deal.amount)}
-                                </span>
-                              </span>
-                              <Badge variant="secondary" className={`${getStageColor(dealItem.deal.stage)} transition-all duration-200 cursor-default`}>
-                                {dealItem.deal.stage || 'Unknown'}
-                              </Badge>
-                              {dealItem.deal.close_date && (
+                  /* Read-Only Mode - Show Deal List */
+                  contact.relatedDeals.length === 0 ? (
+                    <div className="text-center py-8">
+                      <DollarSign className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
+                      <p className="mt-2 text-gray-600 dark:text-gray-400">
+                        No deals associated with this contact yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {contact.relatedDeals.map((dealItem) => (
+                        <div
+                          key={dealItem.deal.id}
+                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <Link
+                                href={`/dashboard/deals/${dealItem.deal.id}`}
+                                className="text-lg font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-2"
+                              >
+                                {dealItem.deal.title}
+                                <ExternalLink className="h-4 w-4" />
+                              </Link>
+                              <div className="mt-2 flex flex-wrap items-center gap-4 text-sm">
                                 <span className="text-gray-600 dark:text-gray-400">
-                                  Close: {new Date(dealItem.deal.close_date).toLocaleDateString()}
+                                  Amount: <span className="font-medium text-gray-900 dark:text-gray-100">
+                                    {formatCurrency(dealItem.deal.amount)}
+                                  </span>
                                 </span>
-                              )}
+                                <Badge variant="secondary" className={`${getStageColor(dealItem.deal.stage)} transition-all duration-200 cursor-default`}>
+                                  {dealItem.deal.stage || 'Unknown'}
+                                </Badge>
+                                {dealItem.deal.close_date && (
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    Close: {new Date(dealItem.deal.close_date).toLocaleDateString()}
+                                  </span>
+                                )}
+                                {dealItem.company && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {dealItem.company.name}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )
                 )}
               </CardContent>
             </Card>
@@ -809,12 +855,6 @@ export default function ContactDetailPage() {
                 <CardTitle className="text-gray-900 dark:text-gray-100">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Link href={`/dashboard/deals/new?contact_id=${contact.contact.id}`}>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Create Deal
-                  </Button>
-                </Link>
                 <Button
                   variant="outline"
                   className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -828,6 +868,14 @@ export default function ContactDetailPage() {
                 >
                   <Phone className="h-4 w-4 mr-2" />
                   Schedule Call
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  onClick={() => setIsEditingDeals(true)}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Manage Deals
                 </Button>
               </CardContent>
             </Card>
