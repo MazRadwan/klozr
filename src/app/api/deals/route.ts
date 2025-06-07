@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { deals, contacts, companies, offerings } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
+import { eq, like, or } from 'drizzle-orm';
 import { z } from 'zod';
 
 export async function GET(req: NextRequest) {
   try {
-    // Fetch all deals with related data using joins
-    const allDeals = db
+    const { searchParams } = new URL(req.url);
+    const searchQuery = searchParams.get('q');
+
+    // Base query setup
+    const baseQuery = db
       .select({
         deal: deals,
         contact: {
@@ -44,7 +47,17 @@ export async function GET(req: NextRequest) {
       .leftJoin(companies, eq(deals.company_id, companies.id))
       .leftJoin(offerings, eq(deals.offering_id, offerings.id));
 
-    const result = allDeals.all();
+    // Execute query with or without search filter
+    const result = searchQuery 
+      ? baseQuery.where(
+          or(
+            like(deals.title, `%${searchQuery}%`),
+            like(companies.name, `%${searchQuery}%`),
+            like(deals.deal_notes, `%${searchQuery}%`)
+          )
+        ).all()
+      : baseQuery.all();
+
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching deals:', error);
