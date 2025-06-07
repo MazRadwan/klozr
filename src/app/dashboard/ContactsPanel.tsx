@@ -346,13 +346,19 @@ export default function ContactsPanel() {
 
   const getContactTypeColor = (type?: string) => {
     const colors: { [key: string]: string } = {
-      'Decision Maker': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400',
-      'Technical Lead': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-      'CEO': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400',
-      'VP of Operations': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
-      'CTO': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400',
+      'Decision Maker': 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 hover:border-emerald-300 dark:hover:border-emerald-700',
+      'Technical Lead': 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700',
+      'CEO': 'bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30 border-purple-200 dark:border-purple-800 hover:border-purple-300 dark:hover:border-purple-700',
+      'VP of Operations': 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30 border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700',
+      'CTO': 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 hover:border-indigo-300 dark:hover:border-indigo-700',
+      'Chief Information Officer': 'bg-cyan-100 text-cyan-800 hover:bg-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-400 dark:hover:bg-cyan-900/30 border-cyan-200 dark:border-cyan-800 hover:border-cyan-300 dark:hover:border-cyan-700',
+      'Chief Medical Officer': 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700',
+      'Managing Partner': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700',
+      'IT Director': 'bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-slate-900/20 dark:text-slate-400 dark:hover:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700',
+      'Business Development Director': 'bg-pink-100 text-pink-800 hover:bg-pink-200 dark:bg-pink-900/20 dark:text-pink-400 dark:hover:bg-pink-900/30 border-pink-200 dark:border-pink-800 hover:border-pink-300 dark:hover:border-pink-700',
+      'VP of Technology': 'bg-violet-100 text-violet-800 hover:bg-violet-200 dark:bg-violet-900/20 dark:text-violet-400 dark:hover:bg-violet-900/30 border-violet-200 dark:border-violet-800 hover:border-violet-300 dark:hover:border-violet-700',
     };
-    return colors[type || ''] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    return colors[type || ''] || 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600';
   };
 
   const renderCellContent = (contact: Contact, columnKey: string) => {
@@ -396,16 +402,24 @@ export default function ContactsPanel() {
          );
       case 'contact_type':
         return contact.contact_type ? (
-          <Badge className={getContactTypeColor(contact.contact_type)}>
+          <Badge className={`${getContactTypeColor(contact.contact_type)} transition-all duration-200 cursor-default`}>
             {contact.contact_type}
           </Badge>
         ) : (
           <span className="text-gray-400">—</span>
         );
       case 'city':
-        return contact.city || <span className="text-gray-400">—</span>;
+        return contact.city ? (
+          <span className="text-gray-900 dark:text-gray-100">{contact.city}</span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
       case 'state_province':
-        return contact.state_province || <span className="text-gray-400">—</span>;
+        return contact.state_province ? (
+          <span className="text-gray-900 dark:text-gray-100">{contact.state_province}</span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
       case 'created_at':
         return <span className="text-sm text-gray-600 dark:text-gray-400">{formatDate(contact.created_at)}</span>;
       default:
@@ -718,7 +732,7 @@ export default function ContactsPanel() {
                               {`${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unnamed Contact'}
                             </h3>
                             {contact.contact_type && (
-                              <Badge className={`${getContactTypeColor(contact.contact_type)} text-xs`}>
+                              <Badge className={`${getContactTypeColor(contact.contact_type)} text-xs transition-all duration-200 cursor-default`}>
                                 {contact.contact_type}
                               </Badge>
                             )}

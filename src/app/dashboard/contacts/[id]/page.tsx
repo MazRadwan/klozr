@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
+import { CompanyPicker } from "@/components/companies/CompanyPicker";
 
 interface Contact {
   contact: {
@@ -31,7 +32,7 @@ interface Contact {
     created_at?: string;
   };
   company?: {
-    id: string;
+    id: number;
     name?: string;
     address?: string;
     city?: string;
@@ -39,6 +40,7 @@ interface Contact {
     country?: string;
     phone?: string;
     website?: string;
+    email?: string;
   };
   relatedDeals: Array<{
     deal: {
@@ -81,6 +83,7 @@ export default function ContactDetailPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [newNote, setNewNote] = useState("");
   const [addingNote, setAddingNote] = useState(false);
+  const [isEditingCompany, setIsEditingCompany] = useState(false);
 
   const contactId = params.id as string;
 
@@ -197,19 +200,35 @@ export default function ContactDetailPage() {
     }
   };
 
+  const handleCompanyChange = (newCompany: any) => {
+    setContact(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        company: newCompany
+      };
+    });
+    // Auto-exit edit mode after successful company assignment/removal
+    setIsEditingCompany(false);
+  };
+
+  const handleCancelCompanyEdit = () => {
+    setIsEditingCompany(false);
+  };
+
   const formatCurrency = (amount?: number) => 
     amount ? `$${amount.toLocaleString()}` : '$0';
 
   const getStageColor = (stage?: string) => {
     const colors = {
-      'Prospecting': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-      'Qualification': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-      'Proposal': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400',
-      'Negotiation': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
-      'Closed Won': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      'Closed Lost': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+      'Prospecting': 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700',
+      'Qualification': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700',
+      'Proposal': 'bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30 border-purple-200 dark:border-purple-800 hover:border-purple-300 dark:hover:border-purple-700',
+      'Negotiation': 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30 border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700',
+      'Closed Won': 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700',
+      'Closed Lost': 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700',
     };
-    return colors[stage as keyof typeof colors] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    return colors[stage as keyof typeof colors] || 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600';
   };
 
   const getActivityIcon = (type: string) => {
@@ -479,7 +498,7 @@ export default function ContactDetailPage() {
                     placeholder="Add a note about this contact..."
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
-                    className="min-h-[100px] bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600"
+                    className="min-h-[100px] bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                   />
                   <Button 
                     onClick={addNote} 
@@ -571,7 +590,7 @@ export default function ContactDetailPage() {
                                   {formatCurrency(dealItem.deal.amount)}
                                 </span>
                               </span>
-                              <Badge variant="secondary" className={getStageColor(dealItem.deal.stage)}>
+                              <Badge variant="secondary" className={`${getStageColor(dealItem.deal.stage)} transition-all duration-200 cursor-default`}>
                                 {dealItem.deal.stage || 'Unknown'}
                               </Badge>
                               {dealItem.deal.close_date && (
@@ -593,114 +612,144 @@ export default function ContactDetailPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Company Information */}
-            {contact.company ? (
-              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between text-gray-900 dark:text-gray-100">
+                  <div className="flex items-center gap-2">
                     <Building2 className="h-5 w-5" />
                     Company
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
-                      {contact.company.name?.substring(0, 2).toUpperCase() || 'CO'}
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                        {contact.company.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Company</p>
+                  </div>
+                  {!isEditingCompany && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditingCompany(true)}
+                      className="text-gray-600 dark:text-gray-400"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isEditingCompany ? (
+                  /* Edit Mode - Show Company Management */
+                  <div className="space-y-4">
+                    <CompanyPicker
+                      contactId={parseInt(contactId)}
+                      currentCompany={contact.company || null}
+                      onCompanyChange={handleCompanyChange}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelCompanyEdit}
+                        className="text-gray-600 dark:text-gray-400"
+                      >
+                        Cancel
+                      </Button>
                     </div>
                   </div>
-                  
-                  <Separator className="bg-gray-200 dark:bg-gray-700" />
-                  
-                  <div className="space-y-3">
-                    {contact.company.website && (
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                          Website
-                        </label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Globe className="h-4 w-4 text-gray-400" />
-                          <a
-                            href={contact.company.website.startsWith('http') ? contact.company.website : `https://${contact.company.website}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
-                          >
-                            {contact.company.website}
-                          </a>
+                ) : (
+                  /* Read-Only Mode - Show Company Info */
+                  contact.company ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
+                          {contact.company.name?.substring(0, 2).toUpperCase() || 'CO'}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                            {contact.company.name || 'Unnamed Company'}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Company</p>
                         </div>
                       </div>
-                    )}
-                    
-                    {contact.company.phone && (
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                          Phone
-                        </label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <a 
-                            href={`tel:${contact.company.phone}`}
-                            className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                          >
-                            {contact.company.phone}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {companyFullAddress && (
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                          Address
-                        </label>
-                        <div className="flex items-start gap-2 mt-1">
-                          <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                          <p className="text-gray-900 dark:text-gray-100 text-sm">
-                            {companyFullAddress}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <Separator className="bg-gray-200 dark:bg-gray-700" />
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    onClick={() => contact.company && window.open(`/dashboard/companies/${contact.company.id}`, '_blank')}
-                  >
-                    <Building2 className="h-4 w-4 mr-2" />
-                    View Company Details
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                    <Building2 className="h-5 w-5" />
-                    Company
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center py-6">
-                  <Building2 className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
-                  <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                    No company associated
-                  </p>
-                  <Button variant="outline" size="sm" className="mt-3">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Link Company
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                      
+                      {(contact.company.website || contact.company.phone || companyFullAddress) && (
+                        <>
+                          <Separator className="bg-gray-200 dark:bg-gray-700" />
+                          
+                          <div className="space-y-3">
+                            {contact.company.website && (
+                              <div>
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                  Website
+                                </label>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Globe className="h-4 w-4 text-gray-400" />
+                                  <a
+                                    href={contact.company.website.startsWith('http') ? contact.company.website : `https://${contact.company.website}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
+                                  >
+                                    {contact.company.website}
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {contact.company.phone && (
+                              <div>
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                  Phone
+                                </label>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Phone className="h-4 w-4 text-gray-400" />
+                                  <a 
+                                    href={`tel:${contact.company.phone}`}
+                                    className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                                  >
+                                    {contact.company.phone}
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {companyFullAddress && (
+                              <div>
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                  Address
+                                </label>
+                                <div className="flex items-start gap-2 mt-1">
+                                  <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                                  <p className="text-gray-900 dark:text-gray-100 text-sm">
+                                    {companyFullAddress}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      
+                      <Separator className="bg-gray-200 dark:bg-gray-700" />
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        onClick={() => contact.company && window.open(`/dashboard/companies/${contact.company.id}`, '_blank')}
+                      >
+                        <Building2 className="h-4 w-4 mr-2" />
+                        View Company Details
+                      </Button>
+                    </div>
+                  ) : (
+                    /* No Company Assigned */
+                    <div className="text-center py-6">
+                      <Building2 className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
+                      <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                        No company associated with this contact
+                      </p>
+                    </div>
+                  )
+                )}
+              </CardContent>
+            </Card>
 
             {/* Activity Timeline */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">

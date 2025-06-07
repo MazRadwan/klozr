@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
 
 // 1. Offerings catalogue
 export const offerings = sqliteTable('offerings', {
@@ -7,7 +8,7 @@ export const offerings = sqliteTable('offerings', {
   description: text('description'),
   type: text('type'),
   price: real('price'),
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });
 
@@ -27,7 +28,7 @@ export const companies = sqliteTable('companies', {
   employees: integer('employees'),
   revenue: text('revenue'),
   founded: text('founded'),
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });
 
@@ -39,7 +40,7 @@ export const users = sqliteTable('users', {
   password_hash: text('password_hash').notNull(),
   role: text('role'),
   azure_ad_id: text('azure_ad_id'),
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
   is_active: integer('is_active', { mode: 'boolean' }).default(true),
 });
@@ -52,7 +53,7 @@ export const sales_reps = sqliteTable('sales_reps', {
   region: text('region'),
   hire_date: text('hire_date'),
   is_active: integer('is_active', { mode: 'boolean' }).default(true),
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });
 
@@ -70,7 +71,7 @@ export const contacts = sqliteTable('contacts', {
   city: text('city'),
   state_province: text('state_province'),
   postal_code: text('postal_code'),
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });
 
@@ -86,7 +87,7 @@ export const deals = sqliteTable('deals', {
   sales_rep_id: integer('sales_rep_id'),
   offering_id: integer('offering_id'), // Link to products/services
   deal_notes: text('deal_notes'), // Deal notes field
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });
 
@@ -100,7 +101,7 @@ export const deal_documents = sqliteTable('deal_documents', {
   file_type: text('file_type'),
   file_path: text('file_path').notNull(),
   uploaded_by: integer('uploaded_by'),
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
 });
 
 // 7. Communications / touchpoints
@@ -113,7 +114,7 @@ export const communications = sqliteTable('communications', {
   body: text('body'),
   communication_type: text('communication_type'),
   timestamp: text('timestamp'),
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });
 
@@ -124,7 +125,7 @@ export const deal_offerings = sqliteTable('deal_offerings', {
   offering_id: integer('offering_id').notNull(),
   quantity: integer('quantity').default(1),
   price: real('price'),
-  created_at: text('created_at', { mode: 'text' }).default("(datetime('now'))"),
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 },
   (table) => ({
