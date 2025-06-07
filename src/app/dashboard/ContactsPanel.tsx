@@ -36,6 +36,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
+import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
 
 interface Contact {
   id: string;
@@ -50,6 +51,18 @@ interface Contact {
   state_province?: string;
   postal_code?: string;
   created_at?: string;
+  // Lead management fields
+  individual_lead_status?: string | null;
+  is_lead_contact?: boolean;
+  lead_source?: string | null;
+  lead_assigned_date?: string | null;
+  lead_owner_id?: number | null;
+  // Company relation with lead status
+  company?: {
+    id: number;
+    name?: string;
+    lead_status?: string | null;
+  } | null;
   [key: string]: any;
 }
 
@@ -61,7 +74,7 @@ interface TableColumn {
   width?: string;
 }
 
-type SortField = 'first_name' | 'last_name' | 'email' | 'phone' | 'contact_type' | 'city' | 'state_province' | 'created_at';
+type SortField = 'first_name' | 'last_name' | 'email' | 'phone' | 'contact_type' | 'city' | 'state_province' | 'lead_status' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
 export default function ContactsPanel() {
@@ -84,6 +97,7 @@ export default function ContactsPanel() {
     { key: 'email', label: 'Email', sortable: true, visible: true, width: 'w-64' },
     { key: 'phone', label: 'Phone', sortable: true, visible: true, width: 'w-40' },
     { key: 'contact_type', label: 'Type', sortable: true, visible: true, width: 'w-32' },
+    { key: 'lead_status', label: 'Lead Status', sortable: true, visible: true, width: 'w-36' },
     { key: 'city', label: 'City', sortable: true, visible: true, width: 'w-32' },
     { key: 'state_province', label: 'State', sortable: true, visible: true, width: 'w-24' },
     { key: 'created_at', label: 'Added', sortable: true, visible: true, width: 'w-32' },
@@ -112,7 +126,7 @@ export default function ContactsPanel() {
   async function fetchContacts() {
     setLoading(true);
     try {
-      const res = await fetch("/api/contacts");
+      const res = await fetch("/api/contacts?include_company=true");
       if (!res.ok) throw new Error("Failed to fetch contacts");
       const data = await res.json();
       setContacts(data);
@@ -407,6 +421,22 @@ export default function ContactsPanel() {
           </Badge>
         ) : (
           <span className="text-gray-400">—</span>
+        );
+      case 'lead_status':
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <LeadStatusDropdown
+              entityType="contact"
+              entityId={parseInt(contact.id)}
+              contact={{
+                individual_lead_status: contact.individual_lead_status,
+                company_id: contact.company_id ? parseInt(contact.company_id) : null,
+                company: contact.company
+              }}
+              onStatusUpdate={fetchContacts}
+              size="sm"
+            />
+          </div>
         );
       case 'city':
         return contact.city ? (
@@ -731,11 +761,26 @@ export default function ContactsPanel() {
                             <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
                               {`${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unnamed Contact'}
                             </h3>
-                            {contact.contact_type && (
-                              <Badge className={`${getContactTypeColor(contact.contact_type)} text-xs transition-all duration-200 cursor-default`}>
-                                {contact.contact_type}
-                              </Badge>
-                            )}
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {contact.contact_type && (
+                                <Badge className={`${getContactTypeColor(contact.contact_type)} text-xs transition-all duration-200 cursor-default`}>
+                                  {contact.contact_type}
+                                </Badge>
+                              )}
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <LeadStatusDropdown
+                                  entityType="contact"
+                                  entityId={parseInt(contact.id)}
+                                  contact={{
+                                    individual_lead_status: contact.individual_lead_status,
+                                    company_id: contact.company_id ? parseInt(contact.company_id) : null,
+                                    company: contact.company
+                                  }}
+                                  onStatusUpdate={fetchContacts}
+                                  size="sm"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                         <div onClick={(e) => e.stopPropagation()}>

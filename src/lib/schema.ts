@@ -28,6 +28,12 @@ export const companies = sqliteTable('companies', {
   employees: integer('employees'),
   revenue: text('revenue'),
   founded: text('founded'),
+  // Lead management fields
+  lead_status: text('lead_status'), // 'prospect', 'qualified', 'opportunity', 'customer', 'lost'
+  lead_temperature: text('lead_temperature'), // 'cold', 'warm', 'hot'
+  lead_source: text('lead_source'), // 'website', 'referral', 'cold_call', 'trade_show', 'social_media'
+  lead_assigned_date: text('lead_assigned_date'),
+  lead_owner_id: integer('lead_owner_id'), // FK to users/sales_reps
   created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });
@@ -72,6 +78,12 @@ export const contacts = sqliteTable('contacts', {
   state_province: text('state_province'),
   postal_code: text('postal_code'),
   is_primary: integer('is_primary', { mode: 'boolean' }).default(false),
+  // Lead management fields
+  individual_lead_status: text('individual_lead_status'), // For contacts without company
+  is_lead_contact: integer('is_lead_contact', { mode: 'boolean' }).default(false), // Primary contact for company lead
+  lead_source: text('lead_source'), // Source of this individual lead
+  lead_assigned_date: text('lead_assigned_date'),
+  lead_owner_id: integer('lead_owner_id'), // FK to users/sales_reps
   created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });

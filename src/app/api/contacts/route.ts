@@ -1,19 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { contacts } from '@/lib/schema';
+import { contacts, companies } from '@/lib/schema';
 import { eq, like, or } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const companyId = searchParams.get('company_id');
   const searchQuery = searchParams.get('q');
+  const includeCompany = searchParams.get('include_company') === 'true';
+  
+  // Base query structure
+  const baseQuery = includeCompany 
+    ? db
+        .select({
+          id: contacts.id,
+          first_name: contacts.first_name,
+          last_name: contacts.last_name,
+          email: contacts.email,
+          phone: contacts.phone,
+          contact_type: contacts.contact_type,
+          company_id: contacts.company_id,
+          owner_user_id: contacts.owner_user_id,
+          address: contacts.address,
+          city: contacts.city,
+          state_province: contacts.state_province,
+          postal_code: contacts.postal_code,
+          is_primary: contacts.is_primary,
+          // Lead management fields
+          individual_lead_status: contacts.individual_lead_status,
+          is_lead_contact: contacts.is_lead_contact,
+          lead_source: contacts.lead_source,
+          lead_assigned_date: contacts.lead_assigned_date,
+          lead_owner_id: contacts.lead_owner_id,
+          created_at: contacts.created_at,
+          updated_at: contacts.updated_at,
+          // Company information
+          company: {
+            id: companies.id,
+            name: companies.name,
+            lead_status: companies.lead_status,
+          }
+        })
+        .from(contacts)
+        .leftJoin(companies, eq(contacts.company_id, companies.id))
+    : db.select().from(contacts);
   
   // If search query is provided, search contacts by name and email
   if (searchQuery) {
     const searchTerm = `%${searchQuery}%`;
-    const searchResults = db
-      .select()
-      .from(contacts)
+    const searchResults = baseQuery
       .where(
         or(
           like(contacts.first_name, searchTerm),
@@ -28,16 +63,14 @@ export async function GET(req: NextRequest) {
   
   // If company_id is provided, filter contacts by that company
   if (companyId) {
-    const companyContacts = db
-      .select()
-      .from(contacts)
+    const companyContacts = baseQuery
       .where(eq(contacts.company_id, parseInt(companyId)))
       .all();
     return NextResponse.json(companyContacts);
   }
   
   // Otherwise, fetch all contacts
-  const allContacts = db.select().from(contacts).all();
+  const allContacts = baseQuery.all();
   return NextResponse.json(allContacts);
 }
 

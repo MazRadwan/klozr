@@ -28,6 +28,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
 import { CompanyEditModal } from '@/components/companies/CompanyEditModal';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
+import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
 
 interface Company {
   id: string;
@@ -44,10 +45,16 @@ interface Company {
   founded?: string;
   description?: string;
   created_at?: string;
+  // Lead management fields
+  lead_status?: string | null;
+  lead_temperature?: string | null;
+  lead_source?: string | null;
+  lead_assigned_date?: string | null;
+  lead_owner_id?: number | null;
   [key: string]: any;
 }
 
-type SortField = 'name' | 'industry' | 'city' | 'state' | 'employees' | 'created_at';
+type SortField = 'name' | 'industry' | 'city' | 'state' | 'employees' | 'lead_status' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
 export default function CompaniesPage() {
@@ -379,6 +386,15 @@ export default function CompaniesPage() {
                 <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Contact</TableHead>
                 <TableHead 
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  onClick={() => handleSort('lead_status')}
+                >
+                  <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
+                    Lead Status
+                    {getSortIcon('lead_status')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                   onClick={() => handleSort('city')}
                 >
                   <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
@@ -477,6 +493,17 @@ export default function CompaniesPage() {
                       )}
                     </div>
                   </TableCell>
+                  <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                    <LeadStatusDropdown
+                      entityType="company"
+                      entityId={parseInt(company.id)}
+                      company={{
+                        lead_status: company.lead_status
+                      }}
+                      onStatusUpdate={fetchCompanies}
+                      size="sm"
+                    />
+                  </TableCell>
                   <TableCell className="py-4">
                     <div className="text-sm">
                       <div className="text-gray-900 dark:text-gray-100">
@@ -551,11 +578,24 @@ export default function CompaniesPage() {
                       {company.name || 'Unnamed Company'}
                     </h3>
                     <div className="mt-1 space-y-1">
-                      {company.industry && (
-                        <Badge className={`${getIndustryColor(company.industry)} text-xs transition-all duration-200 cursor-default`}>
-                          {company.industry}
-                        </Badge>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {company.industry && (
+                          <Badge className={`${getIndustryColor(company.industry)} text-xs transition-all duration-200 cursor-default`}>
+                            {company.industry}
+                          </Badge>
+                        )}
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <LeadStatusDropdown
+                            entityType="company"
+                            entityId={parseInt(company.id)}
+                            company={{
+                              lead_status: company.lead_status
+                            }}
+                            onStatusUpdate={fetchCompanies}
+                            size="sm"
+                          />
+                        </div>
+                      </div>
                       {company.city && company.state && (
                         <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
                           <MapPin className="h-3 w-3 mr-1" />
