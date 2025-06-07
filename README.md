@@ -7,7 +7,7 @@ A modern, visually striking CRM dashboard built with Next.js 15, Tailwind CSS 4,
 ---
 
 ## Features
-- **Modern Dashboard:** Responsive layout with ChatGPT-style sidebar, floating theme toggle, and animated business metrics cards.
+- **Modern Dashboard:** Responsive layout with sidebar, floating theme toggle, and animated business metrics cards.
 - **KLOZR Branding:** Bold gradients, glassmorphism accents (optional), and a unique executive look.
 - **Authentication:** Secure login with NextAuth.js v5.
 - **Database:** Drizzle ORM (SQLite) for robust, type-safe data management.
