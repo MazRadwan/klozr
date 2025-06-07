@@ -339,7 +339,7 @@ export default function CompanyDetailPage() {
               </h1>
               <div className="flex flex-wrap items-center gap-3 mt-2">
                 {company.industry && (
-                  <Badge className={getIndustryColor(company.industry)}>
+                  <Badge className={`${getIndustryColor(company.industry)} transition-all duration-200 cursor-default`}>
                     {company.industry}
                   </Badge>
                 )}
