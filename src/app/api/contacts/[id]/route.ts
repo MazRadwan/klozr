@@ -3,9 +3,10 @@ import { db } from '@/lib/db';
 import { contacts, deals, companies } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const contactId = parseInt(params.id);
+    const { id } = await params;
+    const contactId = parseInt(id);
     
     // Validate that the ID is a valid integer
     if (isNaN(contactId)) {
@@ -88,8 +89,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const contactId = parseInt(params.id);
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const contactId = parseInt(id);
   
   // Validate that the ID is a valid integer
   if (isNaN(contactId)) {
@@ -104,8 +106,45 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(updated);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const contactId = parseInt(params.id);
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const contactId = parseInt(id);
+    
+    // Validate that the ID is a valid integer
+    if (isNaN(contactId)) {
+      return NextResponse.json(
+        { error: 'Invalid contact ID' },
+        { status: 400 }
+      );
+    }
+    
+    const body = await req.json();
+    const { company_id } = body;
+    
+    // Update only the company association
+    const updated = db
+      .update(contacts)
+      .set({ 
+        company_id: company_id === null ? null : parseInt(company_id),
+        updated_at: new Date().toISOString()
+      })
+      .where(eq(contacts.id, contactId))
+      .run();
+    
+    return NextResponse.json({ success: true, updated });
+  } catch (error) {
+    console.error('Error updating contact company association:', error);
+    return NextResponse.json(
+      { error: 'Failed to update contact company association' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const contactId = parseInt(id);
   
   // Validate that the ID is a valid integer
   if (isNaN(contactId)) {

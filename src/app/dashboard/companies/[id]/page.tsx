@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { ClientDashboardLayout } from '@/components/layout/ClientDashboardLayout';
+import { ContactPicker } from '@/components/contacts/ContactPicker';
+import { NewContactModal } from '@/components/contacts/NewContactModal';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
@@ -79,6 +81,10 @@ export default function CompanyDetailPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
+  
+  // Modal states
+  const [contactPickerOpen, setContactPickerOpen] = useState(false);
+  const [newContactModalOpen, setNewContactModalOpen] = useState(false);
 
   useEffect(() => {
     if (companyId) {
@@ -140,8 +146,7 @@ export default function CompanyDetailPage() {
       const contactsRes = await fetch(`/api/contacts?company_id=${companyId}`);
       let realContacts: Contact[] = [];
       if (contactsRes.ok) {
-        const allContacts = await contactsRes.json();
-        realContacts = allContacts.filter((contact: any) => contact.company_id === parseInt(companyId));
+        realContacts = await contactsRes.json();
       }
 
       setCompany(companyData);
@@ -167,6 +172,19 @@ export default function CompanyDetailPage() {
     
     setNotes(prev => [note, ...prev]);
     setNewNote('');
+  };
+
+  const handleContactManagement = () => {
+    setContactPickerOpen(true);
+  };
+
+  const handleCreateNewContact = () => {
+    setContactPickerOpen(false);
+    setNewContactModalOpen(true);
+  };
+
+  const handleContactsUpdate = () => {
+    fetchCompanyData();
   };
 
   const formatDate = (dateString: string) => {
@@ -321,9 +339,9 @@ export default function CompanyDetailPage() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleContactManagement}>
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Add Contact
+                    Manage Contacts
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <FileText className="h-4 w-4 mr-2" />
@@ -426,14 +444,26 @@ export default function CompanyDetailPage() {
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Key Contacts ({contacts.length})
               </CardTitle>
-              <Button variant="outline" size="sm" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                onClick={handleContactManagement}
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Contact
+                Manage Contacts
               </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {contacts.map((contact) => (
+                {contacts.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p className="text-sm">No contacts found for this company.</p>
+                    <p className="text-xs mt-1">Click "Manage Contacts" to add existing contacts or create new ones.</p>
+                  </div>
+                ) : (
+                  contacts.map((contact) => (
                   <div 
                     key={contact.id}
                     className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer transition-colors"
@@ -471,7 +501,8 @@ export default function CompanyDetailPage() {
                       )}
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -584,6 +615,26 @@ export default function CompanyDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Contact Picker Modal */}
+      <ContactPicker
+        isOpen={contactPickerOpen}
+        onClose={() => setContactPickerOpen(false)}
+        companyId={parseInt(companyId)}
+        companyName={company?.name || 'Company'}
+        currentContacts={contacts}
+        onContactsUpdate={handleContactsUpdate}
+        onCreateNew={handleCreateNewContact}
+      />
+
+      {/* New Contact Modal */}
+      <NewContactModal
+        isOpen={newContactModalOpen}
+        onClose={() => setNewContactModalOpen(false)}
+        companyId={parseInt(companyId)}
+        companyName={company?.name || 'Company'}
+        onSuccess={handleContactsUpdate}
+      />
       </div>
     </ClientDashboardLayout>
   );

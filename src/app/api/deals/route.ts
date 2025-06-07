@@ -53,17 +53,15 @@ export async function GET(req: NextRequest) {
 }
 
 const dealSchema = z.object({
-  id: z.string(),
   title: z.string().min(1, 'Title is required'),
   amount: z.number().optional(),
   stage: z.string().optional(),
   close_date: z.string().optional(),
-  contact_id: z.string().optional(),
-  company_id: z.string().optional(),
-  sales_rep_id: z.string().optional(),
-  offering_id: z.string().optional(),
+  contact_id: z.number().optional(),
+  company_id: z.number().optional(),
+  sales_rep_id: z.number().optional(),
+  offering_id: z.number().optional(),
   deal_notes: z.string().optional(),
-  created_at: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -71,7 +69,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = dealSchema.parse(body);
     
-    const result = db.insert(deals).values(validated).run();
+    const result = db.insert(deals).values(validated).returning({ id: deals.id }).get();
     
     // Fetch the created deal with related data
     const createdDeal = db
@@ -110,7 +108,7 @@ export async function POST(req: NextRequest) {
       .leftJoin(contacts, eq(deals.contact_id, contacts.id))
       .leftJoin(companies, eq(deals.company_id, companies.id))
       .leftJoin(offerings, eq(deals.offering_id, offerings.id))
-      .where(eq(deals.id, validated.id))
+      .where(eq(deals.id, result.id))
       .get();
 
     return NextResponse.json(createdDeal, { status: 201 });
