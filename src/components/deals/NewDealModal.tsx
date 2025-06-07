@@ -41,11 +41,13 @@ interface Offering {
 interface NewDealModalProps {
   isOpen: boolean;
   onClose: () => void;
-  contactId: number;
+  contactId?: number;
+  companyId?: number;
+  companyName?: string;
   onDealCreated: (deal: Deal) => void;
 }
 
-export function NewDealModal({ isOpen, onClose, contactId, onDealCreated }: NewDealModalProps) {
+export function NewDealModal({ isOpen, onClose, contactId, companyId, companyName, onDealCreated }: NewDealModalProps) {
   const [formData, setFormData] = useState({
     title: "",
     amount: "",
@@ -63,8 +65,12 @@ export function NewDealModal({ isOpen, onClose, contactId, onDealCreated }: NewD
   useEffect(() => {
     if (isOpen) {
       fetchDropdownData();
+      // Pre-populate company if provided
+      if (companyId) {
+        setFormData(prev => ({ ...prev, company_id: companyId.toString() }));
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, companyId]);
 
   const fetchDropdownData = async () => {
     try {
@@ -123,7 +129,7 @@ export function NewDealModal({ isOpen, onClose, contactId, onDealCreated }: NewD
     try {
       const submitData = {
         ...formData,
-        contact_id: contactId,
+        contact_id: contactId || undefined,
         amount: formData.amount ? parseFloat(formData.amount) : undefined,
         company_id: formData.company_id ? parseInt(formData.company_id) : undefined,
         offering_id: formData.offering_id ? parseInt(formData.offering_id) : undefined,

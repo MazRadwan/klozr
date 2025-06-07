@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const searchQuery = searchParams.get('q');
+    const companyId = searchParams.get('company_id');
 
     // Base query setup
     const baseQuery = db
@@ -47,16 +48,21 @@ export async function GET(req: NextRequest) {
       .leftJoin(companies, eq(deals.company_id, companies.id))
       .leftJoin(offerings, eq(deals.offering_id, offerings.id));
 
-    // Execute query with or without search filter
-    const result = searchQuery 
-      ? baseQuery.where(
-          or(
-            like(deals.title, `%${searchQuery}%`),
-            like(companies.name, `%${searchQuery}%`),
-            like(deals.deal_notes, `%${searchQuery}%`)
-          )
-        ).all()
-      : baseQuery.all();
+    // Apply filters and execute query
+    let result;
+    if (companyId) {
+      result = baseQuery.where(eq(deals.company_id, parseInt(companyId))).all();
+    } else if (searchQuery) {
+      result = baseQuery.where(
+        or(
+          like(deals.title, `%${searchQuery}%`),
+          like(companies.name, `%${searchQuery}%`),
+          like(deals.deal_notes, `%${searchQuery}%`)
+        )
+      ).all();
+    } else {
+      result = baseQuery.all();
+    }
 
     return NextResponse.json(result);
   } catch (error) {
