@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
+import { EntityToggle } from "@/components/ui/entity-toggle";
+import { DealStageDropdown } from "@/components/deals/DealStageDropdown";
+import { getDealStageColor } from "@/lib/dealUtils";
 
 interface Contact {
   id: number;
@@ -182,16 +185,27 @@ export default function DealsPage() {
       <ChevronDown className="ml-1 h-4 w-4" />;
   };
 
-  const getStageColor = (stage?: string) => {
-    const colors = {
-      'Prospecting': 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700',
-      'Qualification': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 hover:border-yellow-300 dark:hover:border-yellow-700',
-      'Proposal': 'bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30 border-purple-200 dark:border-purple-800 hover:border-purple-300 dark:hover:border-purple-700',
-      'Negotiation': 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30 border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700',
-      'Closed Won': 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700',
-      'Closed Lost': 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700',
-    };
-    return colors[stage as keyof typeof colors] || 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600';
+  // Handle deal updates from stage dropdown
+  const handleDealUpdate = (updatedDeal: any) => {
+    setDeals(prevDeals => 
+      prevDeals.map(deal => 
+        deal.deal.id === updatedDeal.id ? {
+          deal: {
+            id: updatedDeal.id,
+            title: updatedDeal.title,
+            amount: updatedDeal.amount,
+            stage: updatedDeal.stage,
+            close_date: updatedDeal.close_date,
+            deal_notes: updatedDeal.deal_notes,
+            created_at: updatedDeal.created_at,
+            updated_at: updatedDeal.updated_at,
+          },
+          contact: updatedDeal.contact,
+          company: updatedDeal.company,
+          offering: updatedDeal.offering,
+        } : deal
+      )
+    );
   };
 
   if (loading) {
@@ -276,25 +290,27 @@ export default function DealsPage() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
               Deals
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
               Manage your sales opportunities and pipeline
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600">
-              <Upload className="h-4 w-4 mr-2" />
-              Import
-            </Button>
-            <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 text-xs md:text-sm">
+                <Upload className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Import</span>
+              </Button>
+              <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 text-xs md:text-sm">
+                <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Export</span>
+              </Button>
+            </div>
             <Link href="/dashboard/deals/new">
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-xs md:text-sm">
+                <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Add Deal
               </Button>
             </Link>
@@ -303,22 +319,23 @@ export default function DealsPage() {
 
         {/* Filters and Search */}
         <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none">
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+              <EntityToggle />
+              <div className="relative flex-1 md:max-w-md lg:max-w-lg">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search deals by title, company, or contact..."
+                  placeholder="Search deals..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 shadow-none focus:shadow-none hover:shadow-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="pl-10 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 shadow-none focus:shadow-none hover:shadow-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm md:text-base"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 md:flex-shrink-0">
                 <select
                   value={stageFilter}
                   onChange={(e) => setStageFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
+                  className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100 flex-1 sm:flex-none"
                 >
                   <option value="all">All Stages</option>
                   <option value="Prospecting">Prospecting</option>
@@ -337,8 +354,8 @@ export default function DealsPage() {
           </CardContent>
         </Card>
 
-        {/* Deals Table */}
-        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-lg">
+        {/* Desktop Table */}
+        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-lg hidden md:block">
           <CardContent className="p-0">
             {filteredDeals.length === 0 ? (
               <div className="text-center py-12">
@@ -456,10 +473,14 @@ export default function DealsPage() {
                         <TableCell className="py-4 font-semibold text-gray-900 dark:text-gray-100">
                           {formatCurrency(deal.deal.amount)}
                         </TableCell>
-                        <TableCell className="py-4">
-                          <Badge variant="secondary" className={`${getStageColor(deal.deal.stage)} transition-all duration-200 cursor-default`}>
-                            {deal.deal.stage || 'Unknown'}
-                          </Badge>
+                        <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                          <DealStageDropdown
+                            dealId={deal.deal.id}
+                            currentStage={deal.deal.stage || 'Prospecting'}
+                            onStageUpdate={handleDealUpdate}
+                            variant="badge"
+                            size="sm"
+                          />
                         </TableCell>
                         <TableCell className="py-4 text-sm text-gray-600 dark:text-gray-400">
                           {deal.deal.close_date ? new Date(deal.deal.close_date).toLocaleDateString() : 'TBD'}
@@ -508,6 +529,112 @@ export default function DealsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Mobile Cards */}
+        <div className="block md:hidden space-y-4">
+          {filteredDeals.length === 0 ? (
+            <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+              <CardContent className="text-center py-12">
+                <DollarSign className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+                <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No deals found</h3>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                  {searchTerm || stageFilter !== "all"
+                    ? "Try adjusting your search or filter criteria."
+                    : "Get started by adding your first deal."
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredDeals.map((deal) => (
+              <Card 
+                key={deal.deal.id} 
+                className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => window.location.href = `/dashboard/deals/${deal.deal.id}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
+                        {deal.deal.title.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {deal.deal.title}
+                        </h3>
+                        <div className="mt-1 space-y-1">
+                                                     <div className="flex items-center justify-between">
+                             <DealStageDropdown
+                               dealId={deal.deal.id}
+                               currentStage={deal.deal.stage || 'Prospecting'}
+                               onStageUpdate={handleDealUpdate}
+                               variant="badge"
+                               size="sm"
+                             />
+                             <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                               {formatCurrency(deal.deal.amount)}
+                             </span>
+                           </div>
+                          {deal.company?.name && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <span className="font-medium">Company:</span> {deal.company.name}
+                            </p>
+                          )}
+                          {deal.contact && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <span className="font-medium">Contact:</span> {deal.contact.first_name} {deal.contact.last_name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-32">
+                        <DropdownMenuItem onClick={() => window.location.href = `/dashboard/deals/${deal.deal.id}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => window.location.href = `/dashboard/deals/${deal.deal.id}/edit`}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-red-600 dark:text-red-400"
+                          onClick={() => {
+                            // Add delete functionality here
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      {deal.deal.close_date && (
+                        <div className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Close Date:</span> {new Date(deal.deal.close_date).toLocaleDateString()}
+                        </div>
+                      )}
+                      {deal.contact?.email && (
+                        <div className="text-gray-600 dark:text-gray-400">
+                          <span className="font-medium">Email:</span> {deal.contact.email}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
 
         {/* Results Summary */}
         {filteredDeals.length > 0 && (
