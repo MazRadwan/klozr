@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { DealCompanyPicker } from "@/components/deals/DealCompanyPicker";
 
 interface Contact {
   id: number;
@@ -67,6 +68,7 @@ export default function DealDetailPage() {
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingCompany, setIsEditingCompany] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -92,6 +94,13 @@ export default function DealDetailPage() {
       setError("Failed to load deal");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCompanyUpdate = async () => {
+    if (params.id) {
+      await fetchDeal(params.id as string);
+      setIsEditingCompany(false);
     }
   };
 
@@ -439,87 +448,134 @@ export default function DealDetailPage() {
               )}
 
               {/* Company Information */}
-              {deal.company && (
-                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-                  <CardHeader>
+              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <Building className="h-5 w-5" />
                       Company
                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
-                        {deal.company.name ? deal.company.name.charAt(0).toUpperCase() : 'C'}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {deal.company.name}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {deal.company.website && (
-                        <div className="flex items-center gap-3">
-                          <ExternalLink className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Website</p>
-                            <a 
-                              href={deal.company.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {deal.company.website}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-
-                      {deal.company.phone && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
-                            <a 
-                              href={`tel:${deal.company.phone}`}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {deal.company.phone}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-
-                      {(deal.company.address || deal.company.city) && (
-                        <div className="flex items-start gap-3">
-                          <MapPin className="h-4 w-4 text-gray-400 mt-1" />
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Address</p>
-                            <p className="text-gray-900 dark:text-gray-100">
-                              {deal.company.address && <span>{deal.company.address}<br /></span>}
-                              {deal.company.city && <span>{deal.company.city}</span>}
-                              {deal.company.state && <span>, {deal.company.state}</span>}
-                              {deal.company.country && <span><br />{deal.company.country}</span>}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Separator />
-                    <div className="flex gap-2">
-                      <Link href={`/dashboard/companies/${deal.company.id}`}>
-                        <Button variant="outline" size="sm" className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          View Company
+                    {!isEditingCompany && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsEditingCompany(true)}
+                        className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Manage
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isEditingCompany ? (
+                    <div className="space-y-4">
+                      <DealCompanyPicker
+                        dealId={deal.deal.id}
+                        currentCompany={deal.company ? {
+                          id: deal.company.id,
+                          name: deal.company.name || '',
+                          email: undefined,
+                          phone: deal.company.phone,
+                          website: deal.company.website
+                        } : null}
+                        onCompanyUpdate={handleCompanyUpdate}
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setIsEditingCompany(false)}
+                          className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          Cancel
                         </Button>
-                      </Link>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  ) : deal.company ? (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {deal.company.name ? deal.company.name.charAt(0).toUpperCase() : 'C'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {deal.company.name}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {deal.company.website && (
+                          <div className="flex items-center gap-3">
+                            <ExternalLink className="h-4 w-4 text-gray-400" />
+                            <div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Website</p>
+                              <a 
+                                href={deal.company.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {deal.company.website}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {deal.company.phone && (
+                          <div className="flex items-center gap-3">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
+                              <a 
+                                href={`tel:${deal.company.phone}`}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {deal.company.phone}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {(deal.company.address || deal.company.city) && (
+                          <div className="flex items-start gap-3">
+                            <MapPin className="h-4 w-4 text-gray-400 mt-1" />
+                            <div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Address</p>
+                              <p className="text-gray-900 dark:text-gray-100">
+                                {deal.company.address && <span>{deal.company.address}<br /></span>}
+                                {deal.company.city && <span>{deal.company.city}</span>}
+                                {deal.company.state && <span>, {deal.company.state}</span>}
+                                {deal.company.country && <span><br />{deal.company.country}</span>}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator />
+                      <div className="flex gap-2">
+                        <Link href={`/dashboard/companies/${deal.company.id}`}>
+                          <Button variant="outline" size="sm" className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            View Company
+                          </Button>
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Building className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-4 text-sm font-medium text-gray-900 dark:text-gray-100">No company assigned</h3>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Link this deal to a company.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Activity Timeline Placeholder */}
               <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">

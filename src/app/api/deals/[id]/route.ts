@@ -178,6 +178,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (sales_rep_id !== undefined) updateData.sales_rep_id = sales_rep_id;
     if (offering_id !== undefined) updateData.offering_id = offering_id;
 
+    // Auto-sync: If contact is being linked/changed, automatically update company to match contact's company
+    if (contact_id !== undefined && contact_id !== null) {
+      const [contact] = await db
+        .select({ company_id: contacts.company_id })
+        .from(contacts)
+        .where(eq(contacts.id, contact_id))
+        .limit(1);
+      
+      if (contact && contact.company_id) {
+        updateData.company_id = contact.company_id;
+      }
+    }
+
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();
 
