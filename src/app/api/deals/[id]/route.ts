@@ -178,7 +178,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (sales_rep_id !== undefined) updateData.sales_rep_id = sales_rep_id;
     if (offering_id !== undefined) updateData.offering_id = offering_id;
 
-    // Auto-sync: If contact is being linked/changed, automatically update company to match contact's company
+    // Auto-sync logic:
+    // 1. If contact is being linked/changed, automatically update company to match contact's company
     if (contact_id !== undefined && contact_id !== null) {
       const [contact] = await db
         .select({ company_id: contacts.company_id })
@@ -188,6 +189,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       
       if (contact && contact.company_id) {
         updateData.company_id = contact.company_id;
+      }
+    }
+
+    // 2. If company is being changed manually, check if current contact belongs to new company
+    if (company_id !== undefined && existingDeal.contact_id) {
+      const [currentContact] = await db
+        .select({ company_id: contacts.company_id })
+        .from(contacts)
+        .where(eq(contacts.id, existingDeal.contact_id))
+        .limit(1);
+
+      // If contact exists but doesn't belong to the new company, unlink the contact
+      if (currentContact && currentContact.company_id !== company_id) {
+        updateData.contact_id = null;
       }
     }
 

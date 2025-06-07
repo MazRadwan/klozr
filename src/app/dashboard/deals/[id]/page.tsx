@@ -480,6 +480,14 @@ export default function DealDetailPage() {
                           phone: deal.company.phone,
                           website: deal.company.website
                         } : null}
+                        currentContact={deal.contact ? {
+                          id: deal.contact.id,
+                          first_name: deal.contact.first_name,
+                          last_name: deal.contact.last_name,
+                          email: deal.contact.email,
+                          phone: deal.contact.phone,
+                          is_primary: false
+                        } : null}
                         onCompanyUpdate={handleCompanyUpdate}
                       />
                       <div className="flex gap-2">

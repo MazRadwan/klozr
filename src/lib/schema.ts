@@ -71,6 +71,7 @@ export const contacts = sqliteTable('contacts', {
   city: text('city'),
   state_province: text('state_province'),
   postal_code: text('postal_code'),
+  is_primary: integer('is_primary', { mode: 'boolean' }).default(false),
   created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
   updated_at: text('updated_at', { mode: 'text' }),
 });
