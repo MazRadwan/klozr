@@ -491,7 +491,6 @@ export default function DealsPage() {
                               <DropdownMenuItem
                                 onClick={() => {
                                   // Add delete functionality here
-                                  console.log('Delete deal:', deal.deal.id);
                                 }}
                                 className="text-red-600 dark:text-red-400"
                               >
