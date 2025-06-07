@@ -667,7 +667,7 @@ export default function CompanyDetailPage() {
                   placeholder="Add a note about this company..."
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  className="min-h-[80px] resize-none bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600"
+                  className="min-h-[80px] resize-none bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 />
                 <div className="flex justify-end">
                   <Button 
