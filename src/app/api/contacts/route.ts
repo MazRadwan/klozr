@@ -41,6 +41,9 @@ export async function GET(req: NextRequest) {
             name: companies.name,
             lead_status: companies.lead_status,
             type: companies.type,
+            lead_source: companies.lead_source,
+            lead_temperature: companies.lead_temperature,
+            lead_owner_id: companies.lead_owner_id,
           }
         })
         .from(contacts)

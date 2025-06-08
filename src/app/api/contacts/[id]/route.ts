@@ -47,6 +47,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           country: companies.country,
           phone: companies.phone,
           industry: companies.industry,
+          lead_status: companies.lead_status,
+          lead_source: companies.lead_source,
+          lead_temperature: companies.lead_temperature,
+          lead_owner_id: companies.lead_owner_id,
         }
       })
       .from(contacts)
