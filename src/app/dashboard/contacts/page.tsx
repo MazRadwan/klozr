@@ -706,83 +706,102 @@ export default function ContactsPage() {
           ) : (
             <>
               {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selectAll}
-                          onCheckedChange={handleSelectAll}
-                          aria-label="Select all contacts"
-                        />
-                      </TableHead>
-                      {visibleColumns.map(column => (
-                        <TableHead 
-                          key={column.key}
-                          className={`font-semibold text-gray-900 dark:text-gray-100 ${
-                            column.sortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors' : ''
-                          } ${column.width || ''}`}
-                          onClick={() => column.sortable && column.key !== 'name' ? handleSort(column.key as SortField) : column.key === 'name' && handleSort('first_name')}
-                        >
-                          <div className="flex items-center">
-                            {column.label}
-                            {column.sortable && getSortIcon(column.key === 'name' ? 'first_name' : column.key as SortField)}
-                          </div>
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-16 font-semibold text-gray-900 dark:text-gray-100">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAndSortedContacts.map((contact, i) => (
-                      <TableRow 
-                        key={contact.id} 
-                        className={`
-                          border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer
-                          ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 
-                            i % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-gray-25 dark:bg-gray-950/50'}
-                        `}
-                        onClick={() => handleContactClick(contact.id)}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedContacts.includes(contact.id)}
-                            onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
-                            aria-label={`Select ${contact.first_name} ${contact.last_name}`}
-                          />
-                        </TableCell>
-                        {visibleColumns.map(column => (
-                          <TableCell key={column.key} className="py-3">
-                            {renderCellContent(contact, column.key)}
-                          </TableCell>
+              <div className="hidden md:block">
+                <div className="relative">
+                  {/* Scrollable Table Container */}
+                  <div className="overflow-x-auto">
+                    <Table className="relative">
+                      <TableHeader>
+                        <TableRow className="border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                          <TableHead className="w-12 bg-gray-50 dark:bg-gray-900/50">
+                            <Checkbox
+                              checked={selectAll}
+                              onCheckedChange={handleSelectAll}
+                              aria-label="Select all contacts"
+                            />
+                          </TableHead>
+                          {visibleColumns.map(column => (
+                            <TableHead 
+                              key={column.key}
+                              className={`font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/50 ${
+                                column.sortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors' : ''
+                              } ${column.width || ''}`}
+                              onClick={() => column.sortable && column.key !== 'name' ? handleSort(column.key as SortField) : column.key === 'name' && handleSort('first_name')}
+                            >
+                              <div className="flex items-center">
+                                {column.label}
+                                {column.sortable && getSortIcon(column.key === 'name' ? 'first_name' : column.key as SortField)}
+                              </div>
+                            </TableHead>
+                          ))}
+                          {/* Sticky Actions Header */}
+                          <TableHead className="sticky right-0 w-16 font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10">
+                            Actions
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAndSortedContacts.map((contact, i) => (
+                          <TableRow 
+                            key={contact.id} 
+                            className={`
+                              group border-gray-200 dark:border-gray-800 transition-colors cursor-pointer
+                              ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950'}
+                            `}
+                            onClick={() => handleContactClick(contact.id)}
+                          >
+                            <TableCell 
+                              onClick={(e) => e.stopPropagation()}
+                              className={`transition-colors ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'}`}
+                            >
+                              <Checkbox
+                                checked={selectedContacts.includes(contact.id)}
+                                onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
+                                aria-label={`Select ${contact.first_name} ${contact.last_name}`}
+                              />
+                            </TableCell>
+                            {visibleColumns.map(column => (
+                              <TableCell 
+                                key={column.key} 
+                                className={`py-3 transition-colors ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'}`}
+                              >
+                                {renderCellContent(contact, column.key)}
+                              </TableCell>
+                            ))}
+                            {/* Sticky Actions Cell */}
+                            <TableCell 
+                              className={`sticky right-0 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10 transition-colors ${
+                                selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'
+                              }`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDelete(contact)}
+                                    className="text-red-600 dark:text-red-400"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                        <TableCell className="py-3" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
-                                onClick={() => handleDelete(contact)}
-                                className="text-red-600 dark:text-red-400"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               </div>
 
               {/* Mobile Card View */}
