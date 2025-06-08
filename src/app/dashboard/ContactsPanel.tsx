@@ -38,7 +38,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
 import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
 import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
-import { getEffectiveEntityType } from '@/lib/entityTypeUtils';
+import { getEffectiveEntityType, ENTITY_TYPES, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
 
 interface Contact {
   id: string;
@@ -289,7 +289,7 @@ export default function ContactsPanel() {
     let filtered = contacts.filter(contact => {
       // If no search term, show all contacts (only apply filter)
       if (!searchTerm.trim()) {
-        const matchesFilter = filterType === "all" || contact.contact_type === filterType;
+        const matchesFilter = filterType === "all" || contact.type === filterType;
         return matchesFilter;
       }
       
@@ -303,7 +303,7 @@ export default function ContactsPanel() {
         field && field.toLowerCase().includes(searchTerm.toLowerCase())
       );
       
-      const matchesFilter = filterType === "all" || contact.contact_type === filterType;
+      const matchesFilter = filterType === "all" || contact.type === filterType;
       
       return matchesSearch && matchesFilter;
     });
@@ -350,9 +350,9 @@ export default function ContactsPanel() {
       <ChevronDown className="ml-1 h-4 w-4" />;
   };
 
-  const getContactTypes = () => {
-    const types = [...new Set(contacts.map(c => c.contact_type).filter(Boolean))];
-    return types;
+  const getEntityTypes = () => {
+    // Return all available entity types to ensure partner is always shown
+    return ENTITY_TYPES;
   };
 
   const formatDate = (dateString?: string) => {
@@ -571,8 +571,8 @@ export default function ContactsPanel() {
                 className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100 flex-1 sm:flex-none"
               >
                 <option value="all">All Types</option>
-                {getContactTypes().map(type => (
-                  <option key={type} value={type}>{type}</option>
+                {getEntityTypes().map((type: string) => (
+                  <option key={type} value={type}>{getEntityTypeDisplayText(type)}</option>
                 ))}
               </select>
               

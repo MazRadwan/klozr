@@ -30,6 +30,7 @@ import { CompanyEditModal } from '@/components/companies/CompanyEditModal';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
 import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
+import { ENTITY_TYPES, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
 
 interface Company {
   id: string;
@@ -66,7 +67,7 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterIndustry, setFilterIndustry] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   
@@ -182,9 +183,9 @@ export default function CompaniesPage() {
         field && field.toLowerCase().includes(searchTerm.toLowerCase())
       );
       
-      const matchesIndustry = filterIndustry === "all" || company.industry === filterIndustry;
+      const matchesType = filterType === "all" || company.type === filterType;
       
-      return matchesSearch && matchesIndustry;
+      return matchesSearch && matchesType;
     });
 
     // Sort companies
@@ -203,7 +204,7 @@ export default function CompaniesPage() {
     });
 
     return filtered;
-  }, [companies, searchTerm, filterIndustry, sortField, sortDirection]);
+  }, [companies, searchTerm, filterType, sortField, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -221,9 +222,9 @@ export default function CompaniesPage() {
       <ChevronDown className="ml-1 h-4 w-4" />;
   };
 
-  const getIndustries = () => {
-    const industries = [...new Set(companies.map(c => c.industry).filter(Boolean))];
-    return industries;
+  const getEntityTypes = () => {
+    // Return all available entity types to ensure partner is always shown
+    return ENTITY_TYPES;
   };
 
   const formatDate = (dateString?: string) => {
@@ -340,13 +341,13 @@ export default function CompaniesPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 md:flex-shrink-0">
               <select
-                value={filterIndustry}
-                onChange={(e) => setFilterIndustry(e.target.value)}
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
                 className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100 flex-1 sm:flex-none"
               >
-                <option value="all">All Industries</option>
-                {getIndustries().map(industry => (
-                  <option key={industry} value={industry}>{industry}</option>
+                <option value="all">All Types</option>
+                {getEntityTypes().map((type: string) => (
+                  <option key={type} value={type}>{getEntityTypeDisplayText(type)}</option>
                 ))}
               </select>
             </div>
