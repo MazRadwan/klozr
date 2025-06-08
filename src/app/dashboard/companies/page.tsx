@@ -29,11 +29,12 @@ import { EntityToggle } from '@/components/ui/entity-toggle';
 import { CompanyEditModal } from '@/components/companies/CompanyEditModal';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
+import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
 
 interface Company {
   id: string;
   name?: string;
-  industry?: string;
+  industry?: string; // Descriptive field
   website?: string;
   phone?: string;
   email?: string;
@@ -45,6 +46,8 @@ interface Company {
   founded?: string;
   description?: string;
   created_at?: string;
+  // Entity type classification (primary segmentation)
+  type?: string | null; // 'lead' | 'customer' | 'partner'
   // Lead management fields
   lead_status?: string | null;
   lead_temperature?: string | null;
@@ -373,6 +376,7 @@ export default function CompaniesPage() {
                     {getSortIcon('name')}
                   </div>
                 </TableHead>
+                <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Entity Type</TableHead>
                 <TableHead 
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                   onClick={() => handleSort('industry')}
@@ -444,6 +448,17 @@ export default function CompaniesPage() {
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                    <EntityTypeDropdown
+                      entityType="company"
+                      entityId={parseInt(company.id)}
+                      company={{
+                        type: company.type
+                      }}
+                      onTypeUpdate={fetchCompanies}
+                      size="sm"
+                    />
+                  </TableCell>
                   <TableCell className="py-4">
                     {company.industry ? (
                       <Badge className={`${getIndustryColor(company.industry)} transition-all duration-200 cursor-default`}>
@@ -494,15 +509,19 @@ export default function CompaniesPage() {
                     </div>
                   </TableCell>
                   <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
-                    <LeadStatusDropdown
-                      entityType="company"
-                      entityId={parseInt(company.id)}
-                      company={{
-                        lead_status: company.lead_status
-                      }}
-                      onStatusUpdate={fetchCompanies}
-                      size="sm"
-                    />
+                    {company.type === 'lead' ? (
+                      <LeadStatusDropdown
+                        entityType="company"
+                        entityId={parseInt(company.id)}
+                        company={{
+                          lead_status: company.lead_status
+                        }}
+                        onStatusUpdate={fetchCompanies}
+                        size="sm"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-xs">N/A</span>
+                    )}
                   </TableCell>
                   <TableCell className="py-4">
                     <div className="text-sm">
@@ -579,22 +598,35 @@ export default function CompaniesPage() {
                     </h3>
                     <div className="mt-1 space-y-1">
                       <div className="flex flex-wrap gap-2">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <EntityTypeDropdown
+                            entityType="company"
+                            entityId={parseInt(company.id)}
+                            company={{
+                              type: company.type
+                            }}
+                            onTypeUpdate={fetchCompanies}
+                            size="sm"
+                          />
+                        </div>
                         {company.industry && (
                           <Badge className={`${getIndustryColor(company.industry)} text-xs transition-all duration-200 cursor-default`}>
                             {company.industry}
                           </Badge>
                         )}
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <LeadStatusDropdown
-                            entityType="company"
-                            entityId={parseInt(company.id)}
-                            company={{
-                              lead_status: company.lead_status
-                            }}
-                            onStatusUpdate={fetchCompanies}
-                            size="sm"
-                          />
-                        </div>
+                        {company.type === 'lead' && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <LeadStatusDropdown
+                              entityType="company"
+                              entityId={parseInt(company.id)}
+                              company={{
+                                lead_status: company.lead_status
+                              }}
+                              onStatusUpdate={fetchCompanies}
+                              size="sm"
+                            />
+                          </div>
+                        )}
                       </div>
                       {company.city && company.state && (
                         <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center">

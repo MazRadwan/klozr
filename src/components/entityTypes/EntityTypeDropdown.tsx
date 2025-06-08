@@ -9,57 +9,57 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Loader2, Plus } from 'lucide-react';
+import { ChevronDown, Loader2, Plus, Building2, Users, Handshake } from 'lucide-react';
 import { 
-  LEAD_STATUSES, 
-  LeadStatus, 
-  getLeadStatusColor, 
-  getEffectiveLeadStatus,
-  updateContactLeadStatus,
-  updateCompanyLeadStatus
-} from '@/lib/leadUtils';
+  ENTITY_TYPES, 
+  EntityType, 
+  getEntityTypeColor, 
+  getEffectiveEntityType,
+  updateContactEntityType,
+  updateCompanyEntityType,
+  getEntityTypeDisplayText
+} from '@/lib/entityTypeUtils';
 
-interface LeadStatusDropdownProps {
+interface EntityTypeDropdownProps {
   entityType: 'contact' | 'company';
   entityId: number;
   contact?: {
-    individual_lead_status?: string | null;
-    company_id?: number | null;
-    company?: { lead_status?: string | null } | null;
     type?: string | null;
+    company_id?: number | null;
+    company?: { type?: string | null } | null;
   };
   company?: {
-    lead_status?: string | null;
+    type?: string | null;
   };
-  onStatusUpdate?: () => void;
+  onTypeUpdate?: () => void;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function LeadStatusDropdown({
+export function EntityTypeDropdown({
   entityType,
   entityId,
   contact,
   company,
-  onStatusUpdate,
+  onTypeUpdate,
   disabled = false,
   size = 'sm'
-}: LeadStatusDropdownProps) {
+}: EntityTypeDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get current effective status
-  const currentStatus = (() => {
+  // Get current effective type
+  const currentType = (() => {
     if (entityType === 'company' && company) {
-      return company.lead_status;
+      return company.type;
     } else if (entityType === 'contact' && contact) {
-      const effective = getEffectiveLeadStatus(contact);
-      return effective.status;
+      const effective = getEffectiveEntityType(contact);
+      return effective.type;
     }
     return null;
   })();
 
-  const handleStatusChange = async (newStatus: LeadStatus) => {
+  const handleTypeChange = async (newType: EntityType) => {
     if (isUpdating || disabled) return;
 
     setIsUpdating(true);
@@ -68,15 +68,15 @@ export function LeadStatusDropdown({
     try {
       let result;
       if (entityType === 'contact') {
-        result = await updateContactLeadStatus(entityId, { status: newStatus });
+        result = await updateContactEntityType(entityId, newType);
       } else {
-        result = await updateCompanyLeadStatus(entityId, { status: newStatus });
+        result = await updateCompanyEntityType(entityId, newType);
       }
 
       if (!result.success) {
-        setError(result.error || 'Failed to update lead status');
+        setError(result.error || 'Failed to update entity type');
       } else {
-        onStatusUpdate?.();
+        onTypeUpdate?.();
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -96,24 +96,33 @@ export function LeadStatusDropdown({
 
   const getInheritanceInfo = () => {
     if (entityType === 'contact' && contact) {
-      const effective = getEffectiveLeadStatus(contact);
+      const effective = getEffectiveEntityType(contact);
       return effective;
     }
-    return { status: currentStatus, source: null, inherited: false };
+    return { type: currentType, source: null, inherited: false };
   };
 
   const inheritanceInfo = getInheritanceInfo();
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'lead': return <Users className="h-3 w-3" />;
+      case 'customer': return <Building2 className="h-3 w-3" />;
+      case 'partner': return <Handshake className="h-3 w-3" />;
+      default: return null;
+    }
+  };
 
   return (
     <div className="flex flex-col gap-1">
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={disabled || isUpdating}>
-          {currentStatus ? (
+          {currentType ? (
             <Button
               variant="ghost"
               size="sm"
               className={`
-                ${getLeadStatusColor(currentStatus)} 
+                ${getEntityTypeColor(currentType)} 
                 ${getSizeClasses()}
                 transition-all duration-200 
                 hover:opacity-80 
@@ -127,7 +136,8 @@ export function LeadStatusDropdown({
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
                   <>
-                    <span>{currentStatus}</span>
+                    {getTypeIcon(currentType)}
+                    <span>{getEntityTypeDisplayText(currentType)}</span>
                     <ChevronDown className="h-3 w-3" />
                   </>
                 )}
@@ -149,7 +159,7 @@ export function LeadStatusDropdown({
                 ) : (
                   <>
                     <Plus className="h-3 w-3" />
-                    <span>Add Lead Status</span>
+                    <span>Set Type</span>
                   </>
                 )}
               </div>
@@ -157,34 +167,34 @@ export function LeadStatusDropdown({
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-48">
-          {LEAD_STATUSES.map((status) => (
+          {ENTITY_TYPES.map((type) => (
             <DropdownMenuItem
-              key={status}
-              onClick={() => handleStatusChange(status)}
-              disabled={status === currentStatus || isUpdating}
+              key={type}
+              onClick={() => handleTypeChange(type)}
+              disabled={type === currentType || isUpdating}
               className={`
-                ${status === currentStatus ? 'bg-gray-100 dark:bg-gray-800' : ''}
+                ${type === currentType ? 'bg-gray-100 dark:bg-gray-800' : ''}
                 ${isUpdating ? 'opacity-50' : ''}
               `}
             >
               <div className="flex items-center gap-2 w-full">
-                <div className={`w-2 h-2 rounded-full ${getLeadStatusColor(status).split(' ')[0]}`} />
-                <span className="text-sm capitalize">{status}</span>
-                {status === currentStatus && (
+                {getTypeIcon(type)}
+                <span className="text-sm">{getEntityTypeDisplayText(type)}</span>
+                {type === currentType && (
                   <div className="ml-auto w-1.5 h-1.5 bg-blue-600 rounded-full" />
                 )}
               </div>
             </DropdownMenuItem>
           ))}
-          {currentStatus && (
+          {currentType && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => handleStatusChange(null as any)}
+                onClick={() => handleTypeChange(null as any)}
                 disabled={isUpdating}
                 className="text-red-600 dark:text-red-400"
               >
-                Remove Lead Status
+                Clear Type
               </DropdownMenuItem>
             </>
           )}
