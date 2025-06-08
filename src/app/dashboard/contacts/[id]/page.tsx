@@ -521,7 +521,12 @@ export default function ContactDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Lead Management Section */}
+            {/* Lead Management Section - Only show for leads */}
+            {(() => {
+              // Check if this contact should show lead management fields
+              const effectiveType = contact.contact.type || contact.company?.type;
+              return effectiveType === 'lead';
+            })() && (
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
@@ -607,6 +612,7 @@ export default function ContactDetailPage() {
                 </div>
               </CardContent>
             </Card>
+            )}
 
             {/* Notes Section */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
