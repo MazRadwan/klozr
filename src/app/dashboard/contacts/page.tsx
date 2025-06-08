@@ -462,7 +462,15 @@ export default function ContactsPage() {
           </div>
         );
       case 'lead_source':
-        // Show lead source if available
+        // Only show lead source for entities with type 'lead'
+        const sourceEffectiveType = getEffectiveEntityType({
+          type: contact.type,
+          company_id: contact.company_id ? parseInt(contact.company_id) : null,
+          company: contact.company
+        });
+        if (sourceEffectiveType.type !== 'lead') {
+          return <span className="text-gray-400 text-xs">N/A</span>;
+        }
         const leadSource = contact.lead_source || (contact.company?.lead_source);
         return leadSource ? (
           <span className="text-gray-900 dark:text-gray-100 text-sm">
@@ -496,7 +504,15 @@ export default function ContactsPage() {
           </span>
         );
       case 'lead_owner':
-        // Show lead owner if available
+        // Only show lead owner for entities with type 'lead'
+        const ownerEffectiveType = getEffectiveEntityType({
+          type: contact.type,
+          company_id: contact.company_id ? parseInt(contact.company_id) : null,
+          company: contact.company
+        });
+        if (ownerEffectiveType.type !== 'lead') {
+          return <span className="text-gray-400 text-xs">N/A</span>;
+        }
         const ownerId = contact.lead_owner_id || contact.company?.lead_owner_id;
         return ownerId ? (
           <span className="text-gray-900 dark:text-gray-100 text-sm">
