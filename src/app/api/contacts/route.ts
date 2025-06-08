@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
           email: contacts.email,
           phone: contacts.phone,
           contact_type: contacts.contact_type,
+          type: contacts.type,
           company_id: contacts.company_id,
           owner_user_id: contacts.owner_user_id,
           address: contacts.address,
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
             id: companies.id,
             name: companies.name,
             lead_status: companies.lead_status,
+            type: companies.type,
           }
         })
         .from(contacts)

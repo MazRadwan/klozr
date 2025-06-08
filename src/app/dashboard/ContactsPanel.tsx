@@ -37,6 +37,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
 import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
+import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
+import { getEffectiveEntityType } from '@/lib/entityTypeUtils';
 
 interface Contact {
   id: string;
@@ -44,24 +46,27 @@ interface Contact {
   last_name?: string;
   email?: string;
   phone?: string;
-  contact_type?: string;
+  contact_type?: string; // Job title - descriptive field
   company_id?: string;
   address?: string;
   city?: string;
   state_province?: string;
   postal_code?: string;
   created_at?: string;
+  // Entity type classification (primary segmentation)
+  type?: string | null; // 'lead' | 'customer' | 'partner'
   // Lead management fields
   individual_lead_status?: string | null;
   is_lead_contact?: boolean;
   lead_source?: string | null;
   lead_assigned_date?: string | null;
   lead_owner_id?: number | null;
-  // Company relation with lead status
+  // Company relation with lead status and type
   company?: {
     id: number;
     name?: string;
     lead_status?: string | null;
+    type?: string | null; // 'lead' | 'customer' | 'partner'
   } | null;
   [key: string]: any;
 }
@@ -96,7 +101,8 @@ export default function ContactsPanel() {
     { key: 'name', label: 'Name', sortable: true, visible: true, width: 'w-48' },
     { key: 'email', label: 'Email', sortable: true, visible: true, width: 'w-64' },
     { key: 'phone', label: 'Phone', sortable: true, visible: true, width: 'w-40' },
-    { key: 'contact_type', label: 'Type', sortable: true, visible: true, width: 'w-32' },
+    { key: 'entity_type', label: 'Entity Type', sortable: true, visible: true, width: 'w-32' },
+    { key: 'contact_type', label: 'Job Title', sortable: true, visible: true, width: 'w-32' },
     { key: 'lead_status', label: 'Lead Status', sortable: true, visible: true, width: 'w-36' },
     { key: 'city', label: 'City', sortable: true, visible: true, width: 'w-32' },
     { key: 'state_province', label: 'State', sortable: true, visible: true, width: 'w-24' },
@@ -414,6 +420,22 @@ export default function ContactsPanel() {
          ) : (
            <span className="text-gray-400">—</span>
          );
+      case 'entity_type':
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <EntityTypeDropdown
+              entityType="contact"
+              entityId={parseInt(contact.id)}
+              contact={{
+                type: contact.type,
+                company_id: contact.company_id ? parseInt(contact.company_id) : null,
+                company: contact.company
+              }}
+              onTypeUpdate={fetchContacts}
+              size="sm"
+            />
+          </div>
+        );
       case 'contact_type':
         return contact.contact_type ? (
           <Badge className={`${getContactTypeColor(contact.contact_type)} transition-all duration-200 cursor-default`}>
@@ -423,6 +445,15 @@ export default function ContactsPanel() {
           <span className="text-gray-400">—</span>
         );
       case 'lead_status':
+        // Only show lead status for entities with type 'lead'
+        const effectiveType = getEffectiveEntityType({
+          type: contact.type,
+          company_id: contact.company_id ? parseInt(contact.company_id) : null,
+          company: contact.company
+        });
+        if (effectiveType.type !== 'lead') {
+          return <span className="text-gray-400 text-xs">N/A</span>;
+        }
         return (
           <div onClick={(e) => e.stopPropagation()}>
             <LeadStatusDropdown
@@ -431,7 +462,8 @@ export default function ContactsPanel() {
               contact={{
                 individual_lead_status: contact.individual_lead_status,
                 company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                company: contact.company
+                company: contact.company,
+                type: contact.type
               }}
               onStatusUpdate={fetchContacts}
               size="sm"

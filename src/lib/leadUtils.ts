@@ -58,6 +58,13 @@ export function getLeadTemperatureColor(temperature?: string): string {
 }
 
 /**
+ * Determines if lead status should be displayed based on entity type
+ */
+export function shouldShowLeadStatusForEntity(entityType?: string | null): boolean {
+  return entityType === 'lead';
+}
+
+/**
  * Determines effective lead status for a contact
  * Implements the hybrid business logic
  */
@@ -65,13 +72,18 @@ export function getEffectiveLeadStatus(contact: {
   individual_lead_status?: string | null;
   company_id?: number | null;
   company?: { lead_status?: string | null } | null;
-}): { status: string | null; source: 'individual' | 'company' | null; inherited: boolean } {
+  type?: string | null;
+}): { status: string | null; source: 'individual' | 'company' | null; inherited: boolean; shouldShow: boolean } {
+  // Determine if lead status should be shown based on entity type
+  const shouldShow = shouldShowLeadStatusForEntity(contact.type);
+
   // If contact has no company, use individual status
   if (!contact.company_id || !contact.company) {
     return {
       status: contact.individual_lead_status || null,
       source: contact.individual_lead_status ? 'individual' : null,
-      inherited: false
+      inherited: false,
+      shouldShow
     };
   }
 
@@ -83,19 +95,22 @@ export function getEffectiveLeadStatus(contact: {
     return {
       status: companyStatus,
       source: 'company',
-      inherited: true
+      inherited: true,
+      shouldShow
     };
   } else if (individualStatus) {
     return {
       status: individualStatus,
       source: 'individual', 
-      inherited: false
+      inherited: false,
+      shouldShow
     };
   } else {
     return {
       status: null,
       source: null,
-      inherited: false
+      inherited: false,
+      shouldShow
     };
   }
 }
