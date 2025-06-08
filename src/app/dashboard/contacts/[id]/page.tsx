@@ -17,6 +17,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { CompanyPicker } from "@/components/companies/CompanyPicker";
 import { DealPicker } from "@/components/deals/DealPicker";
+import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown";
 
 interface Contact {
   contact: {
@@ -26,6 +27,7 @@ interface Contact {
     email?: string;
     phone?: string;
     contact_type?: string;
+    type?: string | null;
     address?: string;
     city?: string;
     state_province?: string;
@@ -35,6 +37,7 @@ interface Contact {
   company?: {
     id: number;
     name?: string;
+    type?: string | null;
     address?: string;
     city?: string;
     state?: string;
@@ -372,9 +375,27 @@ export default function ContactDetailPage() {
         <div className="pt-8">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="max-w-none">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-                {fullName || 'Unnamed Contact'}
-              </h1>
+              <div className="flex items-center gap-6">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                  {fullName || 'Unnamed Contact'}
+                </h1>
+                <div className="flex-shrink-0">
+                  <EntityTypeDropdown
+                    entityType="contact"
+                    entityId={contact.contact.id}
+                    contact={{
+                      type: contact.contact.type,
+                      company_id: contact.company?.id || null,
+                      company: contact.company ? {
+                        type: contact.company.type,
+                        name: contact.company.name
+                      } : null
+                    }}
+                    onTypeUpdate={fetchContactData}
+                    size="sm"
+                  />
+                </div>
+              </div>
               <p className="text-gray-600 dark:text-gray-400">
                 Contact Details and Relationship Management
               </p>
