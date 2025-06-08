@@ -68,6 +68,9 @@ interface Contact {
     name?: string;
     lead_status?: string | null;
     type?: string | null; // 'lead' | 'customer' | 'partner'
+    lead_source?: string | null;
+    lead_temperature?: string | null;
+    lead_owner_id?: number | null;
   } | null;
   [key: string]: any;
 }
@@ -105,6 +108,9 @@ export default function ContactsPage() {
     { key: 'entity_type', label: 'Entity Type', sortable: true, visible: true, width: 'w-32' },
     { key: 'contact_type', label: 'Job Title', sortable: true, visible: true, width: 'w-32' },
     { key: 'lead_status', label: 'Lead Status', sortable: true, visible: true, width: 'w-36' },
+    { key: 'lead_source', label: 'Lead Source', sortable: true, visible: true, width: 'w-32' },
+    { key: 'lead_temperature', label: 'Temperature', sortable: true, visible: true, width: 'w-28' },
+    { key: 'lead_owner', label: 'Lead Owner', sortable: true, visible: false, width: 'w-36' },
     { key: 'city', label: 'City', sortable: true, visible: true, width: 'w-32' },
     { key: 'state_province', label: 'State', sortable: true, visible: true, width: 'w-24' },
     { key: 'created_at', label: 'Added', sortable: true, visible: true, width: 'w-32' },
@@ -365,8 +371,6 @@ export default function ContactsPage() {
     });
   };
 
-
-
   const renderCellContent = (contact: Contact, columnKey: string) => {
     switch (columnKey) {
       case 'name':
@@ -456,6 +460,50 @@ export default function ContactsPage() {
               size="sm"
             />
           </div>
+        );
+      case 'lead_source':
+        // Show lead source if available
+        const leadSource = contact.lead_source || (contact.company?.lead_source);
+        return leadSource ? (
+          <span className="text-gray-900 dark:text-gray-100 text-sm">
+            {leadSource.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+          </span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
+      case 'lead_temperature':
+        // Show temperature only for leads, get from contact or company
+        const tempEffectiveType = getEffectiveEntityType({
+          type: contact.type,
+          company_id: contact.company_id ? parseInt(contact.company_id) : null,
+          company: contact.company
+        });
+        if (tempEffectiveType.type !== 'lead') {
+          return <span className="text-gray-400 text-xs">N/A</span>;
+        }
+        const temperature = contact.lead_temperature || contact.company?.lead_temperature;
+        if (!temperature) {
+          return <span className="text-gray-400">—</span>;
+        }
+        const tempColors = {
+          hot: 'bg-red-100 text-red-800 border-red-200',
+          warm: 'bg-orange-100 text-orange-800 border-orange-200', 
+          cold: 'bg-blue-100 text-blue-800 border-blue-200'
+        };
+        return (
+          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${tempColors[temperature as keyof typeof tempColors] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+            {temperature.charAt(0).toUpperCase() + temperature.slice(1)}
+          </span>
+        );
+      case 'lead_owner':
+        // Show lead owner if available
+        const ownerId = contact.lead_owner_id || contact.company?.lead_owner_id;
+        return ownerId ? (
+          <span className="text-gray-900 dark:text-gray-100 text-sm">
+            Owner #{ownerId}
+          </span>
+        ) : (
+          <span className="text-gray-400">—</span>
         );
       case 'city':
         return contact.city ? (

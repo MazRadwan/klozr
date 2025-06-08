@@ -33,6 +33,11 @@ interface Contact {
     state_province?: string;
     postal_code?: string;
     created_at?: string;
+    // Lead management fields
+    lead_source?: string | null;
+    lead_temperature?: string | null;
+    lead_owner_id?: number | null;
+    lead_assigned_date?: string | null;
   };
   company?: {
     id: number;
@@ -45,6 +50,11 @@ interface Contact {
     phone?: string;
     website?: string;
     email?: string;
+    // Lead management fields
+    lead_source?: string | null;
+    lead_temperature?: string | null;
+    lead_owner_id?: number | null;
+    lead_assigned_date?: string | null;
   };
   relatedDeals: Array<{
     deal: {
@@ -502,6 +512,93 @@ export default function ContactDetailPage() {
                           {contact.contact.created_at 
                             ? new Date(contact.contact.created_at).toLocaleDateString()
                             : 'Not specified'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lead Management Section */}
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                  <MessageSquare className="h-5 w-5" />
+                  Lead Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Lead Source
+                      </label>
+                      <p className="text-gray-900 dark:text-gray-100">
+                        {contact.contact.lead_source 
+                          ? contact.contact.lead_source.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+                          : (contact.company?.lead_source
+                              ? `${contact.company.lead_source.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} (from company)`
+                              : 'Not specified'
+                            )
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Lead Temperature
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const temperature = contact.contact.lead_temperature || contact.company?.lead_temperature;
+                          if (!temperature) return <span className="text-gray-500">Not specified</span>;
+                          
+                          const tempColors = {
+                            hot: 'bg-red-100 text-red-800 border-red-200',
+                            warm: 'bg-orange-100 text-orange-800 border-orange-200', 
+                            cold: 'bg-blue-100 text-blue-800 border-blue-200'
+                          };
+                          
+                          return (
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${tempColors[temperature as keyof typeof tempColors] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+                              {temperature.charAt(0).toUpperCase() + temperature.slice(1)}
+                              {contact.contact.lead_temperature ? '' : ' (from company)'}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Lead Owner
+                      </label>
+                      <p className="text-gray-900 dark:text-gray-100">
+                        {contact.contact.lead_owner_id 
+                          ? `Owner #${contact.contact.lead_owner_id}`
+                          : (contact.company?.lead_owner_id
+                              ? `Owner #${contact.company.lead_owner_id} (from company)`
+                              : 'Not assigned'
+                            )
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Lead Assigned Date
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <p className="text-gray-900 dark:text-gray-100">
+                          {contact.contact.lead_assigned_date 
+                            ? new Date(contact.contact.lead_assigned_date).toLocaleDateString()
+                            : (contact.company?.lead_assigned_date
+                                ? `${new Date(contact.company.lead_assigned_date).toLocaleDateString()} (from company)`
+                                : 'Not assigned'
+                              )
                           }
                         </p>
                       </div>
