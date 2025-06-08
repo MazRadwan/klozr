@@ -263,9 +263,8 @@ export default function CompanyDetailPage() {
   };
 
   const breadcrumbItems = [
-    { label: "Dashboard", href: "/dashboard" },
     { label: "Companies", href: "/dashboard/companies" },
-    { label: company?.name || "Company", href: "#" }
+    { label: company?.name || "Company", current: true }
   ];
 
   if (loading) {
