@@ -415,7 +415,10 @@ export default function ContactsPage() {
               contact={{
                 type: contact.type,
                 company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                company: contact.company
+                company: contact.company ? {
+                  type: contact.company.type,
+                  name: contact.company.name
+                } : null
               }}
               onTypeUpdate={fetchContacts}
               size="sm"
@@ -786,13 +789,30 @@ export default function ContactsPage() {
                                  </span>
                                )}
                               <div onClick={(e) => e.stopPropagation()}>
+                                <EntityTypeDropdown
+                                  entityType="contact"
+                                  entityId={parseInt(contact.id)}
+                                  contact={{
+                                    type: contact.type,
+                                    company_id: contact.company_id ? parseInt(contact.company_id) : null,
+                                    company: contact.company ? {
+                                      type: contact.company.type,
+                                      name: contact.company.name
+                                    } : null
+                                  }}
+                                  onTypeUpdate={fetchContacts}
+                                  size="sm"
+                                />
+                              </div>
+                              <div onClick={(e) => e.stopPropagation()}>
                                 <LeadStatusDropdown
                                   entityType="contact"
                                   entityId={parseInt(contact.id)}
                                   contact={{
                                     individual_lead_status: contact.individual_lead_status,
                                     company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                                    company: contact.company
+                                    company: contact.company,
+                                    type: contact.type
                                   }}
                                   onStatusUpdate={fetchContacts}
                                   size="sm"
