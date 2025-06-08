@@ -19,6 +19,7 @@ import {
   updateCompanyEntityType,
   getEntityTypeDisplayText
 } from '@/lib/entityTypeUtils';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface EntityTypeDropdownProps {
   entityType: 'contact' | 'company';
@@ -124,31 +125,61 @@ export function EntityTypeDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
           {currentType ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`
-                ${getEntityTypeColor(currentType)} 
-                ${getSizeClasses()}
-                transition-all duration-200 
-                border rounded-full
-                h-auto font-medium
-                ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
-                ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
-              `}
-            >
-              <div className="flex items-center gap-1">
-                {isUpdating ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    {getTypeIcon(currentType)}
-                    <span>{getEntityTypeDisplayText(currentType)}</span>
-                    {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
-                  </>
-                )}
-              </div>
-            </Button>
+            isInheritanceDisabled ? (
+              <Tooltip content="Inherited from company">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`
+                    ${getEntityTypeColor(currentType)} 
+                    ${getSizeClasses()}
+                    transition-all duration-200 
+                    border rounded-full
+                    h-auto font-medium
+                    ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+                    ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+                  `}
+                >
+                  <div className="flex items-center gap-1">
+                    {isUpdating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        {getTypeIcon(currentType)}
+                        <span>{getEntityTypeDisplayText(currentType)}</span>
+                        {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+                      </>
+                    )}
+                  </div>
+                </Button>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`
+                  ${getEntityTypeColor(currentType)} 
+                  ${getSizeClasses()}
+                  transition-all duration-200 
+                  border rounded-full
+                  h-auto font-medium
+                  ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+                  ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+                `}
+              >
+                <div className="flex items-center gap-1">
+                  {isUpdating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <>
+                      {getTypeIcon(currentType)}
+                      <span>{getEntityTypeDisplayText(currentType)}</span>
+                      {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+                    </>
+                  )}
+                </div>
+              </Button>
+            )
           ) : (
             <Button
               variant="outline"
@@ -207,12 +238,7 @@ export function EntityTypeDropdown({
         </DropdownMenuContent>
       </DropdownMenu>
       
-      {/* Show inheritance info for contacts */}
-      {entityType === 'contact' && inheritanceInfo.inherited && (
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          Inherited from company
-        </div>
-      )}
+
       
       {/* Show error */}
       {error && (
