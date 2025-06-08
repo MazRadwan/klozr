@@ -4,7 +4,7 @@ import React from 'react';
 import { ClientDashboardLayout } from '../../components/layout/ClientDashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { motion } from 'framer-motion';
-import ContactsPanel from './ContactsPanel';
+
 
 export default function ClientDashboard() {
   // Animation variants for card entrance
