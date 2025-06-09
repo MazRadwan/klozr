@@ -3,8 +3,15 @@ import { db } from '@/lib/db';
 import { deals, contacts, companies, offerings } from '@/lib/schema';
 import { eq, like, or } from 'drizzle-orm';
 import { z } from 'zod';
+import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
 export async function GET(req: NextRequest) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const searchQuery = searchParams.get('q');
@@ -84,6 +91,12 @@ const dealSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const body = await req.json();
     const validated = dealSchema.parse(body);

@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { companies } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
 // GET individual company
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { id } = await params;
     const companyId = parseInt(id);
@@ -38,6 +45,12 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { id } = await params;
     const companyId = parseInt(id);
@@ -81,6 +94,12 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { id } = await params;
     const companyId = parseInt(id);

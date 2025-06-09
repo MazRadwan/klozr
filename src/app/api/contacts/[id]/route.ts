@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { contacts, deals, companies } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { id } = await params;
     const contactId = parseInt(id);
@@ -104,6 +111,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   const { id } = await params;
   const contactId = parseInt(id);
   
@@ -121,6 +134,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { id } = await params;
     const contactId = parseInt(id);
@@ -157,6 +176,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   const { id } = await params;
   const contactId = parseInt(id);
   
