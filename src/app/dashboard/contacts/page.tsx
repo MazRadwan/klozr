@@ -426,6 +426,7 @@ export default function ContactsPage() {
               }}
               onTypeUpdate={fetchContacts}
               size="sm"
+              hideInheritanceTooltip={true}
             />
           </div>
         );
@@ -458,6 +459,7 @@ export default function ContactsPage() {
               }}
               onStatusUpdate={fetchContacts}
               size="sm"
+              suppressInheritanceTooltip={true}
             />
           </div>
         );
@@ -885,6 +887,7 @@ export default function ContactsPage() {
                                   }}
                                   onTypeUpdate={fetchContacts}
                                   size="sm"
+                                  hideInheritanceTooltip={true}
                                 />
                               </div>
                               <div onClick={(e) => e.stopPropagation()}>
@@ -899,6 +902,7 @@ export default function ContactsPage() {
                                   }}
                                   onStatusUpdate={fetchContacts}
                                   size="sm"
+                                  suppressInheritanceTooltip={true}
                                 />
                               </div>
                             </div>
