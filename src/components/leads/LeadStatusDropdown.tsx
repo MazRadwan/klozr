@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Loader2, Plus } from 'lucide-react';
+import { ChevronDown, Loader2, Plus, Info } from 'lucide-react';
 import { 
   LEAD_STATUSES, 
   LeadStatus, 
@@ -103,100 +103,118 @@ export function LeadStatusDropdown({
   };
 
   const inheritanceInfo = getInheritanceInfo();
+  
+  // Determine if dropdown should be disabled due to inheritance
+  const isInheritanceDisabled = entityType === 'contact' && inheritanceInfo.inherited && !disabled;
+  const isDropdownDisabled = disabled || isUpdating || isInheritanceDisabled;
+
+  // Create the button component
+  const renderButton = (includeChevron: boolean = true) => (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={`
+        ${currentStatus ? getLeadStatusColor(currentStatus) : ''} 
+        ${getSizeClasses()}
+        transition-all duration-200 
+        border rounded-full
+        h-auto font-medium
+        ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+        ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+      `}
+    >
+      <div className="flex items-center gap-1">
+        {isUpdating ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <>
+            <span>{currentStatus}</span>
+            {includeChevron && !isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+          </>
+        )}
+      </div>
+    </Button>
+  );
 
   return (
     <div className="flex flex-col gap-1">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild disabled={disabled || isUpdating}>
-          {currentStatus ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`
-                ${getLeadStatusColor(currentStatus)} 
-                ${getSizeClasses()}
-                transition-all duration-200 
-                hover:opacity-80 
-                border rounded-full
-                ${disabled || isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                h-auto font-medium
-              `}
-            >
-              <div className="flex items-center gap-1">
-                {isUpdating ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    <span>{currentStatus}</span>
-                    <ChevronDown className="h-3 w-3" />
-                  </>
-                )}
-              </div>
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              className={`
-                ${getSizeClasses()}
-                ${disabled || isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
-                border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
-              `}
-            >
-              <div className="flex items-center gap-2">
-                {isUpdating ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    <Plus className="h-3 w-3" />
-                    <span>Add Lead Status</span>
-                  </>
-                )}
-              </div>
-            </Button>
-          )}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="w-48">
-          {LEAD_STATUSES.map((status) => (
-            <DropdownMenuItem
-              key={status}
-              onClick={() => handleStatusChange(status)}
-              disabled={status === currentStatus || isUpdating}
-              className={`
-                ${status === currentStatus ? 'bg-gray-100 dark:bg-gray-800' : ''}
-                ${isUpdating ? 'opacity-50' : ''}
-              `}
-            >
-              <div className="flex items-center gap-2 w-full">
-                <div className={`w-2 h-2 rounded-full ${getLeadStatusColor(status).split(' ')[0]}`} />
-                <span className="text-sm capitalize">{status}</span>
-                {status === currentStatus && (
-                  <div className="ml-auto w-1.5 h-1.5 bg-blue-600 rounded-full" />
-                )}
-              </div>
-            </DropdownMenuItem>
-          ))}
-          {currentStatus && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => handleStatusChange(null as any)}
-                disabled={isUpdating}
-                className="text-red-600 dark:text-red-400"
+      <div className="flex items-center gap-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
+            {currentStatus ? (
+              renderButton(!isInheritanceDisabled)
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className={`
+                  ${getSizeClasses()}
+                  ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+                  border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
+                `}
               >
-                Remove Lead Status
+                <div className="flex items-center gap-2">
+                  {isUpdating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="h-3 w-3" />
+                      <span>Add Lead Status</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </>
+                  )}
+                </div>
+              </Button>
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-48">
+            {LEAD_STATUSES.map((status) => (
+              <DropdownMenuItem
+                key={status}
+                onClick={() => handleStatusChange(status)}
+                disabled={status === currentStatus || isUpdating || isInheritanceDisabled}
+                className={`
+                  ${status === currentStatus ? 'bg-gray-100 dark:bg-gray-800' : ''}
+                  ${isUpdating || isInheritanceDisabled ? 'opacity-50' : ''}
+                `}
+              >
+                <div className="flex items-center gap-2 w-full">
+                  <div className={`w-2 h-2 rounded-full ${getLeadStatusColor(status).split(' ')[0]}`} />
+                  <span className="text-sm capitalize">{status}</span>
+                  {status === currentStatus && (
+                    <div className="ml-auto w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                  )}
+                </div>
               </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      
-      {/* Show inheritance info for contacts */}
-      {entityType === 'contact' && inheritanceInfo.inherited && (
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          Inherited from {inheritanceInfo.source}
-        </div>
-      )}
+            ))}
+            {currentStatus && !isInheritanceDisabled && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleStatusChange(null as any)}
+                  disabled={isUpdating}
+                  className="text-red-600 dark:text-red-400"
+                >
+                  Remove Lead Status
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        {/* Inheritance info icon - positioned next to the dropdown */}
+        {isInheritanceDisabled && (
+          <div className="relative group">
+            <Info className="h-3 w-3 text-gray-400 cursor-help" />
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+              <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                Inherited from company
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* Show error */}
       {error && (

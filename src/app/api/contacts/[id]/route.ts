@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { contacts, deals, companies } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { id } = await params;
     const contactId = parseInt(id);
@@ -26,6 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           email: contacts.email,
           phone: contacts.phone,
           contact_type: contacts.contact_type,
+          type: contacts.type,
           company_id: contacts.company_id,
           owner_user_id: contacts.owner_user_id,
           address: contacts.address,
@@ -38,6 +46,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         company: {
           id: companies.id,
           name: companies.name,
+          type: companies.type,
           website: companies.website,
           address: companies.address,
           city: companies.city,
@@ -45,6 +54,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           country: companies.country,
           phone: companies.phone,
           industry: companies.industry,
+          lead_status: companies.lead_status,
+          lead_source: companies.lead_source,
+          lead_temperature: companies.lead_temperature,
+          lead_owner_id: companies.lead_owner_id,
         }
       })
       .from(contacts)
@@ -98,6 +111,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   const { id } = await params;
   const contactId = parseInt(id);
   
@@ -115,6 +134,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { id } = await params;
     const contactId = parseInt(id);
@@ -151,6 +176,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   const { id } = await params;
   const contactId = parseInt(id);
   

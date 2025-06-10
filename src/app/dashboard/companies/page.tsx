@@ -345,68 +345,72 @@ export default function CompaniesPage() {
       {/* Desktop Table */}
       <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none hidden md:block">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-200 dark:border-gray-800 hover:bg-transparent">
-                <TableHead className="w-12 pl-6">
-                  <Checkbox
-                    checked={selectAll}
-                    onCheckedChange={handleSelectAll}
-                    className="border-gray-300 dark:border-gray-600"
-                  />
-                </TableHead>
-                <TableHead 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                  onClick={() => handleSort('name')}
-                >
-                  <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
-                    Company Name
-                    {getSortIcon('name')}
-                  </div>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Entity Type</TableHead>
-                <TableHead 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                  onClick={() => handleSort('industry')}
-                >
-                  <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
-                    Industry
-                    {getSortIcon('industry')}
-                  </div>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Website</TableHead>
-                <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Contact</TableHead>
-                <TableHead 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                  onClick={() => handleSort('lead_status')}
-                >
-                  <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
-                    Lead Status
-                    {getSortIcon('lead_status')}
-                  </div>
-                </TableHead>
-                <TableHead 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                  onClick={() => handleSort('city')}
-                >
-                  <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
-                    Location
-                    {getSortIcon('city')}
-                  </div>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-900 dark:text-gray-100">Employees</TableHead>
-                <TableHead 
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                  onClick={() => handleSort('created_at')}
-                >
-                  <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
-                    Added
-                    {getSortIcon('created_at')}
-                  </div>
-                </TableHead>
-                <TableHead className="w-12 pr-6">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
+          <div className="relative">
+            {/* Scrollable Table Container */}
+            <div className="overflow-x-auto">
+              <Table className="relative">
+                <TableHeader>
+                  <TableRow className="border-gray-200 dark:border-gray-800 hover:bg-transparent">
+                    <TableHead className="w-12 pl-6 bg-white dark:bg-gray-950">
+                      <Checkbox
+                        checked={selectAll}
+                        onCheckedChange={handleSelectAll}
+                        className="border-gray-300 dark:border-gray-600"
+                      />
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
+                        Company Name
+                        {getSortIcon('name')}
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Entity Type</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
+                      onClick={() => handleSort('industry')}
+                    >
+                      <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
+                        Industry
+                        {getSortIcon('industry')}
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Website</TableHead>
+                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Contact</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
+                      onClick={() => handleSort('lead_status')}
+                    >
+                      <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
+                        Lead Status
+                        {getSortIcon('lead_status')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
+                      onClick={() => handleSort('city')}
+                    >
+                      <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
+                        Location
+                        {getSortIcon('city')}
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Employees</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
+                      onClick={() => handleSort('created_at')}
+                    >
+                      <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
+                        Added
+                        {getSortIcon('created_at')}
+                      </div>
+                    </TableHead>
+                    {/* Sticky Actions Header */}
+                    <TableHead className="sticky right-0 w-12 pr-6 bg-white dark:bg-gray-950 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10">
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -527,10 +531,11 @@ export default function CompaniesPage() {
                       {formatDate(company.created_at)}
                     </span>
                   </TableCell>
-                  <TableCell className="pr-6">
+                  {/* Sticky Actions Cell */}
+                  <TableCell className="sticky right-0 pr-6 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] bg-white dark:bg-gray-950 z-10">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
                           <MoreVertical className="h-4 w-4" />
                           <span className="sr-only">Open menu</span>
                         </Button>
@@ -555,6 +560,8 @@ export default function CompaniesPage() {
               ))}
             </TableBody>
           </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

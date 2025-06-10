@@ -5,8 +5,15 @@ import { join } from 'path';
 import { db } from '@/lib/db';
 import { deal_documents } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
 export async function POST(req: NextRequest) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
@@ -60,6 +67,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const dealId = searchParams.get('dealId');

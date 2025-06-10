@@ -68,6 +68,9 @@ interface Contact {
     name?: string;
     lead_status?: string | null;
     type?: string | null; // 'lead' | 'customer' | 'partner'
+    lead_source?: string | null;
+    lead_temperature?: string | null;
+    lead_owner_id?: number | null;
   } | null;
   [key: string]: any;
 }
@@ -105,6 +108,9 @@ export default function ContactsPage() {
     { key: 'entity_type', label: 'Entity Type', sortable: true, visible: true, width: 'w-32' },
     { key: 'contact_type', label: 'Job Title', sortable: true, visible: true, width: 'w-32' },
     { key: 'lead_status', label: 'Lead Status', sortable: true, visible: true, width: 'w-36' },
+    { key: 'lead_source', label: 'Lead Source', sortable: true, visible: true, width: 'w-32' },
+    { key: 'lead_temperature', label: 'Temperature', sortable: true, visible: true, width: 'w-28' },
+    { key: 'lead_owner', label: 'Lead Owner', sortable: true, visible: false, width: 'w-36' },
     { key: 'city', label: 'City', sortable: true, visible: true, width: 'w-32' },
     { key: 'state_province', label: 'State', sortable: true, visible: true, width: 'w-24' },
     { key: 'created_at', label: 'Added', sortable: true, visible: true, width: 'w-32' },
@@ -365,8 +371,6 @@ export default function ContactsPage() {
     });
   };
 
-
-
   const renderCellContent = (contact: Contact, columnKey: string) => {
     switch (columnKey) {
       case 'name':
@@ -415,7 +419,10 @@ export default function ContactsPage() {
               contact={{
                 type: contact.type,
                 company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                company: contact.company
+                company: contact.company ? {
+                  type: contact.company.type,
+                  name: contact.company.name
+                } : null
               }}
               onTypeUpdate={fetchContacts}
               size="sm"
@@ -453,6 +460,66 @@ export default function ContactsPage() {
               size="sm"
             />
           </div>
+        );
+      case 'lead_source':
+        // Only show lead source for entities with type 'lead'
+        const sourceEffectiveType = getEffectiveEntityType({
+          type: contact.type,
+          company_id: contact.company_id ? parseInt(contact.company_id) : null,
+          company: contact.company
+        });
+        if (sourceEffectiveType.type !== 'lead') {
+          return <span className="text-gray-400 text-xs">N/A</span>;
+        }
+        const leadSource = contact.lead_source || (contact.company?.lead_source);
+        return leadSource ? (
+          <span className="text-gray-900 dark:text-gray-100 text-sm">
+            {leadSource.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+          </span>
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
+      case 'lead_temperature':
+        // Show temperature only for leads, get from contact or company
+        const tempEffectiveType = getEffectiveEntityType({
+          type: contact.type,
+          company_id: contact.company_id ? parseInt(contact.company_id) : null,
+          company: contact.company
+        });
+        if (tempEffectiveType.type !== 'lead') {
+          return <span className="text-gray-400 text-xs">N/A</span>;
+        }
+        const temperature = contact.lead_temperature || contact.company?.lead_temperature;
+        if (!temperature) {
+          return <span className="text-gray-400">—</span>;
+        }
+        const tempColors = {
+          hot: 'bg-red-100 text-red-800 border-red-200',
+          warm: 'bg-orange-100 text-orange-800 border-orange-200', 
+          cold: 'bg-blue-100 text-blue-800 border-blue-200'
+        };
+        return (
+          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${tempColors[temperature as keyof typeof tempColors] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+            {temperature.charAt(0).toUpperCase() + temperature.slice(1)}
+          </span>
+        );
+      case 'lead_owner':
+        // Only show lead owner for entities with type 'lead'
+        const ownerEffectiveType = getEffectiveEntityType({
+          type: contact.type,
+          company_id: contact.company_id ? parseInt(contact.company_id) : null,
+          company: contact.company
+        });
+        if (ownerEffectiveType.type !== 'lead') {
+          return <span className="text-gray-400 text-xs">N/A</span>;
+        }
+        const ownerId = contact.lead_owner_id || contact.company?.lead_owner_id;
+        return ownerId ? (
+          <span className="text-gray-900 dark:text-gray-100 text-sm">
+            Owner #{ownerId}
+          </span>
+        ) : (
+          <span className="text-gray-400">—</span>
         );
       case 'city':
         return contact.city ? (
@@ -639,83 +706,102 @@ export default function ContactsPage() {
           ) : (
             <>
               {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selectAll}
-                          onCheckedChange={handleSelectAll}
-                          aria-label="Select all contacts"
-                        />
-                      </TableHead>
-                      {visibleColumns.map(column => (
-                        <TableHead 
-                          key={column.key}
-                          className={`font-semibold text-gray-900 dark:text-gray-100 ${
-                            column.sortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors' : ''
-                          } ${column.width || ''}`}
-                          onClick={() => column.sortable && column.key !== 'name' ? handleSort(column.key as SortField) : column.key === 'name' && handleSort('first_name')}
-                        >
-                          <div className="flex items-center">
-                            {column.label}
-                            {column.sortable && getSortIcon(column.key === 'name' ? 'first_name' : column.key as SortField)}
-                          </div>
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-16 font-semibold text-gray-900 dark:text-gray-100">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAndSortedContacts.map((contact, i) => (
-                      <TableRow 
-                        key={contact.id} 
-                        className={`
-                          border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer
-                          ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 
-                            i % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-gray-25 dark:bg-gray-950/50'}
-                        `}
-                        onClick={() => handleContactClick(contact.id)}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedContacts.includes(contact.id)}
-                            onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
-                            aria-label={`Select ${contact.first_name} ${contact.last_name}`}
-                          />
-                        </TableCell>
-                        {visibleColumns.map(column => (
-                          <TableCell key={column.key} className="py-3">
-                            {renderCellContent(contact, column.key)}
-                          </TableCell>
+              <div className="hidden md:block">
+                <div className="relative">
+                  {/* Scrollable Table Container */}
+                  <div className="overflow-x-auto">
+                    <Table className="relative">
+                      <TableHeader>
+                        <TableRow className="border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                          <TableHead className="w-12 bg-gray-50 dark:bg-gray-900/50">
+                            <Checkbox
+                              checked={selectAll}
+                              onCheckedChange={handleSelectAll}
+                              aria-label="Select all contacts"
+                            />
+                          </TableHead>
+                          {visibleColumns.map(column => (
+                            <TableHead 
+                              key={column.key}
+                              className={`font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/50 ${
+                                column.sortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors' : ''
+                              } ${column.width || ''}`}
+                              onClick={() => column.sortable && column.key !== 'name' ? handleSort(column.key as SortField) : column.key === 'name' && handleSort('first_name')}
+                            >
+                              <div className="flex items-center">
+                                {column.label}
+                                {column.sortable && getSortIcon(column.key === 'name' ? 'first_name' : column.key as SortField)}
+                              </div>
+                            </TableHead>
+                          ))}
+                          {/* Sticky Actions Header */}
+                          <TableHead className="sticky right-0 w-16 font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10">
+                            Actions
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAndSortedContacts.map((contact, i) => (
+                          <TableRow 
+                            key={contact.id} 
+                            className={`
+                              group border-gray-200 dark:border-gray-800 transition-colors cursor-pointer
+                              ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950'}
+                            `}
+                            onClick={() => handleContactClick(contact.id)}
+                          >
+                            <TableCell 
+                              onClick={(e) => e.stopPropagation()}
+                              className={`transition-colors ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'}`}
+                            >
+                              <Checkbox
+                                checked={selectedContacts.includes(contact.id)}
+                                onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
+                                aria-label={`Select ${contact.first_name} ${contact.last_name}`}
+                              />
+                            </TableCell>
+                            {visibleColumns.map(column => (
+                              <TableCell 
+                                key={column.key} 
+                                className={`py-3 transition-colors ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'}`}
+                              >
+                                {renderCellContent(contact, column.key)}
+                              </TableCell>
+                            ))}
+                            {/* Sticky Actions Cell */}
+                            <TableCell 
+                              className={`sticky right-0 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10 transition-colors ${
+                                selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'
+                              }`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDelete(contact)}
+                                    className="text-red-600 dark:text-red-400"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                        <TableCell className="py-3" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
-                                onClick={() => handleDelete(contact)}
-                                className="text-red-600 dark:text-red-400"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               </div>
 
               {/* Mobile Card View */}
@@ -786,13 +872,30 @@ export default function ContactsPage() {
                                  </span>
                                )}
                               <div onClick={(e) => e.stopPropagation()}>
+                                <EntityTypeDropdown
+                                  entityType="contact"
+                                  entityId={parseInt(contact.id)}
+                                  contact={{
+                                    type: contact.type,
+                                    company_id: contact.company_id ? parseInt(contact.company_id) : null,
+                                    company: contact.company ? {
+                                      type: contact.company.type,
+                                      name: contact.company.name
+                                    } : null
+                                  }}
+                                  onTypeUpdate={fetchContacts}
+                                  size="sm"
+                                />
+                              </div>
+                              <div onClick={(e) => e.stopPropagation()}>
                                 <LeadStatusDropdown
                                   entityType="contact"
                                   entityId={parseInt(contact.id)}
                                   contact={{
                                     individual_lead_status: contact.individual_lead_status,
                                     company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                                    company: contact.company
+                                    company: contact.company,
+                                    type: contact.type
                                   }}
                                   onStatusUpdate={fetchContacts}
                                   size="sm"
