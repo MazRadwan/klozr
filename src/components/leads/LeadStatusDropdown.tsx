@@ -120,7 +120,7 @@ export function LeadStatusDropdown({
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
             {currentStatus ? (
-              <Tooltip content={isInheritanceDisabled ? "Inherited from company (cannot edit)" : "Click to change lead status"}>
+              <Tooltip content={isInheritanceDisabled ? "Inherited from company" : "Click to change lead status"}>
                 <Button
                   variant="ghost"
                   size="sm"

@@ -157,7 +157,7 @@ export function EntityTypeDropdown({
                 </Button>
               </Tooltip>
             ) : (
-              <Tooltip content={isInheritanceDisabled ? "Inherited from company (cannot edit)" : "Click to change entity type"}>
+              <Tooltip content={isInheritanceDisabled ? "Inherited from company" : "Click to change entity type"}>
                 <Button
                   variant="ghost"
                   size="sm"
