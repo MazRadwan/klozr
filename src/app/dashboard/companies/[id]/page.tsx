@@ -13,6 +13,7 @@ import { ContactPicker } from '@/components/contacts/ContactPicker';
 import { NewContactModal } from '@/components/contacts/NewContactModal';
 import { CompanyDealPicker } from '@/components/deals/CompanyDealPicker';
 import { EntityTypeDropdown } from '@/components/entityTypes/EntityTypeDropdown';
+import { LeadStatusDropdown } from '@/components/leads/LeadStatusDropdown';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
@@ -27,6 +28,7 @@ interface Company {
   id: number;
   name?: string;
   type?: string | null;
+  lead_status?: string | null;
   industry?: string;
   website?: string;
   phone?: string;
@@ -339,7 +341,7 @@ export default function CompanyDetailPage() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
                   {company.name}
                 </h1>
-                <div className="flex-shrink-0">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <EntityTypeDropdown
                     entityType="company"
                     entityId={company.id}
@@ -349,6 +351,18 @@ export default function CompanyDetailPage() {
                     onTypeUpdate={fetchCompanyData}
                     size="sm"
                   />
+                  {/* Lead Status - Only show for leads */}
+                  {company.type === 'lead' && (
+                    <LeadStatusDropdown
+                      entityType="company"
+                      entityId={company.id}
+                      company={{
+                        lead_status: company.lead_status
+                      }}
+                      onStatusUpdate={fetchCompanyData}
+                      size="sm"
+                    />
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 mt-2">

@@ -18,6 +18,7 @@ import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout
 import { CompanyPicker } from "@/components/companies/CompanyPicker";
 import { DealPicker } from "@/components/deals/DealPicker";
 import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown";
+import { LeadStatusDropdown } from "@/components/leads/LeadStatusDropdown";
 
 interface Contact {
   contact: {
@@ -34,6 +35,7 @@ interface Contact {
     postal_code?: string;
     created_at?: string;
     // Lead management fields
+    individual_lead_status?: string | null;
     lead_source?: string | null;
     lead_temperature?: string | null;
     lead_owner_id?: number | null;
@@ -51,6 +53,7 @@ interface Contact {
     website?: string;
     email?: string;
     // Lead management fields
+    lead_status?: string | null;
     lead_source?: string | null;
     lead_temperature?: string | null;
     lead_owner_id?: number | null;
@@ -535,6 +538,27 @@ export default function ContactDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Lead Status */}
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                    Lead Status
+                  </label>
+                  <LeadStatusDropdown
+                    entityType="contact"
+                    entityId={contact.contact.id}
+                    contact={{
+                      individual_lead_status: contact.contact.individual_lead_status,
+                      company_id: contact.company?.id || null,
+                      company: contact.company ? {
+                        lead_status: contact.company.lead_status
+                      } : null,
+                      type: contact.contact.type
+                    }}
+                    onStatusUpdate={fetchContactData}
+                    size="sm"
+                  />
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
