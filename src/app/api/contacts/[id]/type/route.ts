@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { contacts, companies } from '@/lib/schema';
 import { eq, and, ne } from 'drizzle-orm';
+import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
 export async function PATCH(
   req: NextRequest, 
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   try {
     const { id } = await params;
     const contactId = parseInt(id);
