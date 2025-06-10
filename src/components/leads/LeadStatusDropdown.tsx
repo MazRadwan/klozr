@@ -120,7 +120,37 @@ export function LeadStatusDropdown({
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
             {currentStatus ? (
-              <Tooltip content={isInheritanceDisabled ? "Inherited from company" : "Click to change lead status"}>
+              // Only wrap in tooltip if inheritance is disabled (grayed out state)
+              isInheritanceDisabled ? (
+                <Tooltip content="Inherited from company">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`
+                      ${currentStatus ? getLeadStatusColor(currentStatus) : ''} 
+                      ${getSizeClasses()}
+                      transition-all duration-200 
+                      border rounded-full
+                      h-auto font-medium
+                      ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+                      ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+                      relative z-30
+                    `}
+                  >
+                    <div className="flex items-center gap-1">
+                      {isUpdating ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <span>{currentStatus}</span>
+                          {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+                        </>
+                      )}
+                    </div>
+                  </Button>
+                </Tooltip>
+              ) : (
+                // Normal functional button without tooltip wrapper (to avoid interference)
                 <Button
                   variant="ghost"
                   size="sm"
@@ -146,32 +176,31 @@ export function LeadStatusDropdown({
                     )}
                   </div>
                 </Button>
-              </Tooltip>
+              )
             ) : (
-              <Tooltip content="Click to add lead status">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={`
-                    ${getSizeClasses()}
-                    ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : ''}
-                    border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
-                    relative z-30
-                  `}
-                >
-                  <div className="flex items-center gap-2">
-                    {isUpdating ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <>
-                        <Plus className="h-3 w-3" />
-                        <span>Add Lead Status</span>
-                        <ChevronDown className="h-3 w-3" />
-                      </>
-                    )}
-                  </div>
-                </Button>
-              </Tooltip>
+              // Empty state button - no tooltip to avoid interference
+              <Button
+                variant="outline"
+                size="sm"
+                className={`
+                  ${getSizeClasses()}
+                  ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+                  border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
+                  relative z-30
+                `}
+              >
+                <div className="flex items-center gap-2">
+                  {isUpdating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="h-3 w-3" />
+                      <span>Add Lead Status</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </>
+                  )}
+                </div>
+              </Button>
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-48 z-50">
