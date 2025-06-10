@@ -128,7 +128,8 @@ export function EntityTypeDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
           {currentType ? (
-            isInheritanceDisabled && !hideInheritanceTooltip ? (
+            // Show tooltip for inherited/disabled buttons (like LeadStatusDropdown)
+            isInheritanceDisabled ? (
               <Tooltip content="Inherited from company">
                 <Button
                   variant="ghost"
@@ -157,6 +158,7 @@ export function EntityTypeDropdown({
                 </Button>
               </Tooltip>
             ) : (
+              // Normal functional button without tooltip wrapper (to avoid interference)
               <Button
                 variant="ghost"
                 size="sm"
