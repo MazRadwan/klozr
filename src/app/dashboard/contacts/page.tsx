@@ -419,12 +419,7 @@ export default function ContactsPage() {
               entityType="contact"
               entityId={parseInt(contact.id)}
               contact={{
-                type: contact.type,
-                company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                company: contact.company ? {
-                  type: contact.company.type,
-                  name: contact.company.name
-                } : null
+                type: contact.type
               }}
               onTypeUpdate={fetchContacts}
               size="sm"
@@ -866,12 +861,7 @@ export default function ContactsPage() {
                                   entityType="contact"
                                   entityId={parseInt(contact.id)}
                                   contact={{
-                                    type: contact.type,
-                                    company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                                    company: contact.company ? {
-                                      type: contact.company.type,
-                                      name: contact.company.name
-                                    } : null
+                                    type: contact.type
                                   }}
                                   onTypeUpdate={fetchContacts}
                                   size="sm"
