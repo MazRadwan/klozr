@@ -49,3 +49,6 @@ windsurf.rules.*
 
 # claude code files
 CLAUDE.md
+
+# security files (should not be in public repos)
+SECURITY-RECOMMENDATIONS.md
