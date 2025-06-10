@@ -521,44 +521,45 @@ export default function CompanyDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Lead Status */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                    Lead Status
-                  </label>
-                  <LeadStatusDropdown
-                    entityType="company"
-                    entityId={company.id}
-                    company={{
-                      lead_status: company.lead_status,
-                      lead_temperature: company.lead_temperature,
-                      lead_source: company.lead_source,
-                      lead_owner_id: company.lead_owner_id,
-                      type: company.type
-                    }}
-                    onStatusUpdate={fetchCompanyData}
-                    size="sm"
-                  />
-                </div>
-                
-                {/* Lead Temperature */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                    Lead Temperature
-                  </label>
-                  <LeadTemperatureDropdown
-                    entityType="company"
-                    entityId={company.id}
-                    company={{
-                      lead_status: company.lead_status,
-                      lead_temperature: company.lead_temperature,
-                      lead_source: company.lead_source,
-                      lead_owner_id: company.lead_owner_id,
-                      type: company.type
-                    }}
-                    onTemperatureUpdate={fetchCompanyData}
-                    size="sm"
-                  />
+                {/* Lead Status and Temperature - Side by side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                      Lead Status
+                    </label>
+                    <LeadStatusDropdown
+                      entityType="company"
+                      entityId={company.id}
+                      company={{
+                        lead_status: company.lead_status,
+                        lead_temperature: company.lead_temperature,
+                        lead_source: company.lead_source,
+                        lead_owner_id: company.lead_owner_id,
+                        type: company.type
+                      }}
+                      onStatusUpdate={fetchCompanyData}
+                      size="sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                      Lead Temperature
+                    </label>
+                    <LeadTemperatureDropdown
+                      entityType="company"
+                      entityId={company.id}
+                      company={{
+                        lead_status: company.lead_status,
+                        lead_temperature: company.lead_temperature,
+                        lead_source: company.lead_source,
+                        lead_owner_id: company.lead_owner_id,
+                        type: company.type
+                      }}
+                      onTemperatureUpdate={fetchCompanyData}
+                      size="sm"
+                    />
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

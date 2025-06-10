@@ -393,7 +393,7 @@ export default function ContactDetailPage() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
                   {fullName || 'Unnamed Contact'}
                 </h1>
-                <div className="flex-shrink-0">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <EntityTypeDropdown
                     entityType="contact"
                     entityId={contact.contact.id}
@@ -403,6 +403,22 @@ export default function ContactDetailPage() {
                     onTypeUpdate={fetchContactData}
                     size="sm"
                   />
+                  {/* Lead Status - Only show for leads */}
+                  {contact.contact.type === 'lead' && (
+                    <LeadStatusDropdown
+                      entityType="contact"
+                      entityId={contact.contact.id}
+                      contact={{
+                        lead_status: contact.contact.lead_status,
+                        lead_temperature: contact.contact.lead_temperature,
+                        lead_source: contact.contact.lead_source,
+                        lead_owner_id: contact.contact.lead_owner_id,
+                        type: contact.contact.type
+                      }}
+                      onStatusUpdate={fetchContactData}
+                      size="sm"
+                    />
+                  )}
                 </div>
               </div>
               <p className="text-gray-600 dark:text-gray-400">
@@ -534,24 +550,45 @@ export default function ContactDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Lead Status */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                    Lead Status
-                  </label>
-                  <LeadStatusDropdown
-                    entityType="contact"
-                    entityId={contact.contact.id}
-                    contact={{
-                      lead_status: contact.contact.lead_status,
-                      lead_temperature: contact.contact.lead_temperature,
-                      lead_source: contact.contact.lead_source,
-                      lead_owner_id: contact.contact.lead_owner_id,
-                      type: contact.contact.type
-                    }}
-                    onStatusUpdate={fetchContactData}
-                    size="sm"
-                  />
+                {/* Lead Status and Temperature - Side by side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                      Lead Status
+                    </label>
+                    <LeadStatusDropdown
+                      entityType="contact"
+                      entityId={contact.contact.id}
+                      contact={{
+                        lead_status: contact.contact.lead_status,
+                        lead_temperature: contact.contact.lead_temperature,
+                        lead_source: contact.contact.lead_source,
+                        lead_owner_id: contact.contact.lead_owner_id,
+                        type: contact.contact.type
+                      }}
+                      onStatusUpdate={fetchContactData}
+                      size="sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                      Lead Temperature
+                    </label>
+                    <LeadTemperatureDropdown
+                      entityType="contact"
+                      entityId={contact.contact.id}
+                      contact={{
+                        lead_status: contact.contact.lead_status,
+                        lead_temperature: contact.contact.lead_temperature,
+                        lead_source: contact.contact.lead_source,
+                        lead_owner_id: contact.contact.lead_owner_id,
+                        type: contact.contact.type
+                      }}
+                      onTemperatureUpdate={fetchContactData}
+                      size="sm"
+                    />
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -566,24 +603,6 @@ export default function ContactDetailPage() {
                           : 'Not specified'
                         }
                       </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Lead Temperature
-                      </label>
-                      <LeadTemperatureDropdown
-                        entityType="contact"
-                        entityId={contact.contact.id}
-                        contact={{
-                          lead_status: contact.contact.lead_status,
-                          lead_temperature: contact.contact.lead_temperature,
-                          lead_source: contact.contact.lead_source,
-                          lead_owner_id: contact.contact.lead_owner_id,
-                          type: contact.contact.type
-                        }}
-                        onTemperatureUpdate={fetchContactData}
-                        size="sm"
-                      />
                     </div>
                   </div>
                   <div className="space-y-4">
