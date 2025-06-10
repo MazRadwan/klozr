@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { contacts, companies } from '@/lib/schema';
 import { eq, like, or } from 'drizzle-orm';
+import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
 export async function GET(req: NextRequest) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
   const { searchParams } = new URL(req.url);
   const companyId = searchParams.get('company_id');
   const searchQuery = searchParams.get('q');
@@ -41,6 +47,9 @@ export async function GET(req: NextRequest) {
             name: companies.name,
             lead_status: companies.lead_status,
             type: companies.type,
+            lead_source: companies.lead_source,
+            lead_temperature: companies.lead_temperature,
+            lead_owner_id: companies.lead_owner_id,
           }
         })
         .from(contacts)
@@ -94,6 +103,12 @@ const contactSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Check authentication first
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+
   const body = await req.json();
   const validated = contactSchema.parse(body);
   const inserted = db.insert(contacts).values(validated).run();

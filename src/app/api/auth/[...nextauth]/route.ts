@@ -74,7 +74,7 @@ const authOptions: NextAuthConfig = {
     }),
   ],
   session: { strategy: 'jwt' },
-  secret: process.env.NEXTAUTH_SECRET || 'my-temporary-secret-for-development',
+  secret: process.env.NEXTAUTH_SECRET,
   theme: { colorScheme: 'auto' },
   callbacks: {
     async signIn({ 

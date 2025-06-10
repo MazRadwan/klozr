@@ -19,6 +19,7 @@ import {
   updateCompanyEntityType,
   getEntityTypeDisplayText
 } from '@/lib/entityTypeUtils';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface EntityTypeDropdownProps {
   entityType: 'contact' | 'company';
@@ -26,7 +27,7 @@ interface EntityTypeDropdownProps {
   contact?: {
     type?: string | null;
     company_id?: number | null;
-    company?: { type?: string | null } | null;
+    company?: { type?: string | null; name?: string } | null;
   };
   company?: {
     type?: string | null;
@@ -85,6 +86,8 @@ export function EntityTypeDropdown({
     }
   };
 
+
+
   const getSizeClasses = () => {
     const sizeMap = {
       sm: 'text-xs px-3 py-1.5',
@@ -103,6 +106,10 @@ export function EntityTypeDropdown({
   };
 
   const inheritanceInfo = getInheritanceInfo();
+  
+  // Determine if dropdown should be disabled due to inheritance
+  const isInheritanceDisabled = entityType === 'contact' && inheritanceInfo.inherited && !disabled;
+  const isDropdownDisabled = disabled || isUpdating || isInheritanceDisabled;
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -116,40 +123,70 @@ export function EntityTypeDropdown({
   return (
     <div className="flex flex-col gap-1">
       <DropdownMenu>
-        <DropdownMenuTrigger asChild disabled={disabled || isUpdating}>
+        <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
           {currentType ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`
-                ${getEntityTypeColor(currentType)} 
-                ${getSizeClasses()}
-                transition-all duration-200 
-                hover:opacity-80 
-                border rounded-full
-                ${disabled || isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                h-auto font-medium
-              `}
-            >
-              <div className="flex items-center gap-1">
-                {isUpdating ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    {getTypeIcon(currentType)}
-                    <span>{getEntityTypeDisplayText(currentType)}</span>
-                    <ChevronDown className="h-3 w-3" />
-                  </>
-                )}
-              </div>
-            </Button>
+            isInheritanceDisabled ? (
+              <Tooltip content="Inherited from company">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`
+                    ${getEntityTypeColor(currentType)} 
+                    ${getSizeClasses()}
+                    transition-all duration-200 
+                    border rounded-full
+                    h-auto font-medium
+                    ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+                    ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+                  `}
+                >
+                  <div className="flex items-center gap-1">
+                    {isUpdating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        {getTypeIcon(currentType)}
+                        <span>{getEntityTypeDisplayText(currentType)}</span>
+                        {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+                      </>
+                    )}
+                  </div>
+                </Button>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`
+                  ${getEntityTypeColor(currentType)} 
+                  ${getSizeClasses()}
+                  transition-all duration-200 
+                  border rounded-full
+                  h-auto font-medium
+                  ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+                  ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+                `}
+              >
+                <div className="flex items-center gap-1">
+                  {isUpdating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <>
+                      {getTypeIcon(currentType)}
+                      <span>{getEntityTypeDisplayText(currentType)}</span>
+                      {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+                    </>
+                  )}
+                </div>
+              </Button>
+            )
           ) : (
             <Button
               variant="outline"
               size="sm"
               className={`
                 ${getSizeClasses()}
-                ${disabled || isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
+                ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : ''}
                 border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
               `}
             >
@@ -171,10 +208,10 @@ export function EntityTypeDropdown({
             <DropdownMenuItem
               key={type}
               onClick={() => handleTypeChange(type)}
-              disabled={type === currentType || isUpdating}
+              disabled={type === currentType || isUpdating || isInheritanceDisabled}
               className={`
                 ${type === currentType ? 'bg-gray-100 dark:bg-gray-800' : ''}
-                ${isUpdating ? 'opacity-50' : ''}
+                ${isUpdating || isInheritanceDisabled ? 'opacity-50' : ''}
               `}
             >
               <div className="flex items-center gap-2 w-full">
@@ -186,7 +223,7 @@ export function EntityTypeDropdown({
               </div>
             </DropdownMenuItem>
           ))}
-          {currentType && (
+          {currentType && !isInheritanceDisabled && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -201,12 +238,7 @@ export function EntityTypeDropdown({
         </DropdownMenuContent>
       </DropdownMenu>
       
-      {/* Show inheritance info for contacts */}
-      {entityType === 'contact' && inheritanceInfo.inherited && (
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          Inherited from {inheritanceInfo.source}
-        </div>
-      )}
+
       
       {/* Show error */}
       {error && (

@@ -12,6 +12,8 @@ import { ClientDashboardLayout } from '@/components/layout/ClientDashboardLayout
 import { ContactPicker } from '@/components/contacts/ContactPicker';
 import { NewContactModal } from '@/components/contacts/NewContactModal';
 import { CompanyDealPicker } from '@/components/deals/CompanyDealPicker';
+import { EntityTypeDropdown } from '@/components/entityTypes/EntityTypeDropdown';
+import { LeadStatusDropdown } from '@/components/leads/LeadStatusDropdown';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
@@ -25,6 +27,8 @@ import {
 interface Company {
   id: number;
   name?: string;
+  type?: string | null;
+  lead_status?: string | null;
   industry?: string;
   website?: string;
   phone?: string;
@@ -261,9 +265,8 @@ export default function CompanyDetailPage() {
   };
 
   const breadcrumbItems = [
-    { label: "Dashboard", href: "/dashboard" },
     { label: "Companies", href: "/dashboard/companies" },
-    { label: company?.name || "Company", href: "#" }
+    { label: company?.name || "Company", current: true }
   ];
 
   if (loading) {
@@ -334,9 +337,34 @@ export default function CompanyDetailPage() {
         <div className="pt-8">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="max-w-none">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-                {company.name}
-              </h1>
+              <div className="flex items-center gap-6">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                  {company.name}
+                </h1>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <EntityTypeDropdown
+                    entityType="company"
+                    entityId={company.id}
+                    company={{
+                      type: company.type
+                    }}
+                    onTypeUpdate={fetchCompanyData}
+                    size="sm"
+                  />
+                  {/* Lead Status - Only show for leads */}
+                  {company.type === 'lead' && (
+                    <LeadStatusDropdown
+                      entityType="company"
+                      entityId={company.id}
+                      company={{
+                        lead_status: company.lead_status
+                      }}
+                      onStatusUpdate={fetchCompanyData}
+                      size="sm"
+                    />
+                  )}
+                </div>
+              </div>
               <div className="flex flex-wrap items-center gap-3 mt-2">
                 {company.industry && (
                   <Badge className={`${getIndustryColor(company.industry)} transition-all duration-200 cursor-default`}>
