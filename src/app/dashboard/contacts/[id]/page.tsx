@@ -18,7 +18,7 @@ import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout
 import { CompanyPicker } from "@/components/companies/CompanyPicker";
 import { DealPicker } from "@/components/deals/DealPicker";
 import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown";
-import { LeadStatusDropdown } from "@/components/leads/LeadStatusDropdown";
+import { LeadStatusDropdown, LeadTemperatureDropdown } from "@/components/leads";
 
 interface Contact {
   contact: {
@@ -35,6 +35,7 @@ interface Contact {
     postal_code?: string;
     created_at?: string;
     // Lead management fields
+    lead_status?: string | null;
     individual_lead_status?: string | null;
     lead_source?: string | null;
     lead_temperature?: string | null;
@@ -542,7 +543,7 @@ export default function ContactDetailPage() {
                     entityType="contact"
                     entityId={contact.contact.id}
                     contact={{
-                      lead_status: contact.contact.individual_lead_status,
+                      lead_status: contact.contact.lead_status,
                       lead_temperature: contact.contact.lead_temperature,
                       lead_source: contact.contact.lead_source,
                       lead_owner_id: contact.contact.lead_owner_id,
@@ -570,24 +571,19 @@ export default function ContactDetailPage() {
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Lead Temperature
                       </label>
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const temperature = contact.contact.lead_temperature;
-                          if (!temperature) return <span className="text-gray-500">Not specified</span>;
-                          
-                          const tempColors = {
-                            hot: 'bg-red-100 text-red-800 border-red-200',
-                            warm: 'bg-orange-100 text-orange-800 border-orange-200', 
-                            cold: 'bg-blue-100 text-blue-800 border-blue-200'
-                          };
-                          
-                          return (
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${tempColors[temperature as keyof typeof tempColors] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-                              {temperature.charAt(0).toUpperCase() + temperature.slice(1)}
-                            </span>
-                          );
-                        })()}
-                      </div>
+                      <LeadTemperatureDropdown
+                        entityType="contact"
+                        entityId={contact.contact.id}
+                        contact={{
+                          lead_status: contact.contact.lead_status,
+                          lead_temperature: contact.contact.lead_temperature,
+                          lead_source: contact.contact.lead_source,
+                          lead_owner_id: contact.contact.lead_owner_id,
+                          type: contact.contact.type
+                        }}
+                        onTemperatureUpdate={fetchContactData}
+                        size="sm"
+                      />
                     </div>
                   </div>
                   <div className="space-y-4">

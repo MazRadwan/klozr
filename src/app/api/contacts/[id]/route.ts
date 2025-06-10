@@ -40,6 +40,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           city: contacts.city,
           state_province: contacts.state_province,
           postal_code: contacts.postal_code,
+          // Lead management fields
+          lead_status: contacts.lead_status,
+          individual_lead_status: contacts.individual_lead_status,
+          lead_temperature: contacts.lead_temperature,
+          lead_source: contacts.lead_source,
+          lead_owner_id: contacts.lead_owner_id,
+          lead_assigned_date: contacts.lead_assigned_date,
           created_at: contacts.created_at,
           updated_at: contacts.updated_at,
         },
