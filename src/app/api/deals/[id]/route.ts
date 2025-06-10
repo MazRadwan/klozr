@@ -4,7 +4,7 @@ import { deals, contacts, companies, offerings } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check authentication first
   const authResult = await requireAuth();
   if (isAuthError(authResult)) {
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check authentication first
   const authResult = await requireAuth();
   if (isAuthError(authResult)) {
@@ -283,7 +283,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Check authentication first
   const authResult = await requireAuth();
   if (isAuthError(authResult)) {

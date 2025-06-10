@@ -397,12 +397,7 @@ export default function ContactDetailPage() {
                     entityType="contact"
                     entityId={contact.contact.id}
                     contact={{
-                      type: contact.contact.type,
-                      company_id: contact.company?.id || null,
-                      company: contact.company ? {
-                        type: contact.company.type,
-                        name: contact.company.name
-                      } : null
+                      type: contact.contact.type
                     }}
                     onTypeUpdate={fetchContactData}
                     size="sm"
@@ -547,11 +542,10 @@ export default function ContactDetailPage() {
                     entityType="contact"
                     entityId={contact.contact.id}
                     contact={{
-                      individual_lead_status: contact.contact.individual_lead_status,
-                      company_id: contact.company?.id || null,
-                      company: contact.company ? {
-                        lead_status: contact.company.lead_status
-                      } : null,
+                      lead_status: contact.contact.individual_lead_status,
+                      lead_temperature: contact.contact.lead_temperature,
+                      lead_source: contact.contact.lead_source,
+                      lead_owner_id: contact.contact.lead_owner_id,
                       type: contact.contact.type
                     }}
                     onStatusUpdate={fetchContactData}

@@ -13,6 +13,8 @@ import { ChevronDown, Loader2, Plus } from 'lucide-react';
 import { 
   LEAD_STATUSES, 
   LeadStatus, 
+  LeadTemperature,
+  LeadSource,
   getLeadStatusColor,
   getContactLeadStatus,
   getCompanyLeadStatus,
@@ -95,16 +97,16 @@ export function LeadStatusDropdown({
         // Send complete lead data to preserve other fields
         result = await updateContactLeadStatus(entityId, { 
           status: newStatus,
-          temperature: contact?.lead_temperature,
-          source: contact?.lead_source,
+          temperature: contact?.lead_temperature as LeadTemperature | null,
+          source: contact?.lead_source as LeadSource | null,
           ownerId: contact?.lead_owner_id
         });
       } else {
         // Send complete lead data to preserve other fields
         result = await updateCompanyLeadStatus(entityId, { 
           status: newStatus,
-          temperature: company?.lead_temperature,
-          source: company?.lead_source,
+          temperature: company?.lead_temperature as LeadTemperature | null,
+          source: company?.lead_source as LeadSource | null,
           ownerId: company?.lead_owner_id
         });
       }
