@@ -28,7 +28,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
 import { CompanyEditModal } from '@/components/companies/CompanyEditModal';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
-import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
+import { LeadStatusBadge, LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads';
 import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
 import { ENTITY_TYPES, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
 
@@ -58,7 +58,7 @@ interface Company {
   [key: string]: any;
 }
 
-type SortField = 'name' | 'industry' | 'city' | 'state' | 'employees' | 'lead_status' | 'created_at';
+type SortField = 'name' | 'industry' | 'city' | 'state' | 'employees' | 'lead_status' | 'lead_temperature' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
 export default function CompaniesPage() {
@@ -390,6 +390,15 @@ export default function CompaniesPage() {
                     </TableHead>
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
+                      onClick={() => handleSort('lead_temperature')}
+                    >
+                      <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
+                        Lead Temperature
+                        {getSortIcon('lead_temperature')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
                       onClick={() => handleSort('city')}
                     >
                       <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
@@ -504,9 +513,32 @@ export default function CompaniesPage() {
                         entityType="company"
                         entityId={parseInt(company.id)}
                         company={{
-                          lead_status: company.lead_status
+                          lead_status: company.lead_status,
+                          lead_temperature: company.lead_temperature,
+                          lead_source: company.lead_source,
+                          lead_owner_id: company.lead_owner_id,
+                          type: company.type
                         }}
                         onStatusUpdate={fetchCompanies}
+                        size="sm"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-xs">N/A</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                    {company.type === 'lead' ? (
+                      <LeadTemperatureDropdown
+                        entityType="company"
+                        entityId={parseInt(company.id)}
+                        company={{
+                          lead_status: company.lead_status,
+                          lead_temperature: company.lead_temperature,
+                          lead_source: company.lead_source,
+                          lead_owner_id: company.lead_owner_id,
+                          type: company.type
+                        }}
+                        onTemperatureUpdate={fetchCompanies}
                         size="sm"
                       />
                     ) : (
@@ -608,17 +640,38 @@ export default function CompaniesPage() {
                           </span>
                         )}
                         {company.type === 'lead' && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <LeadStatusDropdown
-                              entityType="company"
-                              entityId={parseInt(company.id)}
-                              company={{
-                                lead_status: company.lead_status
-                              }}
-                              onStatusUpdate={fetchCompanies}
-                              size="sm"
-                            />
-                          </div>
+                          <>
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <LeadStatusDropdown
+                                entityType="company"
+                                entityId={parseInt(company.id)}
+                                company={{
+                                  lead_status: company.lead_status,
+                                  lead_temperature: company.lead_temperature,
+                                  lead_source: company.lead_source,
+                                  lead_owner_id: company.lead_owner_id,
+                                  type: company.type
+                                }}
+                                onStatusUpdate={fetchCompanies}
+                                size="sm"
+                              />
+                            </div>
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <LeadTemperatureDropdown
+                                entityType="company"
+                                entityId={parseInt(company.id)}
+                                company={{
+                                  lead_status: company.lead_status,
+                                  lead_temperature: company.lead_temperature,
+                                  lead_source: company.lead_source,
+                                  lead_owner_id: company.lead_owner_id,
+                                  type: company.type
+                                }}
+                                onTemperatureUpdate={fetchCompanies}
+                                size="sm"
+                              />
+                            </div>
+                          </>
                         )}
                       </div>
                       {company.city && company.state && (

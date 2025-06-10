@@ -9,20 +9,20 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Loader2, Plus } from 'lucide-react';
+import { ChevronDown, Loader2, Plus, Thermometer } from 'lucide-react';
 import { 
-  LEAD_STATUSES, 
-  LeadStatus, 
-  LeadTemperature,
+  LEAD_TEMPERATURES, 
+  LeadTemperature, 
+  LeadStatus,
   LeadSource,
-  getLeadStatusColor,
+  getLeadTemperatureColor,
   getContactLeadStatus,
   getCompanyLeadStatus,
   updateContactLeadStatus,
   updateCompanyLeadStatus
 } from '@/lib/leadUtils';
 
-interface LeadStatusDropdownProps {
+interface LeadTemperatureDropdownProps {
   entityType: 'contact' | 'company';
   entityId: number;
   contact?: {
@@ -39,45 +39,39 @@ interface LeadStatusDropdownProps {
     lead_owner_id?: number | null;
     type?: string | null;
   };
-  onStatusUpdate?: () => void;
+  onTemperatureUpdate?: () => void;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function LeadStatusDropdown({
+export function LeadTemperatureDropdown({
   entityType,
   entityId,
   contact,
   company,
-  onStatusUpdate,
+  onTemperatureUpdate,
   disabled = false,
   size = 'sm'
-}: LeadStatusDropdownProps) {
+}: LeadTemperatureDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get current status - simplified, no inheritance
-  const currentStatus = (() => {
+  // Get current temperature and check if should show
+  const { currentTemperature, shouldShow } = (() => {
     if (entityType === 'company' && company) {
       const result = getCompanyLeadStatus(company);
-      return result.status;
+      return {
+        currentTemperature: company.lead_temperature,
+        shouldShow: result.shouldShow
+      };
     } else if (entityType === 'contact' && contact) {
       const result = getContactLeadStatus(contact);
-      return result.status;
+      return {
+        currentTemperature: contact.lead_temperature,
+        shouldShow: result.shouldShow
+      };
     }
-    return null;
-  })();
-
-  // Check if lead status should be shown based on entity type
-  const shouldShow = (() => {
-    if (entityType === 'company' && company) {
-      const result = getCompanyLeadStatus(company);
-      return result.shouldShow;
-    } else if (entityType === 'contact' && contact) {
-      const result = getContactLeadStatus(contact);
-      return result.shouldShow;
-    }
-    return false;
+    return { currentTemperature: null, shouldShow: false };
   })();
 
   // If entity type is not 'lead', don't show the dropdown
@@ -85,7 +79,7 @@ export function LeadStatusDropdown({
     return null;
   }
 
-  const handleStatusChange = async (newStatus: LeadStatus | null) => {
+  const handleTemperatureChange = async (newTemperature: LeadTemperature | null) => {
     if (isUpdating || disabled) return;
 
     setIsUpdating(true);
@@ -96,25 +90,25 @@ export function LeadStatusDropdown({
       if (entityType === 'contact') {
         // Send complete lead data to preserve other fields
         result = await updateContactLeadStatus(entityId, { 
-          status: newStatus,
-          temperature: contact?.lead_temperature as LeadTemperature | null,
+          status: contact?.lead_status as LeadStatus | null,
+          temperature: newTemperature,
           source: contact?.lead_source as LeadSource | null,
           ownerId: contact?.lead_owner_id
         });
       } else {
         // Send complete lead data to preserve other fields
         result = await updateCompanyLeadStatus(entityId, { 
-          status: newStatus,
-          temperature: company?.lead_temperature as LeadTemperature | null,
+          status: company?.lead_status as LeadStatus | null,
+          temperature: newTemperature,
           source: company?.lead_source as LeadSource | null,
           ownerId: company?.lead_owner_id
         });
       }
 
       if (!result.success) {
-        setError(result.error || 'Failed to update lead status');
+        setError(result.error || 'Failed to update lead temperature');
       } else {
-        onStatusUpdate?.();
+        onTemperatureUpdate?.();
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -139,12 +133,12 @@ export function LeadStatusDropdown({
       <div className="flex items-center gap-1">
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
-            {currentStatus ? (
+            {currentTemperature ? (
               <Button
                 variant="ghost"
                 size="sm"
                 className={`
-                  ${getLeadStatusColor(currentStatus)} 
+                  ${getLeadTemperatureColor(currentTemperature)} 
                   ${getSizeClasses()}
                   transition-all duration-200 
                   border rounded-full
@@ -158,7 +152,8 @@ export function LeadStatusDropdown({
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
                     <>
-                      <span>{currentStatus}</span>
+                      <Thermometer className="h-3 w-3" />
+                      <span>{currentTemperature.charAt(0).toUpperCase() + currentTemperature.slice(1)}</span>
                       <ChevronDown className="h-3 w-3" />
                     </>
                   )}
@@ -181,7 +176,7 @@ export function LeadStatusDropdown({
                   ) : (
                     <>
                       <Plus className="h-3 w-3" />
-                      <span>Add Lead Status</span>
+                      <span>Add Temperature</span>
                       <ChevronDown className="h-3 w-3" />
                     </>
                   )}
@@ -190,34 +185,34 @@ export function LeadStatusDropdown({
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-48 z-50">
-            {LEAD_STATUSES.map((status) => (
+            {LEAD_TEMPERATURES.map((temperature) => (
               <DropdownMenuItem
-                key={status}
-                onClick={() => handleStatusChange(status)}
-                disabled={status === currentStatus || isUpdating}
+                key={temperature}
+                onClick={() => handleTemperatureChange(temperature)}
+                disabled={temperature === currentTemperature || isUpdating}
                 className={`
-                  ${status === currentStatus ? 'bg-gray-100 dark:bg-gray-800' : ''}
+                  ${temperature === currentTemperature ? 'bg-gray-100 dark:bg-gray-800' : ''}
                   ${isUpdating ? 'opacity-50' : ''}
                 `}
               >
                 <div className="flex items-center gap-2 w-full">
-                  <div className={`w-2 h-2 rounded-full ${getLeadStatusColor(status).split(' ')[0]}`} />
-                  <span className="text-sm capitalize">{status}</span>
-                  {status === currentStatus && (
+                  <div className={`w-2 h-2 rounded-full ${getLeadTemperatureColor(temperature).split(' ')[0]}`} />
+                  <span className="text-sm capitalize">{temperature}</span>
+                  {temperature === currentTemperature && (
                     <div className="ml-auto w-1.5 h-1.5 bg-blue-600 rounded-full" />
                   )}
                 </div>
               </DropdownMenuItem>
             ))}
-            {currentStatus && (
+            {currentTemperature && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => handleStatusChange(null)}
+                  onClick={() => handleTemperatureChange(null)}
                   disabled={isUpdating}
                   className="text-red-600 dark:text-red-400"
                 >
-                  Remove Lead Status
+                  Remove Temperature
                 </DropdownMenuItem>
               </>
             )}

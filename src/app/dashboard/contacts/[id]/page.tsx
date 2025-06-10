@@ -18,7 +18,7 @@ import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout
 import { CompanyPicker } from "@/components/companies/CompanyPicker";
 import { DealPicker } from "@/components/deals/DealPicker";
 import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown";
-import { LeadStatusDropdown } from "@/components/leads/LeadStatusDropdown";
+import { LeadStatusDropdown, LeadTemperatureDropdown } from "@/components/leads";
 
 interface Contact {
   contact: {
@@ -35,6 +35,7 @@ interface Contact {
     postal_code?: string;
     created_at?: string;
     // Lead management fields
+    lead_status?: string | null;
     individual_lead_status?: string | null;
     lead_source?: string | null;
     lead_temperature?: string | null;
@@ -392,21 +393,32 @@ export default function ContactDetailPage() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
                   {fullName || 'Unnamed Contact'}
                 </h1>
-                <div className="flex-shrink-0">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <EntityTypeDropdown
                     entityType="contact"
                     entityId={contact.contact.id}
                     contact={{
-                      type: contact.contact.type,
-                      company_id: contact.company?.id || null,
-                      company: contact.company ? {
-                        type: contact.company.type,
-                        name: contact.company.name
-                      } : null
+                      type: contact.contact.type
                     }}
                     onTypeUpdate={fetchContactData}
                     size="sm"
                   />
+                  {/* Lead Status - Only show for leads */}
+                  {contact.contact.type === 'lead' && (
+                    <LeadStatusDropdown
+                      entityType="contact"
+                      entityId={contact.contact.id}
+                      contact={{
+                        lead_status: contact.contact.lead_status,
+                        lead_temperature: contact.contact.lead_temperature,
+                        lead_source: contact.contact.lead_source,
+                        lead_owner_id: contact.contact.lead_owner_id,
+                        type: contact.contact.type
+                      }}
+                      onStatusUpdate={fetchContactData}
+                      size="sm"
+                    />
+                  )}
                 </div>
               </div>
               <p className="text-gray-600 dark:text-gray-400">
@@ -538,25 +550,45 @@ export default function ContactDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Lead Status */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                    Lead Status
-                  </label>
-                  <LeadStatusDropdown
-                    entityType="contact"
-                    entityId={contact.contact.id}
-                    contact={{
-                      individual_lead_status: contact.contact.individual_lead_status,
-                      company_id: contact.company?.id || null,
-                      company: contact.company ? {
-                        lead_status: contact.company.lead_status
-                      } : null,
-                      type: contact.contact.type
-                    }}
-                    onStatusUpdate={fetchContactData}
-                    size="sm"
-                  />
+                {/* Lead Status and Temperature - Side by side */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                      Lead Status
+                    </label>
+                    <LeadStatusDropdown
+                      entityType="contact"
+                      entityId={contact.contact.id}
+                      contact={{
+                        lead_status: contact.contact.lead_status,
+                        lead_temperature: contact.contact.lead_temperature,
+                        lead_source: contact.contact.lead_source,
+                        lead_owner_id: contact.contact.lead_owner_id,
+                        type: contact.contact.type
+                      }}
+                      onStatusUpdate={fetchContactData}
+                      size="sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                      Lead Temperature
+                    </label>
+                    <LeadTemperatureDropdown
+                      entityType="contact"
+                      entityId={contact.contact.id}
+                      contact={{
+                        lead_status: contact.contact.lead_status,
+                        lead_temperature: contact.contact.lead_temperature,
+                        lead_source: contact.contact.lead_source,
+                        lead_owner_id: contact.contact.lead_owner_id,
+                        type: contact.contact.type
+                      }}
+                      onTemperatureUpdate={fetchContactData}
+                      size="sm"
+                    />
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -568,36 +600,9 @@ export default function ContactDetailPage() {
                       <p className="text-gray-900 dark:text-gray-100">
                         {contact.contact.lead_source 
                           ? contact.contact.lead_source.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
-                          : (contact.company?.lead_source
-                              ? `${contact.company.lead_source.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} (from company)`
-                              : 'Not specified'
-                            )
+                          : 'Not specified'
                         }
                       </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Lead Temperature
-                      </label>
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const temperature = contact.contact.lead_temperature || contact.company?.lead_temperature;
-                          if (!temperature) return <span className="text-gray-500">Not specified</span>;
-                          
-                          const tempColors = {
-                            hot: 'bg-red-100 text-red-800 border-red-200',
-                            warm: 'bg-orange-100 text-orange-800 border-orange-200', 
-                            cold: 'bg-blue-100 text-blue-800 border-blue-200'
-                          };
-                          
-                          return (
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${tempColors[temperature as keyof typeof tempColors] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-                              {temperature.charAt(0).toUpperCase() + temperature.slice(1)}
-                              {contact.contact.lead_temperature ? '' : ' (from company)'}
-                            </span>
-                          );
-                        })()}
-                      </div>
                     </div>
                   </div>
                   <div className="space-y-4">
@@ -608,10 +613,7 @@ export default function ContactDetailPage() {
                       <p className="text-gray-900 dark:text-gray-100">
                         {contact.contact.lead_owner_id 
                           ? `Owner #${contact.contact.lead_owner_id}`
-                          : (contact.company?.lead_owner_id
-                              ? `Owner #${contact.company.lead_owner_id} (from company)`
-                              : 'Not assigned'
-                            )
+                          : 'Not assigned'
                         }
                       </p>
                     </div>
@@ -624,10 +626,7 @@ export default function ContactDetailPage() {
                         <p className="text-gray-900 dark:text-gray-100">
                           {contact.contact.lead_assigned_date 
                             ? new Date(contact.contact.lead_assigned_date).toLocaleDateString()
-                            : (contact.company?.lead_assigned_date
-                                ? `${new Date(contact.company.lead_assigned_date).toLocaleDateString()} (from company)`
-                                : 'Not assigned'
-                              )
+                            : 'Not assigned'
                           }
                         </p>
                       </div>

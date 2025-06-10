@@ -2,20 +2,19 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { getLeadStatusColor, getEffectiveLeadStatus } from '@/lib/leadUtils';
+import { getLeadStatusColor, getContactLeadStatus, getCompanyLeadStatus } from '@/lib/leadUtils';
 
 interface LeadStatusBadgeProps {
   contact?: {
-    individual_lead_status?: string | null;
-    company_id?: number | null;
-    company?: { lead_status?: string | null } | null;
+    lead_status?: string | null;
+    type?: string | null;
   };
   company?: {
     lead_status?: string | null;
+    type?: string | null;
   };
   // For direct status display (when you have the status already)
   status?: string | null;
-  showSource?: boolean;
   className?: string;
 }
 
@@ -23,7 +22,6 @@ export function LeadStatusBadge({
   contact, 
   company, 
   status, 
-  showSource = false,
   className = ""
 }: LeadStatusBadgeProps) {
   // If direct status is provided, use it
@@ -37,31 +35,27 @@ export function LeadStatusBadge({
 
   // If company is provided directly
   if (company && !contact) {
-    if (!company.lead_status) return null;
+    const result = getCompanyLeadStatus(company);
+    if (!result.shouldShow || !result.status) return null;
+    
     return (
-      <Badge className={`${getLeadStatusColor(company.lead_status)} ${className}`}>
-        {company.lead_status}
+      <Badge className={`${getLeadStatusColor(result.status)} ${className}`}>
+        {result.status}
       </Badge>
     );
   }
 
-  // If contact is provided, use hybrid logic
+  // If contact is provided
   if (contact) {
-    const effective = getEffectiveLeadStatus(contact);
-    
-    if (!effective.status) return null;
+    const result = getContactLeadStatus(contact);
+    if (!result.shouldShow || !result.status) return null;
 
     return (
-      <Badge className={`${getLeadStatusColor(effective.status)} ${className}`}>
-        {effective.status}
-        {showSource && effective.inherited && (
-          <span className="ml-1 text-xs opacity-75">
-            (from {effective.source})
-          </span>
-        )}
+      <Badge className={`${getLeadStatusColor(result.status)} ${className}`}>
+        {result.status}
       </Badge>
     );
   }
 
   return null;
-} 
+}
