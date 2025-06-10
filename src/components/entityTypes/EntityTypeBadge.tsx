@@ -2,14 +2,12 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { getEntityTypeColor, getEffectiveEntityType, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
+import { getEntityTypeColor, getContactEntityType, getCompanyEntityType, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
 import { Building2, Users, Handshake } from 'lucide-react';
 
 interface EntityTypeBadgeProps {
   contact?: {
     type?: string | null;
-    company_id?: number | null;
-    company?: { type?: string | null } | null;
   };
   company?: {
     type?: string | null;
@@ -27,13 +25,16 @@ export function EntityTypeBadge({
   showIcon = true,
   className = ""
 }: EntityTypeBadgeProps) {
-  // Determine the effective type to display
+  // Determine the type to display - simplified, no inheritance
   const effectiveType = (() => {
     if (type) return type;
-    if (company) return company.type;
+    if (company && !contact) {
+      const result = getCompanyEntityType(company);
+      return result.type;
+    }
     if (contact) {
-      const effective = getEffectiveEntityType(contact);
-      return effective.type;
+      const result = getContactEntityType(contact);
+      return result.type;
     }
     return null;
   })();
@@ -66,4 +67,4 @@ export function EntityTypeBadge({
       </div>
     </Badge>
   );
-} 
+}

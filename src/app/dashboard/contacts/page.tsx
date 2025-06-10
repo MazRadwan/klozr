@@ -38,7 +38,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
 import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
 import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
-import { getEffectiveEntityType, ENTITY_TYPES, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
+import { getContactEntityType, ENTITY_TYPES, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 
 interface Contact {
@@ -57,6 +57,8 @@ interface Contact {
   // Entity type classification (primary segmentation)
   type?: string | null; // 'lead' | 'customer' | 'partner'
   // Lead management fields
+  lead_status?: string | null;
+  lead_temperature?: string | null;
   individual_lead_status?: string | null;
   is_lead_contact?: boolean;
   lead_source?: string | null;
@@ -426,7 +428,6 @@ export default function ContactsPage() {
               }}
               onTypeUpdate={fetchContacts}
               size="sm"
-              hideInheritanceTooltip={true}
             />
           </div>
         );
@@ -438,12 +439,8 @@ export default function ContactsPage() {
          );
       case 'lead_status':
         // Only show lead status for entities with type 'lead'
-        const effectiveType = getEffectiveEntityType({
-          type: contact.type,
-          company_id: contact.company_id ? parseInt(contact.company_id) : null,
-          company: contact.company
-        });
-        if (effectiveType.type !== 'lead') {
+        const contactType = getContactEntityType({ type: contact.type });
+        if (contactType.type !== 'lead') {
           return <span className="text-gray-400 text-xs">N/A</span>;
         }
         return (
@@ -452,28 +449,24 @@ export default function ContactsPage() {
               entityType="contact"
               entityId={parseInt(contact.id)}
               contact={{
-                individual_lead_status: contact.individual_lead_status,
-                company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                company: contact.company,
+                lead_status: contact.lead_status,
+                lead_temperature: contact.lead_temperature,
+                lead_source: contact.lead_source,
+                lead_owner_id: contact.lead_owner_id,
                 type: contact.type
               }}
               onStatusUpdate={fetchContacts}
               size="sm"
-              suppressInheritanceTooltip={true}
             />
           </div>
         );
       case 'lead_source':
         // Only show lead source for entities with type 'lead'
-        const sourceEffectiveType = getEffectiveEntityType({
-          type: contact.type,
-          company_id: contact.company_id ? parseInt(contact.company_id) : null,
-          company: contact.company
-        });
-        if (sourceEffectiveType.type !== 'lead') {
+        const sourceContactType = getContactEntityType({ type: contact.type });
+        if (sourceContactType.type !== 'lead') {
           return <span className="text-gray-400 text-xs">N/A</span>;
         }
-        const leadSource = contact.lead_source || (contact.company?.lead_source);
+        const leadSource = contact.lead_source;
         return leadSource ? (
           <span className="text-gray-900 dark:text-gray-100 text-sm">
             {leadSource.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
@@ -482,16 +475,12 @@ export default function ContactsPage() {
           <span className="text-gray-400">—</span>
         );
       case 'lead_temperature':
-        // Show temperature only for leads, get from contact or company
-        const tempEffectiveType = getEffectiveEntityType({
-          type: contact.type,
-          company_id: contact.company_id ? parseInt(contact.company_id) : null,
-          company: contact.company
-        });
-        if (tempEffectiveType.type !== 'lead') {
+        // Show temperature only for leads
+        const tempContactType = getContactEntityType({ type: contact.type });
+        if (tempContactType.type !== 'lead') {
           return <span className="text-gray-400 text-xs">N/A</span>;
         }
-        const temperature = contact.lead_temperature || contact.company?.lead_temperature;
+        const temperature = contact.lead_temperature;
         if (!temperature) {
           return <span className="text-gray-400">—</span>;
         }
@@ -507,15 +496,11 @@ export default function ContactsPage() {
         );
       case 'lead_owner':
         // Only show lead owner for entities with type 'lead'
-        const ownerEffectiveType = getEffectiveEntityType({
-          type: contact.type,
-          company_id: contact.company_id ? parseInt(contact.company_id) : null,
-          company: contact.company
-        });
-        if (ownerEffectiveType.type !== 'lead') {
+        const ownerContactType = getContactEntityType({ type: contact.type });
+        if (ownerContactType.type !== 'lead') {
           return <span className="text-gray-400 text-xs">N/A</span>;
         }
-        const ownerId = contact.lead_owner_id || contact.company?.lead_owner_id;
+        const ownerId = contact.lead_owner_id;
         return ownerId ? (
           <span className="text-gray-900 dark:text-gray-100 text-sm">
             Owner #{ownerId}
@@ -887,7 +872,6 @@ export default function ContactsPage() {
                                   }}
                                   onTypeUpdate={fetchContacts}
                                   size="sm"
-                                  hideInheritanceTooltip={true}
                                 />
                               </div>
                               <div onClick={(e) => e.stopPropagation()}>
@@ -895,14 +879,14 @@ export default function ContactsPage() {
                                   entityType="contact"
                                   entityId={parseInt(contact.id)}
                                   contact={{
-                                    individual_lead_status: contact.individual_lead_status,
-                                    company_id: contact.company_id ? parseInt(contact.company_id) : null,
-                                    company: contact.company,
+                                    lead_status: contact.lead_status,
+                                    lead_temperature: contact.lead_temperature,
+                                    lead_source: contact.lead_source,
+                                    lead_owner_id: contact.lead_owner_id,
                                     type: contact.type
                                   }}
                                   onStatusUpdate={fetchContacts}
                                   size="sm"
-                                  suppressInheritanceTooltip={true}
                                 />
                               </div>
                             </div>

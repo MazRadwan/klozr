@@ -1,5 +1,5 @@
 // Entity type management utilities
-// Handles the lifecycle-based approach for contact/company classification
+// Simplified for bidirectional sync approach
 
 export const ENTITY_TYPES = [
   'lead',
@@ -22,73 +22,30 @@ export function getEntityTypeColor(type?: string): string {
 }
 
 /**
- * Determines effective entity type for a contact
- * Implements the hybrid business logic (same pattern as lead status)
+ * Gets entity type for a contact - simplified (no inheritance)
+ * In bidirectional sync, contact.type is always the actual value
  */
-export function getEffectiveEntityType(contact: {
+export function getContactEntityType(contact: {
   type?: string | null;
-  company_id?: number | null;
-  company?: { type?: string | null } | null;
-}): { type: string | null; source: 'individual' | 'company' | null; inherited: boolean } {
-  // If contact has no company, use individual type
-  if (!contact.company_id || !contact.company) {
-    return {
-      type: contact.type || null,
-      source: contact.type ? 'individual' : null,
-      inherited: false
-    };
-  }
-
-  const companyType = contact.company.type;
-  const individualType = contact.type;
-
-  // If both contact and company have types, and they match, show as inherited
-  // If contact has a type that differs from company, show as individual
-  // If only company has type, show as inherited
-  // If only contact has type, show as individual
-  
-  if (companyType && individualType) {
-    if (companyType === individualType) {
-      // When they match, assume it's inherited (since we auto-sync)
-      return {
-        type: companyType,
-        source: 'company',
-        inherited: true
-      };
-    } else {
-      // When they differ, contact has been individually set
-      return {
-        type: individualType,
-        source: 'individual',
-        inherited: false
-      };
-    }
-  } else if (companyType) {
-    // Only company has type
-    return {
-      type: companyType,
-      source: 'company',
-      inherited: true
-    };
-  } else if (individualType) {
-    // Only contact has type
-    return {
-      type: individualType,
-      source: 'individual',
-      inherited: false
-    };
-  } else {
-    // Neither has type
-    return {
-      type: null,
-      source: null,
-      inherited: false
-    };
-  }
+}): { type: string | null } {
+  return {
+    type: contact.type || null
+  };
 }
 
 /**
- * Updates contact entity type with auto-sync logic
+ * Gets entity type for a company - simplified (no inheritance)
+ */
+export function getCompanyEntityType(company: {
+  type?: string | null;
+}): { type: string | null } {
+  return {
+    type: company.type || null
+  };
+}
+
+/**
+ * Updates contact entity type with bidirectional sync
  */
 export async function updateContactEntityType(
   contactId: number,
@@ -120,7 +77,7 @@ export async function updateContactEntityType(
 }
 
 /**
- * Updates company entity type with auto-sync logic
+ * Updates company entity type with bidirectional sync
  */
 export async function updateCompanyEntityType(
   companyId: number,
@@ -185,4 +142,4 @@ export function shouldShowLeadStatus(type?: string | null): boolean {
 export function getEntityTypeDisplayText(type?: string | null): string {
   if (!type) return 'No Type';
   return type.charAt(0).toUpperCase() + type.slice(1);
-} 
+}

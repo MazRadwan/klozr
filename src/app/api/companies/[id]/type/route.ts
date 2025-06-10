@@ -29,22 +29,48 @@ export async function PATCH(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
+    // Prepare company update data
+    const companyUpdateData: any = {
+      type: type,
+      updated_at: new Date().toISOString()
+    };
+
+    // Clear lead fields if transitioning away from 'lead' type
+    if (type && type !== 'lead') {
+      companyUpdateData.lead_status = null;
+      companyUpdateData.lead_temperature = null;
+      companyUpdateData.lead_source = null;
+      companyUpdateData.lead_assigned_date = null;
+      companyUpdateData.lead_owner_id = null;
+    }
+
     // Update the company's type
     await db
       .update(companies)
-      .set({ 
-        type: type,
-        updated_at: new Date().toISOString()
-      })
+      .set(companyUpdateData)
       .where(eq(companies.id, companyId));
+
+    // Prepare contacts update data (same as company)
+    const contactsUpdateData: any = {
+      type: type,
+      updated_at: new Date().toISOString()
+    };
+
+    // Clear lead fields for contacts too if transitioning away from 'lead'
+    if (type && type !== 'lead') {
+      contactsUpdateData.lead_status = null;
+      contactsUpdateData.lead_temperature = null;
+      contactsUpdateData.lead_source = null;
+      contactsUpdateData.lead_assigned_date = null;
+      contactsUpdateData.lead_owner_id = null;
+      contactsUpdateData.individual_lead_status = null;
+      contactsUpdateData.is_lead_contact = false;
+    }
 
     // Auto-sync logic: When company type changes, update all related contacts
     await db
       .update(contacts)
-      .set({ 
-        type: type,
-        updated_at: new Date().toISOString()
-      })
+      .set(contactsUpdateData)
       .where(eq(contacts.company_id, companyId));
 
     // Return the updated company

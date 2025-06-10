@@ -34,6 +34,8 @@ export async function GET(req: NextRequest) {
           postal_code: contacts.postal_code,
           is_primary: contacts.is_primary,
           // Lead management fields
+          lead_status: contacts.lead_status,
+          lead_temperature: contacts.lead_temperature,
           individual_lead_status: contacts.individual_lead_status,
           is_lead_contact: contacts.is_lead_contact,
           lead_source: contacts.lead_source,

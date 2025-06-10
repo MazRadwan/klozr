@@ -36,13 +36,27 @@ export async function PATCH(
     const contact = currentContact[0].contact;
     const company = currentContact[0].company;
 
+    // Prepare contact update data
+    const contactUpdateData: any = {
+      type: type,
+      updated_at: new Date().toISOString()
+    };
+
+    // Clear lead fields if transitioning away from 'lead' type
+    if (type && type !== 'lead') {
+      contactUpdateData.lead_status = null;
+      contactUpdateData.lead_temperature = null;
+      contactUpdateData.lead_source = null;
+      contactUpdateData.lead_assigned_date = null;
+      contactUpdateData.lead_owner_id = null;
+      contactUpdateData.individual_lead_status = null;
+      contactUpdateData.is_lead_contact = false;
+    }
+
     // Update the contact's type
     await db
       .update(contacts)
-      .set({ 
-        type: type,
-        updated_at: new Date().toISOString()
-      })
+      .set(contactUpdateData)
       .where(eq(contacts.id, contactId));
 
     // Auto-sync logic: If contact has a company and we're setting the contact type,

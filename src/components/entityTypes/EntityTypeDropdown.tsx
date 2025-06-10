@@ -13,21 +13,19 @@ import { ChevronDown, Loader2, Plus, Building2, Users, Handshake } from 'lucide-
 import { 
   ENTITY_TYPES, 
   EntityType, 
-  getEntityTypeColor, 
-  getEffectiveEntityType,
+  getEntityTypeColor,
+  getContactEntityType,
+  getCompanyEntityType,
   updateContactEntityType,
   updateCompanyEntityType,
   getEntityTypeDisplayText
 } from '@/lib/entityTypeUtils';
-import { Tooltip } from '@/components/ui/tooltip';
 
 interface EntityTypeDropdownProps {
   entityType: 'contact' | 'company';
   entityId: number;
   contact?: {
     type?: string | null;
-    company_id?: number | null;
-    company?: { type?: string | null; name?: string } | null;
   };
   company?: {
     type?: string | null;
@@ -35,8 +33,6 @@ interface EntityTypeDropdownProps {
   onTypeUpdate?: () => void;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
-  // New prop to control tooltip behavior in table context
-  hideInheritanceTooltip?: boolean;
 }
 
 export function EntityTypeDropdown({
@@ -46,24 +42,24 @@ export function EntityTypeDropdown({
   company,
   onTypeUpdate,
   disabled = false,
-  size = 'sm',
-  hideInheritanceTooltip = false
+  size = 'sm'
 }: EntityTypeDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get current effective type
+  // Get current type - simplified, no inheritance
   const currentType = (() => {
     if (entityType === 'company' && company) {
-      return company.type;
+      const result = getCompanyEntityType(company);
+      return result.type;
     } else if (entityType === 'contact' && contact) {
-      const effective = getEffectiveEntityType(contact);
-      return effective.type;
+      const result = getContactEntityType(contact);
+      return result.type;
     }
     return null;
   })();
 
-  const handleTypeChange = async (newType: EntityType) => {
+  const handleTypeChange = async (newType: EntityType | null) => {
     if (isUpdating || disabled) return;
 
     setIsUpdating(true);
@@ -89,8 +85,6 @@ export function EntityTypeDropdown({
     }
   };
 
-
-
   const getSizeClasses = () => {
     const sizeMap = {
       sm: 'text-xs px-3 py-1.5',
@@ -100,19 +94,7 @@ export function EntityTypeDropdown({
     return sizeMap[size];
   };
 
-  const getInheritanceInfo = () => {
-    if (entityType === 'contact' && contact) {
-      const effective = getEffectiveEntityType(contact);
-      return effective;
-    }
-    return { type: currentType, source: null, inherited: false };
-  };
-
-  const inheritanceInfo = getInheritanceInfo();
-  
-  // Determine if dropdown should be disabled due to inheritance
-  const isInheritanceDisabled = entityType === 'contact' && inheritanceInfo.inherited && !disabled;
-  const isDropdownDisabled = disabled || isUpdating || isInheritanceDisabled;
+  const isDropdownDisabled = disabled || isUpdating;
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -128,63 +110,30 @@ export function EntityTypeDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
           {currentType ? (
-            // Show tooltip for inherited/disabled buttons (like LeadStatusDropdown)
-            isInheritanceDisabled ? (
-              <Tooltip content="Inherited from company">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`
-                    ${getEntityTypeColor(currentType)} 
-                    ${getSizeClasses()}
-                    transition-all duration-200 
-                    border rounded-full
-                    h-auto font-medium
-                    ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
-                    ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
-                  `}
-                >
-                  <div className="flex items-center gap-1">
-                    {isUpdating ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <>
-                        {getTypeIcon(currentType)}
-                        <span>{getEntityTypeDisplayText(currentType)}</span>
-                        {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
-                      </>
-                    )}
-                  </div>
-                </Button>
-              </Tooltip>
-            ) : (
-              // Normal functional button without tooltip wrapper (to avoid interference)
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`
-                  ${getEntityTypeColor(currentType)} 
-                  ${getSizeClasses()}
-                  transition-all duration-200 
-                  border rounded-full
-                  h-auto font-medium
-                  ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
-                  ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
-                `}
-              >
-                <div className="flex items-center gap-1">
-                  {isUpdating ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <>
-                      {getTypeIcon(currentType)}
-                      <span>{getEntityTypeDisplayText(currentType)}</span>
-                      {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
-                    </>
-                  )}
-                </div>
-              </Button>
-            )
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`
+                ${getEntityTypeColor(currentType)} 
+                ${getSizeClasses()}
+                transition-all duration-200 
+                border rounded-full
+                h-auto font-medium
+                ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+              `}
+            >
+              <div className="flex items-center gap-1">
+                {isUpdating ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    {getTypeIcon(currentType)}
+                    <span>{getEntityTypeDisplayText(currentType)}</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </>
+                )}
+              </div>
+            </Button>
           ) : (
             <Button
               variant="outline"
@@ -202,6 +151,7 @@ export function EntityTypeDropdown({
                   <>
                     <Plus className="h-3 w-3" />
                     <span>Set Type</span>
+                    <ChevronDown className="h-3 w-3" />
                   </>
                 )}
               </div>
@@ -213,10 +163,10 @@ export function EntityTypeDropdown({
             <DropdownMenuItem
               key={type}
               onClick={() => handleTypeChange(type)}
-              disabled={type === currentType || isUpdating || isInheritanceDisabled}
+              disabled={type === currentType || isUpdating}
               className={`
                 ${type === currentType ? 'bg-gray-100 dark:bg-gray-800' : ''}
-                ${isUpdating || isInheritanceDisabled ? 'opacity-50' : ''}
+                ${isUpdating ? 'opacity-50' : ''}
               `}
             >
               <div className="flex items-center gap-2 w-full">
@@ -228,11 +178,11 @@ export function EntityTypeDropdown({
               </div>
             </DropdownMenuItem>
           ))}
-          {currentType && !isInheritanceDisabled && (
+          {currentType && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => handleTypeChange(null as any)}
+                onClick={() => handleTypeChange(null)}
                 disabled={isUpdating}
                 className="text-red-600 dark:text-red-400"
               >
@@ -243,8 +193,6 @@ export function EntityTypeDropdown({
         </DropdownMenuContent>
       </DropdownMenu>
       
-
-      
       {/* Show error */}
       {error && (
         <div className="text-xs text-red-600 dark:text-red-400">
@@ -253,4 +201,4 @@ export function EntityTypeDropdown({
       )}
     </div>
   );
-} 
+}
