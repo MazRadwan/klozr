@@ -1,5 +1,5 @@
 // Lead status management utilities
-// Handles the hybrid approach for person-company lead relationships
+// Simplified for bidirectional sync approach
 
 export const LEAD_STATUSES = [
   'prospect',
@@ -65,58 +65,36 @@ export function shouldShowLeadStatusForEntity(entityType?: string | null): boole
 }
 
 /**
- * Determines effective lead status for a contact
- * Implements the hybrid business logic
+ * Gets lead status for a contact - simplified (no inheritance)
+ * In bidirectional sync, contact.lead_status is always the actual value
  */
-export function getEffectiveLeadStatus(contact: {
-  individual_lead_status?: string | null;
-  company_id?: number | null;
-  company?: { lead_status?: string | null } | null;
+export function getContactLeadStatus(contact: {
+  lead_status?: string | null;
   type?: string | null;
-}): { status: string | null; source: 'individual' | 'company' | null; inherited: boolean; shouldShow: boolean } {
-  // Determine if lead status should be shown based on entity type
+}): { status: string | null; shouldShow: boolean } {
   const shouldShow = shouldShowLeadStatusForEntity(contact.type);
-
-  // If contact has no company, use individual status
-  if (!contact.company_id || !contact.company) {
-    return {
-      status: contact.individual_lead_status || null,
-      source: contact.individual_lead_status ? 'individual' : null,
-      inherited: false,
-      shouldShow
-    };
-  }
-
-  // If contact has company, inherit company's status (unless contact has individual status and company has none)
-  const companyStatus = contact.company.lead_status;
-  const individualStatus = contact.individual_lead_status;
-
-  if (companyStatus) {
-    return {
-      status: companyStatus,
-      source: 'company',
-      inherited: true,
-      shouldShow
-    };
-  } else if (individualStatus) {
-    return {
-      status: individualStatus,
-      source: 'individual', 
-      inherited: false,
-      shouldShow
-    };
-  } else {
-    return {
-      status: null,
-      source: null,
-      inherited: false,
-      shouldShow
-    };
-  }
+  return {
+    status: contact.lead_status || null,
+    shouldShow
+  };
 }
 
 /**
- * Updates contact lead status with auto-sync logic
+ * Gets lead status for a company - simplified (no inheritance)
+ */
+export function getCompanyLeadStatus(company: {
+  lead_status?: string | null;
+  type?: string | null;
+}): { status: string | null; shouldShow: boolean } {
+  const shouldShow = shouldShowLeadStatusForEntity(company.type);
+  return {
+    status: company.lead_status || null,
+    shouldShow
+  };
+}
+
+/**
+ * Updates contact lead status with bidirectional sync
  */
 export async function updateContactLeadStatus(
   contactId: number,
@@ -153,7 +131,7 @@ export async function updateContactLeadStatus(
 }
 
 /**
- * Updates company lead status with auto-sync logic
+ * Updates company lead status with bidirectional sync
  */
 export async function updateCompanyLeadStatus(
   companyId: number,
@@ -190,22 +168,21 @@ export async function updateCompanyLeadStatus(
 }
 
 /**
- * Query to get lead count without double counting
- * Returns SQL for reporting purposes
+ * Simplified lead count query (no complex inheritance logic needed)
  */
 export const LEAD_COUNT_QUERY = `
   SELECT COUNT(*) as total_leads FROM (
-    -- Company leads (primary entity)
+    -- Company leads
     SELECT id as entity_id, 'company' as type, lead_status 
     FROM companies 
-    WHERE lead_status IS NOT NULL
+    WHERE type = 'lead' AND lead_status IS NOT NULL
 
     UNION
 
-    -- Individual person leads (no company)
-    SELECT id as entity_id, 'contact' as type, individual_lead_status as lead_status
+    -- Individual contact leads (no company)
+    SELECT id as entity_id, 'contact' as type, lead_status
     FROM contacts 
-    WHERE company_id IS NULL AND individual_lead_status IS NOT NULL
+    WHERE type = 'lead' AND company_id IS NULL AND lead_status IS NOT NULL
   )
 `;
 
@@ -249,4 +226,4 @@ export async function convertToCompanyLead(
       error: error instanceof Error ? error.message : 'Failed to convert to company lead'
     };
   }
-} 
+}

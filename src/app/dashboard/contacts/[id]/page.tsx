@@ -568,10 +568,7 @@ export default function ContactDetailPage() {
                       <p className="text-gray-900 dark:text-gray-100">
                         {contact.contact.lead_source 
                           ? contact.contact.lead_source.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
-                          : (contact.company?.lead_source
-                              ? `${contact.company.lead_source.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} (from company)`
-                              : 'Not specified'
-                            )
+                          : 'Not specified'
                         }
                       </p>
                     </div>
@@ -581,7 +578,7 @@ export default function ContactDetailPage() {
                       </label>
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const temperature = contact.contact.lead_temperature || contact.company?.lead_temperature;
+                          const temperature = contact.contact.lead_temperature;
                           if (!temperature) return <span className="text-gray-500">Not specified</span>;
                           
                           const tempColors = {
@@ -593,7 +590,6 @@ export default function ContactDetailPage() {
                           return (
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${tempColors[temperature as keyof typeof tempColors] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
                               {temperature.charAt(0).toUpperCase() + temperature.slice(1)}
-                              {contact.contact.lead_temperature ? '' : ' (from company)'}
                             </span>
                           );
                         })()}
@@ -608,10 +604,7 @@ export default function ContactDetailPage() {
                       <p className="text-gray-900 dark:text-gray-100">
                         {contact.contact.lead_owner_id 
                           ? `Owner #${contact.contact.lead_owner_id}`
-                          : (contact.company?.lead_owner_id
-                              ? `Owner #${contact.company.lead_owner_id} (from company)`
-                              : 'Not assigned'
-                            )
+                          : 'Not assigned'
                         }
                       </p>
                     </div>
@@ -624,10 +617,7 @@ export default function ContactDetailPage() {
                         <p className="text-gray-900 dark:text-gray-100">
                           {contact.contact.lead_assigned_date 
                             ? new Date(contact.contact.lead_assigned_date).toLocaleDateString()
-                            : (contact.company?.lead_assigned_date
-                                ? `${new Date(contact.company.lead_assigned_date).toLocaleDateString()} (from company)`
-                                : 'Not assigned'
-                              )
+                            : 'Not assigned'
                           }
                         </p>
                       </div>
