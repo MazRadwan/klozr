@@ -18,6 +18,7 @@ import {
   updateContactLeadStatus,
   updateCompanyLeadStatus
 } from '@/lib/leadUtils';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface LeadStatusDropdownProps {
   entityType: 'contact' | 'company';
@@ -34,6 +35,8 @@ interface LeadStatusDropdownProps {
   onStatusUpdate?: () => void;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  // New prop to control tooltip behavior in table context
+  suppressInheritanceTooltip?: boolean;
 }
 
 export function LeadStatusDropdown({
@@ -43,7 +46,8 @@ export function LeadStatusDropdown({
   company,
   onStatusUpdate,
   disabled = false,
-  size = 'sm'
+  size = 'sm',
+  suppressInheritanceTooltip = false
 }: LeadStatusDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,66 +112,69 @@ export function LeadStatusDropdown({
   const isInheritanceDisabled = entityType === 'contact' && inheritanceInfo.inherited && !disabled;
   const isDropdownDisabled = disabled || isUpdating || isInheritanceDisabled;
 
-  // Create the button component
-  const renderButton = (includeChevron: boolean = true) => (
-    <Button
-      variant="ghost"
-      size="sm"
-      className={`
-        ${currentStatus ? getLeadStatusColor(currentStatus) : ''} 
-        ${getSizeClasses()}
-        transition-all duration-200 
-        border rounded-full
-        h-auto font-medium
-        ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
-        ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
-      `}
-    >
-      <div className="flex items-center gap-1">
-        {isUpdating ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : (
-          <>
-            <span>{currentStatus}</span>
-            {includeChevron && !isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
-          </>
-        )}
-      </div>
-    </Button>
-  );
-
   return (
-    <div className="flex flex-col gap-1">
+    <div 
+      className="inline-flex flex-col gap-1 relative"
+    >
       <div className="flex items-center gap-1">
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
             {currentStatus ? (
-              renderButton(!isInheritanceDisabled)
+              <Tooltip content={isInheritanceDisabled ? "Inherited from company (cannot edit)" : "Click to change lead status"}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`
+                    ${currentStatus ? getLeadStatusColor(currentStatus) : ''} 
+                    ${getSizeClasses()}
+                    transition-all duration-200 
+                    border rounded-full
+                    h-auto font-medium
+                    ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+                    ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+                    relative z-30
+                  `}
+                >
+                  <div className="flex items-center gap-1">
+                    {isUpdating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <span>{currentStatus}</span>
+                        {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+                      </>
+                    )}
+                  </div>
+                </Button>
+              </Tooltip>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className={`
-                  ${getSizeClasses()}
-                  ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : ''}
-                  border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
-                `}
-              >
-                <div className="flex items-center gap-2">
-                  {isUpdating ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="h-3 w-3" />
-                      <span>Add Lead Status</span>
-                      <ChevronDown className="h-3 w-3" />
-                    </>
-                  )}
-                </div>
-              </Button>
+              <Tooltip content="Click to add lead status">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`
+                    ${getSizeClasses()}
+                    ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+                    border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
+                    relative z-30
+                  `}
+                >
+                  <div className="flex items-center gap-2">
+                    {isUpdating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="h-3 w-3" />
+                        <span>Add Lead Status</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </>
+                    )}
+                  </div>
+                </Button>
+              </Tooltip>
             )}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" className="w-48">
+          <DropdownMenuContent align="center" className="w-48 z-50">
             {LEAD_STATUSES.map((status) => (
               <DropdownMenuItem
                 key={status}
@@ -202,10 +209,12 @@ export function LeadStatusDropdown({
           </DropdownMenuContent>
         </DropdownMenu>
         
-        {/* Inheritance info icon - positioned next to the dropdown */}
-        {isInheritanceDisabled && (
+        {/* Inheritance info icon - only show if not suppressed and inherited */}
+        {!suppressInheritanceTooltip && isInheritanceDisabled && (
           <div className="relative group">
-            <Info className="h-3 w-3 text-gray-400 cursor-help" />
+            <Info 
+              className="h-3 w-3 text-gray-400 cursor-help" 
+            />
             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
               <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
                 Inherited from company

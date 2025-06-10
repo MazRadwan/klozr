@@ -35,6 +35,8 @@ interface EntityTypeDropdownProps {
   onTypeUpdate?: () => void;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  // New prop to control tooltip behavior in table context
+  hideInheritanceTooltip?: boolean;
 }
 
 export function EntityTypeDropdown({
@@ -44,7 +46,8 @@ export function EntityTypeDropdown({
   company,
   onTypeUpdate,
   disabled = false,
-  size = 'sm'
+  size = 'sm',
+  hideInheritanceTooltip = false
 }: EntityTypeDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,7 +128,7 @@ export function EntityTypeDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
           {currentType ? (
-            isInheritanceDisabled ? (
+            isInheritanceDisabled && !hideInheritanceTooltip ? (
               <Tooltip content="Inherited from company">
                 <Button
                   variant="ghost"
@@ -154,53 +157,57 @@ export function EntityTypeDropdown({
                 </Button>
               </Tooltip>
             ) : (
+              <Tooltip content={isInheritanceDisabled ? "Inherited from company (cannot edit)" : "Click to change entity type"}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`
+                    ${getEntityTypeColor(currentType)} 
+                    ${getSizeClasses()}
+                    transition-all duration-200 
+                    border rounded-full
+                    h-auto font-medium
+                    ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
+                    ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+                  `}
+                >
+                  <div className="flex items-center gap-1">
+                    {isUpdating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        {getTypeIcon(currentType)}
+                        <span>{getEntityTypeDisplayText(currentType)}</span>
+                        {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+                      </>
+                    )}
+                  </div>
+                </Button>
+              </Tooltip>
+            )
+          ) : (
+            <Tooltip content="Click to set entity type">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className={`
-                  ${getEntityTypeColor(currentType)} 
                   ${getSizeClasses()}
-                  transition-all duration-200 
-                  border rounded-full
-                  h-auto font-medium
-                  ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80'}
-                  ${isInheritanceDisabled ? 'ring-1 ring-blue-300 dark:ring-blue-600' : ''}
+                  ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+                  border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
                 `}
               >
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   {isUpdating ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
                     <>
-                      {getTypeIcon(currentType)}
-                      <span>{getEntityTypeDisplayText(currentType)}</span>
-                      {!isInheritanceDisabled && <ChevronDown className="h-3 w-3" />}
+                      <Plus className="h-3 w-3" />
+                      <span>Set Type</span>
                     </>
                   )}
                 </div>
               </Button>
-            )
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              className={`
-                ${getSizeClasses()}
-                ${isDropdownDisabled ? 'opacity-50 cursor-not-allowed' : ''}
-                border-dashed text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100
-              `}
-            >
-              <div className="flex items-center gap-2">
-                {isUpdating ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    <Plus className="h-3 w-3" />
-                    <span>Set Type</span>
-                  </>
-                )}
-              </div>
-            </Button>
+            </Tooltip>
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-48">
