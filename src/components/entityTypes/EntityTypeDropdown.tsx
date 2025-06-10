@@ -35,6 +35,8 @@ interface EntityTypeDropdownProps {
   onTypeUpdate?: () => void;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  // New prop to control tooltip behavior in table context
+  hideInheritanceTooltip?: boolean;
 }
 
 export function EntityTypeDropdown({
@@ -44,7 +46,8 @@ export function EntityTypeDropdown({
   company,
   onTypeUpdate,
   disabled = false,
-  size = 'sm'
+  size = 'sm',
+  hideInheritanceTooltip = false
 }: EntityTypeDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +128,7 @@ export function EntityTypeDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={isDropdownDisabled}>
           {currentType ? (
+            // Show tooltip for inherited/disabled buttons (like LeadStatusDropdown)
             isInheritanceDisabled ? (
               <Tooltip content="Inherited from company">
                 <Button
@@ -154,6 +158,7 @@ export function EntityTypeDropdown({
                 </Button>
               </Tooltip>
             ) : (
+              // Normal functional button without tooltip wrapper (to avoid interference)
               <Button
                 variant="ghost"
                 size="sm"
