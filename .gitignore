@@ -46,3 +46,6 @@ windsurf.rules.*
 
 # cursor files
 .cursorrules
+
+# claude code files
+CLAUDE.md
