@@ -13,7 +13,7 @@ import { ContactPicker } from '@/components/contacts/ContactPicker';
 import { NewContactModal } from '@/components/contacts/NewContactModal';
 import { CompanyDealPicker } from '@/components/deals/CompanyDealPicker';
 import { EntityTypeDropdown } from '@/components/entityTypes/EntityTypeDropdown';
-import { LeadStatusDropdown } from '@/components/leads/LeadStatusDropdown';
+import { LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
@@ -29,6 +29,10 @@ interface Company {
   name?: string;
   type?: string | null;
   lead_status?: string | null;
+  lead_temperature?: string | null;
+  lead_source?: string | null;
+  lead_owner_id?: number | null;
+  lead_assigned_date?: string | null;
   industry?: string;
   website?: string;
   phone?: string;
@@ -357,7 +361,11 @@ export default function CompanyDetailPage() {
                       entityType="company"
                       entityId={company.id}
                       company={{
-                        lead_status: company.lead_status
+                        lead_status: company.lead_status,
+                        lead_temperature: company.lead_temperature,
+                        lead_source: company.lead_source,
+                        lead_owner_id: company.lead_owner_id,
+                        type: company.type
                       }}
                       onStatusUpdate={fetchCompanyData}
                       size="sm"
@@ -502,6 +510,102 @@ export default function CompanyDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Lead Management Section - Only show for leads */}
+          {company.type === 'lead' && (
+            <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <MessageSquare className="h-5 w-5" />
+                  Lead Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Lead Status */}
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                    Lead Status
+                  </label>
+                  <LeadStatusDropdown
+                    entityType="company"
+                    entityId={company.id}
+                    company={{
+                      lead_status: company.lead_status,
+                      lead_temperature: company.lead_temperature,
+                      lead_source: company.lead_source,
+                      lead_owner_id: company.lead_owner_id,
+                      type: company.type
+                    }}
+                    onStatusUpdate={fetchCompanyData}
+                    size="sm"
+                  />
+                </div>
+                
+                {/* Lead Temperature */}
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                    Lead Temperature
+                  </label>
+                  <LeadTemperatureDropdown
+                    entityType="company"
+                    entityId={company.id}
+                    company={{
+                      lead_status: company.lead_status,
+                      lead_temperature: company.lead_temperature,
+                      lead_source: company.lead_source,
+                      lead_owner_id: company.lead_owner_id,
+                      type: company.type
+                    }}
+                    onTemperatureUpdate={fetchCompanyData}
+                    size="sm"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Lead Source
+                      </label>
+                      <p className="text-gray-900 dark:text-gray-100">
+                        {company.lead_source 
+                          ? company.lead_source.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+                          : 'Not specified'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Lead Owner
+                      </label>
+                      <p className="text-gray-900 dark:text-gray-100">
+                        {company.lead_owner_id 
+                          ? `Owner #${company.lead_owner_id}`
+                          : 'Not assigned'
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Lead Assigned Date
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <p className="text-gray-900 dark:text-gray-100">
+                          {company.lead_assigned_date 
+                            ? new Date(company.lead_assigned_date).toLocaleDateString()
+                            : 'Not assigned'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Key Contacts */}
           <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
