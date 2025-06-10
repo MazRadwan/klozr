@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
-import { EntityToggle } from "@/components/ui/entity-toggle";
 import { DealStageDropdown } from "@/components/deals/DealStageDropdown";
 import { getDealStageColor } from "@/lib/dealUtils";
 
@@ -321,7 +320,6 @@ export default function DealsPage() {
         <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-              <EntityToggle />
               <div className="relative flex-1 md:max-w-md lg:max-w-lg">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input

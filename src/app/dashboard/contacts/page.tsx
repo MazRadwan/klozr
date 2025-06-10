@@ -36,7 +36,7 @@ import {
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
-import { LeadStatusBadge, LeadStatusDropdown } from '@/components/leads';
+import { LeadStatusBadge, LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads';
 import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
 import { getContactEntityType, ENTITY_TYPES, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
@@ -475,24 +475,27 @@ export default function ContactsPage() {
           <span className="text-gray-400">—</span>
         );
       case 'lead_temperature':
-        // Show temperature only for leads
+        // Only show lead temperature for entities with type 'lead'
         const tempContactType = getContactEntityType({ type: contact.type });
         if (tempContactType.type !== 'lead') {
           return <span className="text-gray-400 text-xs">N/A</span>;
         }
-        const temperature = contact.lead_temperature;
-        if (!temperature) {
-          return <span className="text-gray-400">—</span>;
-        }
-        const tempColors = {
-          hot: 'bg-red-100 text-red-800 border-red-200',
-          warm: 'bg-orange-100 text-orange-800 border-orange-200', 
-          cold: 'bg-blue-100 text-blue-800 border-blue-200'
-        };
         return (
-          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${tempColors[temperature as keyof typeof tempColors] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-            {temperature.charAt(0).toUpperCase() + temperature.slice(1)}
-          </span>
+          <div onClick={(e) => e.stopPropagation()}>
+            <LeadTemperatureDropdown
+              entityType="contact"
+              entityId={parseInt(contact.id)}
+              contact={{
+                lead_status: contact.lead_status,
+                lead_temperature: contact.lead_temperature,
+                lead_source: contact.lead_source,
+                lead_owner_id: contact.lead_owner_id,
+                type: contact.type
+              }}
+              onTemperatureUpdate={fetchContacts}
+              size="sm"
+            />
+          </div>
         );
       case 'lead_owner':
         // Only show lead owner for entities with type 'lead'
