@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
 import { CompanyEditModal } from '@/components/companies/CompanyEditModal';
+import { AddCompanyModal } from '@/components/companies/AddCompanyModal';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { LeadStatusBadge, LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads';
 import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
@@ -77,6 +78,7 @@ export default function CompaniesPage() {
   
   // Modal states
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -104,9 +106,11 @@ export default function CompaniesPage() {
   };
 
   const handleAddCompany = () => {
-    setSelectedCompany(null);
-    setIsEditing(false);
-    setEditModalOpen(true);
+    setAddModalOpen(true);
+  };
+
+  const handleCompanyCreated = (company: any) => {
+    fetchCompanies();
   };
 
   const handleEditCompany = (company: Company) => {
@@ -780,6 +784,13 @@ export default function CompaniesPage() {
         onSave={handleSaveCompany}
         company={selectedCompany}
         isEditing={isEditing}
+      />
+
+      {/* Add Company Modal */}
+      <AddCompanyModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onCompanyCreated={handleCompanyCreated}
       />
     </div>
     </ClientDashboardLayout>
