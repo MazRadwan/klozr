@@ -40,6 +40,7 @@ import { LeadStatusBadge, LeadStatusDropdown, LeadTemperatureDropdown } from '@/
 import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
 import { getContactEntityType, ENTITY_TYPES, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
+import { NewContactModal } from "@/components/contacts/NewContactModal";
 
 interface Contact {
   id: string;
@@ -124,7 +125,6 @@ export default function ContactsPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
-  const [newContact, setNewContact] = useState<Partial<Contact>>({});
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
 
   useEffect(() => {
@@ -169,7 +169,6 @@ export default function ContactsPage() {
   };
 
   const handleAdd = () => {
-    setNewContact({});
     setAddModalOpen(true);
   };
 
@@ -233,31 +232,8 @@ export default function ContactsPage() {
     }
   };
 
-  const saveNew = async () => {
-    if (!newContact.first_name || !newContact.last_name || !newContact.email) {
-      setError('Please fill in required fields: First Name, Last Name, and Email');
-      return;
-    }
-    
-    try {
-      const contactData = {
-        ...newContact,
-        created_at: new Date().toISOString(),
-      };
-
-      const res = await fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contactData),
-      });
-      if (!res.ok) throw new Error('Failed to create contact');
-      
-      await fetchContacts();
-      setAddModalOpen(false);
-      setNewContact({});
-    } catch (e: any) {
-      setError(e.message);
-    }
+  const handleContactCreated = () => {
+    fetchContacts();
   };
 
   // Handle individual contact selection
@@ -1106,110 +1082,11 @@ export default function ContactsPage() {
       </Dialog>
 
       {/* Add Contact Modal */}
-      <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg md:text-xl">Add New Contact</DialogTitle>
-            <DialogDescription className="text-sm md:text-base">
-              Create a new contact in your CRM system.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="first_name">First Name *</Label>
-                <Input
-                  id="first_name"
-                  value={newContact.first_name || ''}
-                  onChange={(e) => setNewContact({ ...newContact, first_name: e.target.value })}
-                  placeholder="John"
-                />
-              </div>
-              <div>
-                <Label htmlFor="last_name">Last Name *</Label>
-                <Input
-                  id="last_name"
-                  value={newContact.last_name || ''}
-                  onChange={(e) => setNewContact({ ...newContact, last_name: e.target.value })}
-                  placeholder="Doe"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newContact.email || ''}
-                  onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                  placeholder="john.doe@company.com"
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={newContact.phone || ''}
-                  onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                  placeholder="+1 (555) 123-4567"
-                />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="contact_type">Contact Type</Label>
-                <select
-                  id="contact_type"
-                  value={newContact.contact_type || ''}
-                  onChange={(e) => setNewContact({ ...newContact, contact_type: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="">Select type</option>
-                  <option value="CEO">CEO</option>
-                  <option value="CTO">CTO</option>
-                  <option value="Decision Maker">Decision Maker</option>
-                  <option value="Technical Lead">Technical Lead</option>
-                  <option value="VP of Operations">VP of Operations</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={newContact.city || ''}
-                  onChange={(e) => setNewContact({ ...newContact, city: e.target.value })}
-                  placeholder="San Francisco"
-                />
-              </div>
-              <div>
-                <Label htmlFor="state_province">State/Province</Label>
-                <Input
-                  id="state_province"
-                  value={newContact.state_province || ''}
-                  onChange={(e) => setNewContact({ ...newContact, state_province: e.target.value })}
-                  placeholder="CA"
-                />
-              </div>
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={newContact.address || ''}
-                  onChange={(e) => setNewContact({ ...newContact, address: e.target.value })}
-                  placeholder="123 Main St"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setAddModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={saveNew}>
-              Create Contact
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NewContactModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSuccess={handleContactCreated}
+      />
         </div>
       </div>
     </ClientDashboardLayout>
