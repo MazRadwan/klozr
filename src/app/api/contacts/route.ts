@@ -95,12 +95,14 @@ const contactSchema = z.object({
   email: z.string().email(),
   phone: z.string().optional(),
   contact_type: z.string().optional(),
-  company_id: z.number().optional(),
+  company_id: z.number().nullable().optional(),
   owner_user_id: z.number().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state_province: z.string().optional(),
   postal_code: z.string().optional(),
+  is_primary: z.boolean().optional(),
+  type: z.string().optional(),
   created_at: z.string().optional()
 });
 
@@ -111,8 +113,30 @@ export async function POST(req: NextRequest) {
     return authResult;
   }
 
-  const body = await req.json();
-  const validated = contactSchema.parse(body);
-  const inserted = db.insert(contacts).values(validated).run();
-  return NextResponse.json(inserted, { status: 201 });
+  try {
+    const body = await req.json();
+    console.log('Contact creation request body:', body);
+    
+    const validated = contactSchema.parse(body);
+    console.log('Validated contact data:', validated);
+    
+    const inserted = db.insert(contacts).values(validated).run();
+    console.log('Contact created successfully:', inserted);
+    
+    return NextResponse.json(inserted, { status: 201 });
+  } catch (error) {
+    console.error('Contact creation error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Failed to create contact', details: error.message },
+      { status: 500 }
+    );
+  }
 }
