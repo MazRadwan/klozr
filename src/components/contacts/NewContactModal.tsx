@@ -349,8 +349,8 @@ export function NewContactModal({
             </div>
           </div>
 
-          {/* Company Selection - Only show when companyId not provided */}
-          {!companyId && (
+          {/* Company Selection - Only show when companyId not provided and not -1 (special flag) */}
+          {!companyId && companyId !== -1 && (
             <div className="space-y-2">
               <Label>Company</Label>
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900">
