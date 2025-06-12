@@ -24,12 +24,6 @@ interface ContactSelectionPickerProps {
   companyData?: {
     name: string;
     type: string;
-    // Lead management fields for inheritance
-    lead_status?: string;
-    lead_temperature?: string;
-    lead_source?: string;
-    lead_assigned_date?: string;
-    lead_owner_id?: number;
   };
 }
 
@@ -97,8 +91,8 @@ export function ContactSelectionPicker({
   const handleNewContactCreated = (createdContact?: Contact) => {
     setShowNewContactModal(false);
     
-    // If contact was created in company creation flow, add it to selected contacts
-    if (createdContact && companyData) {
+    // Always add created contact to selected contacts (works for both flows)
+    if (createdContact) {
       const updatedContacts = [...selectedContacts, createdContact];
       onContactsChange(updatedContacts);
     }
