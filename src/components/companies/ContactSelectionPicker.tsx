@@ -21,11 +21,16 @@ interface Contact {
 interface ContactSelectionPickerProps {
   selectedContacts: Contact[];
   onContactsChange: (contacts: Contact[]) => void;
+  companyData?: {
+    name: string;
+    type: string;
+  };
 }
 
 export function ContactSelectionPicker({ 
   selectedContacts, 
-  onContactsChange 
+  onContactsChange,
+  companyData
 }: ContactSelectionPickerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Contact[]>([]);
@@ -83,8 +88,15 @@ export function ContactSelectionPicker({
     onContactsChange(updatedContacts);
   };
 
-  const handleNewContactCreated = () => {
+  const handleNewContactCreated = (createdContact?: Contact) => {
     setShowNewContactModal(false);
+    
+    // Always add created contact to selected contacts (works for both flows)
+    if (createdContact) {
+      const updatedContacts = [...selectedContacts, createdContact];
+      onContactsChange(updatedContacts);
+    }
+    
     // Refresh the search results to show the new contact
     if (searchTerm) {
       debouncedSearch(searchTerm);
@@ -232,7 +244,7 @@ export function ContactSelectionPicker({
         isOpen={showNewContactModal}
         onClose={() => setShowNewContactModal(false)}
         onSuccess={handleNewContactCreated}
-        companyId={-1} // Special flag to hide company picker
+        companyData={companyData} // Pass company data for inheritance and linking
       />
     </div>
   );

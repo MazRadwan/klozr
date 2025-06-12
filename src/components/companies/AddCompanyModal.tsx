@@ -91,7 +91,14 @@ export function AddCompanyModal({
     founded: '',
     employees: undefined as number | undefined,
     revenue: '',
-    description: ''
+    description: '',
+    type: '',
+    // Lead management fields
+    lead_status: '',
+    lead_temperature: '',
+    lead_source: '',
+    lead_assigned_date: '',
+    lead_owner_id: undefined as number | undefined
   });
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [saving, setSaving] = useState(false);
@@ -211,7 +218,14 @@ export function AddCompanyModal({
         founded: '',
         employees: undefined,
         revenue: '',
-        description: ''
+        description: '',
+        type: '',
+        // Lead management fields
+        lead_status: '',
+        lead_temperature: '',
+        lead_source: '',
+        lead_assigned_date: '',
+        lead_owner_id: undefined
       });
       setSelectedContacts([]);
       setErrors({});
@@ -241,7 +255,7 @@ export function AddCompanyModal({
 
           {/* Company Name - Full Width */}
           <div>
-            <Label htmlFor="name">
+            <Label htmlFor="name" className="mb-2 block">
               Company Name <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -260,7 +274,7 @@ export function AddCompanyModal({
           {/* Address Section */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address" className="mb-2 block">Address</Label>
               <Input
                 id="address"
                 value={formData.address}
@@ -272,7 +286,7 @@ export function AddCompanyModal({
 
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-2">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="city" className="mb-2 block">City</Label>
                 <Input
                   id="city"
                   value={formData.city}
@@ -282,7 +296,7 @@ export function AddCompanyModal({
                 />
               </div>
               <div>
-                <Label htmlFor="state">State/Province</Label>
+                <Label htmlFor="state" className="mb-2 block">State/Province</Label>
                 <select
                   id="state"
                   value={formData.state}
@@ -299,7 +313,7 @@ export function AddCompanyModal({
                 </select>
               </div>
               <div>
-                <Label htmlFor="postal_code">Postal Code</Label>
+                <Label htmlFor="postal_code" className="mb-2 block">Postal Code</Label>
                 <Input
                   id="postal_code"
                   value={formData.postal_code}
@@ -314,7 +328,7 @@ export function AddCompanyModal({
           {/* Contact Information */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="mb-2 block">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -329,7 +343,7 @@ export function AddCompanyModal({
               )}
             </div>
             <div>
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone" className="mb-2 block">Phone</Label>
               <Input
                 id="phone"
                 value={formData.phone}
@@ -340,25 +354,24 @@ export function AddCompanyModal({
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="website">Website</Label>
-            <Input
-              id="website"
-              value={formData.website}
-              onChange={(e) => handleInputChange('website', e.target.value)}
-              disabled={saving}
-              placeholder="example.com"
-              className={errors.website ? "border-red-500" : ""}
-            />
-            {errors.website && (
-              <p className="text-sm text-red-500 mt-1">{errors.website}</p>
-            )}
-          </div>
-
-          {/* Lower Priority Fields */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 1: Website, Industry, Entity Type */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="industry">Industry</Label>
+              <Label htmlFor="website" className="mb-2 block">Website</Label>
+              <Input
+                id="website"
+                value={formData.website}
+                onChange={(e) => handleInputChange('website', e.target.value)}
+                disabled={saving}
+                placeholder="example.com"
+                className={errors.website ? "border-red-500" : ""}
+              />
+              {errors.website && (
+                <p className="text-sm text-red-500 mt-1">{errors.website}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="industry" className="mb-2 block">Industry</Label>
               <select
                 id="industry"
                 value={formData.industry}
@@ -375,20 +388,26 @@ export function AddCompanyModal({
               </select>
             </div>
             <div>
-              <Label htmlFor="founded">Founded Year</Label>
-              <Input
-                id="founded"
-                value={formData.founded}
-                onChange={(e) => handleInputChange('founded', e.target.value)}
+              <Label htmlFor="type" className="mb-2 block">Entity Type</Label>
+              <select
+                id="type"
+                value={formData.type}
+                onChange={(e) => handleInputChange('type', e.target.value)}
                 disabled={saving}
-                placeholder="e.g., 2015"
-              />
+                className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">Select type</option>
+                <option value="lead">Lead</option>
+                <option value="customer">Customer</option>
+                <option value="partner">Partner</option>
+              </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 2: Employees, Revenue, Founded Year */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="employees">Number of Employees</Label>
+              <Label htmlFor="employees" className="mb-2 block">Number of Employees</Label>
               <Input
                 id="employees"
                 type="number"
@@ -404,7 +423,7 @@ export function AddCompanyModal({
               )}
             </div>
             <div>
-              <Label htmlFor="revenue">Annual Revenue</Label>
+              <Label htmlFor="revenue" className="mb-2 block">Annual Revenue</Label>
               <Input
                 id="revenue"
                 value={formData.revenue}
@@ -413,11 +432,21 @@ export function AddCompanyModal({
                 placeholder="e.g., $50M"
               />
             </div>
+            <div>
+              <Label htmlFor="founded" className="mb-2 block">Founded Year</Label>
+              <Input
+                id="founded"
+                value={formData.founded}
+                onChange={(e) => handleInputChange('founded', e.target.value)}
+                disabled={saving}
+                placeholder="e.g., 2015"
+              />
+            </div>
           </div>
 
           {/* Description */}
           <div>
-            <Label htmlFor="description">Company Description</Label>
+            <Label htmlFor="description" className="mb-2 block">Company Description</Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -433,11 +462,15 @@ export function AddCompanyModal({
 
           {/* Contact Selection */}
           <div className="space-y-2">
-            <Label>Assign Contacts</Label>
+            <Label className="mb-2 block">Assign Contacts</Label>
             <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900">
               <ContactSelectionPicker
                 selectedContacts={selectedContacts}
                 onContactsChange={setSelectedContacts}
+                companyData={{
+                  name: formData.name,
+                  type: formData.type
+                }}
               />
             </div>
           </div>
