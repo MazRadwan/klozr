@@ -12,6 +12,15 @@ import { Loader2, User } from 'lucide-react';
 import { formatPhone, formatState, formatEmail, isValidEmail, isValidPhone } from '@/lib/formatUtils';
 import { CompanyPicker } from '@/components/companies/CompanyPicker';
 
+interface Contact {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  contact_type?: string;
+}
+
 interface NewContact {
   first_name: string;
   last_name: string;
@@ -24,6 +33,13 @@ interface NewContact {
   postal_code?: string;
   is_primary?: boolean;
   owner_user_id?: number;
+  type?: string;
+  // Lead management fields
+  lead_status?: string;
+  lead_temperature?: string;
+  lead_source?: string;
+  lead_assigned_date?: string;
+  lead_owner_id?: number;
 }
 
 interface NewContactModalProps {
@@ -31,7 +47,17 @@ interface NewContactModalProps {
   onClose: () => void;
   companyId?: number;  // Optional when called from contacts page
   companyName?: string;  // Optional when called from contacts page
-  onSuccess: () => void;
+  companyData?: {  // New prop for company creation flow
+    name: string;
+    type: string;
+    // Lead management fields for inheritance
+    lead_status?: string;
+    lead_temperature?: string;
+    lead_source?: string;
+    lead_assigned_date?: string;
+    lead_owner_id?: number;
+  };
+  onSuccess: (createdContact?: Contact) => void;
 }
 
 export function NewContactModal({
@@ -39,6 +65,7 @@ export function NewContactModal({
   onClose,
   companyId,
   companyName,
+  companyData,
   onSuccess
 }: NewContactModalProps) {
   const [formData, setFormData] = useState<NewContact>({
@@ -52,7 +79,14 @@ export function NewContactModal({
     state_province: '',
     postal_code: '',
     is_primary: false,
-    owner_user_id: undefined
+    owner_user_id: undefined,
+    type: '',
+    // Lead management fields
+    lead_status: '',
+    lead_temperature: '',
+    lead_source: '',
+    lead_assigned_date: '',
+    lead_owner_id: undefined
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -120,11 +154,26 @@ export function NewContactModal({
     setSaving(true);
 
     try {
-      const contactData = {
+      let contactData = {
         ...formData,
         company_id: selectedCompany?.id || null,
         created_at: new Date().toISOString()
       };
+
+      // Handle company creation flow - inherit type and lead fields
+      if (companyData) {
+        contactData = {
+          ...contactData,
+          company_id: null, // Will be set after company creation
+          type: companyData.type, // Inherit entity type from company
+          // Inherit lead management fields if company is a lead
+          lead_status: companyData.lead_status,
+          lead_temperature: companyData.lead_temperature,
+          lead_source: companyData.lead_source,
+          lead_assigned_date: companyData.lead_assigned_date,
+          lead_owner_id: companyData.lead_owner_id
+        };
+      }
 
       const res = await fetch('/api/contacts', {
         method: 'POST',
@@ -137,9 +186,17 @@ export function NewContactModal({
         throw new Error(errorData.error || 'Failed to create contact');
       }
 
+      const createdContact = await res.json();
+      
       // Reset form and close modal
       handleClose();
-      onSuccess();
+      
+      // Pass created contact data to callback for company creation flow
+      if (companyData && createdContact) {
+        onSuccess(createdContact);
+      } else {
+        onSuccess();
+      }
     } catch (error) {
       console.error('Error creating contact:', error);
       setErrors({ submit: error instanceof Error ? error.message : 'Failed to create contact. Please try again.' });
@@ -161,7 +218,14 @@ export function NewContactModal({
         state_province: '',
         postal_code: '',
         is_primary: false,
-            owner_user_id: undefined
+        owner_user_id: undefined,
+        type: '',
+        // Lead management fields
+        lead_status: '',
+        lead_temperature: '',
+        lead_source: '',
+        lead_assigned_date: '',
+        lead_owner_id: undefined
       });
       setSelectedCompany(companyId && companyName ? { id: companyId, name: companyName } : null);
       setErrors({});
@@ -180,6 +244,8 @@ export function NewContactModal({
           <DialogDescription>
             {companyName 
               ? `Add a new contact for ${companyName}. This contact will be automatically linked to the company.`
+              : companyData
+              ? `Add a new contact for ${companyData.name}. This contact will be automatically linked to the company when it's created.`
               : 'Add a new contact to your CRM system. You can optionally assign them to a company.'
             }
           </DialogDescription>
@@ -330,8 +396,8 @@ export function NewContactModal({
             </Label>
           </div>
 
-          {/* Company Selection - Only show when companyId not provided and not -1 (special flag) */}
-          {!companyId && companyId !== -1 && (
+          {/* Company Selection - Only show when companyId not provided and not during company creation */}
+          {!companyId && companyId !== -1 && !companyData && (
             <div className="space-y-2">
               <Label>Company</Label>
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900">

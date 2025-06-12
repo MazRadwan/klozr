@@ -57,6 +57,12 @@ const companySchema = z.object({
   revenue: z.string().optional(),
   description: z.string().optional(),
   type: z.string().optional(),
+  // Lead management fields
+  lead_status: z.string().optional(),
+  lead_temperature: z.string().optional(),
+  lead_source: z.string().optional(),
+  lead_assigned_date: z.string().optional(),
+  lead_owner_id: z.number().optional(),
   assignContacts: z.array(z.number()).optional()
 });
 
@@ -112,24 +118,37 @@ export async function POST(req: NextRequest) {
         
         console.log('Contacts found for assignment:', contactsToUpdate.length);
         
-        // Update contacts with company_id
+        // Prepare contact update data with bi-directional sync
+        let contactUpdateData: any = {
+          company_id: company.id,
+          updated_at: new Date().toISOString()
+        };
+
+        // If company is a lead, inherit lead fields for bi-directional sync
+        if (newCompany.type === 'lead') {
+          console.log('Company is a lead, inheriting lead fields to contacts');
+          contactUpdateData = {
+            ...contactUpdateData,
+            type: newCompany.type,
+            lead_status: newCompany.lead_status,
+            lead_temperature: newCompany.lead_temperature,
+            lead_source: newCompany.lead_source,
+            lead_assigned_date: newCompany.lead_assigned_date,
+            lead_owner_id: newCompany.lead_owner_id
+          };
+        }
+
+        // Update contacts with company_id and inherited lead fields
         const contactUpdates = assignContacts.map(contactId => 
           tx
             .update(contacts)
-            .set({ 
-              company_id: company.id,
-              updated_at: new Date().toISOString()
-            })
+            .set(contactUpdateData)
             .where(eq(contacts.id, contactId))
             .run()
         );
         
         await Promise.all(contactUpdates);
-        console.log('Contact assignments completed');
-        
-        // No inheritance logic - maintain independent entity types
-        // Contacts and companies maintain their own entity types independently
-        console.log('Contact assignment completed - maintaining independent entity types');
+        console.log('Contact assignments and lead field inheritance completed');
       }
       
       return company;
