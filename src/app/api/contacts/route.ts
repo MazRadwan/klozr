@@ -103,6 +103,12 @@ const contactSchema = z.object({
   postal_code: z.string().optional(),
   is_primary: z.boolean().optional(),
   type: z.string().optional(),
+  // Lead fields for bi-directional sync inheritance
+  lead_status: z.string().nullable().optional(),
+  lead_temperature: z.string().nullable().optional(),
+  lead_source: z.string().nullable().optional(),
+  lead_owner_id: z.number().nullable().optional(),
+  lead_assigned_date: z.string().nullable().optional(),
   created_at: z.string().optional()
 });
 
@@ -158,7 +164,15 @@ export async function POST(req: NextRequest) {
     const inserted = db.insert(contacts).values(contactData).run();
     console.log('Contact created successfully with inherited lead data:', inserted);
     
-    return NextResponse.json(inserted, { status: 201 });
+    // Return the complete contact data including the new ID
+    const newContact = db
+      .select()
+      .from(contacts)
+      .where(eq(contacts.id, inserted.lastInsertRowid as number))
+      .limit(1)
+      .all()[0];
+    
+    return NextResponse.json(newContact, { status: 201 });
   } catch (error) {
     console.error('Contact creation error:', error);
     
@@ -170,7 +184,7 @@ export async function POST(req: NextRequest) {
     }
     
     return NextResponse.json(
-      { error: 'Failed to create contact', details: error.message },
+      { error: 'Failed to create contact', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
