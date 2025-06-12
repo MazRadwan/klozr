@@ -50,12 +50,6 @@ interface NewContactModalProps {
   companyData?: {  // New prop for company creation flow
     name: string;
     type: string;
-    // Lead management fields for inheritance
-    lead_status?: string;
-    lead_temperature?: string;
-    lead_source?: string;
-    lead_assigned_date?: string;
-    lead_owner_id?: number;
   };
   onSuccess: (createdContact?: Contact) => void;
 }
@@ -146,6 +140,7 @@ export function NewContactModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling to parent form
     
     if (!validateForm()) {
       return;
@@ -160,18 +155,12 @@ export function NewContactModal({
         created_at: new Date().toISOString()
       };
 
-      // Handle company creation flow - inherit type and lead fields
+      // Handle company creation flow - inherit type only, no company linking yet
       if (companyData) {
         contactData = {
           ...contactData,
-          company_id: null, // Will be set after company creation
-          type: companyData.type, // Inherit entity type from company
-          // Inherit lead management fields if company is a lead
-          lead_status: companyData.lead_status,
-          lead_temperature: companyData.lead_temperature,
-          lead_source: companyData.lead_source,
-          lead_assigned_date: companyData.lead_assigned_date,
-          lead_owner_id: companyData.lead_owner_id
+          company_id: null, // Will be linked when company is created
+          type: companyData.type // Inherit entity type from company
         };
       }
 

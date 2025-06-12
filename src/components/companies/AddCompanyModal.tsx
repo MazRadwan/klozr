@@ -235,7 +235,7 @@ export function AddCompanyModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="!max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="!max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -460,78 +460,6 @@ export function AddCompanyModal({
             </p>
           </div>
 
-          {/* Lead Management Fields - Only shown when type is 'lead' */}
-          {formData.type === 'lead' && (
-            <div className="space-y-4 p-4 border border-blue-200 dark:border-blue-800 rounded-md bg-blue-50 dark:bg-blue-950/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Label className="text-blue-800 dark:text-blue-200 font-semibold">Lead Management</Label>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="lead_status">Lead Status</Label>
-                  <select
-                    id="lead_status"
-                    value={formData.lead_status}
-                    onChange={(e) => handleInputChange('lead_status', e.target.value)}
-                    disabled={saving}
-                    className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
-                  >
-                    <option value="">Select status</option>
-                    <option value="prospect">Prospect</option>
-                    <option value="qualified">Qualified</option>
-                    <option value="opportunity">Opportunity</option>
-                    <option value="customer">Customer</option>
-                    <option value="lost">Lost</option>
-                  </select>
-                </div>
-                <div>
-                  <Label htmlFor="lead_temperature">Lead Temperature</Label>
-                  <select
-                    id="lead_temperature"
-                    value={formData.lead_temperature}
-                    onChange={(e) => handleInputChange('lead_temperature', e.target.value)}
-                    disabled={saving}
-                    className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
-                  >
-                    <option value="">Select temperature</option>
-                    <option value="cold">Cold</option>
-                    <option value="warm">Warm</option>
-                    <option value="hot">Hot</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="lead_source">Lead Source</Label>
-                <select
-                  id="lead_source"
-                  value={formData.lead_source}
-                  onChange={(e) => handleInputChange('lead_source', e.target.value)}
-                  disabled={saving}
-                  className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="">Select source</option>
-                  <option value="website">Website</option>
-                  <option value="referral">Referral</option>
-                  <option value="cold_call">Cold Call</option>
-                  <option value="trade_show">Trade Show</option>
-                  <option value="social_media">Social Media</option>
-                </select>
-              </div>
-
-              <div>
-                <Label htmlFor="lead_assigned_date">Lead Assigned Date</Label>
-                <Input
-                  id="lead_assigned_date"
-                  type="date"
-                  value={formData.lead_assigned_date}
-                  onChange={(e) => handleInputChange('lead_assigned_date', e.target.value)}
-                  disabled={saving}
-                />
-              </div>
-            </div>
-          )}
 
           {/* Contact Selection */}
           <div className="space-y-2">
@@ -542,12 +470,7 @@ export function AddCompanyModal({
                 onContactsChange={setSelectedContacts}
                 companyData={{
                   name: formData.name,
-                  type: formData.type,
-                  lead_status: formData.lead_status,
-                  lead_temperature: formData.lead_temperature,
-                  lead_source: formData.lead_source,
-                  lead_assigned_date: formData.lead_assigned_date,
-                  lead_owner_id: formData.lead_owner_id
+                  type: formData.type
                 }}
               />
             </div>
