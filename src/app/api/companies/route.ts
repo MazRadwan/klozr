@@ -57,6 +57,12 @@ const companySchema = z.object({
   revenue: z.string().optional(),
   description: z.string().optional(),
   type: z.string().optional(),
+  // Lead management fields
+  lead_status: z.string().optional(),
+  lead_temperature: z.string().optional(),
+  lead_source: z.string().optional(),
+  lead_assigned_date: z.string().optional(),
+  lead_owner_id: z.number().optional(),
   assignContacts: z.array(z.number()).optional()
 });
 
@@ -112,53 +118,37 @@ export async function POST(req: NextRequest) {
         
         console.log('Contacts found for assignment:', contactsToUpdate.length);
         
-        // Update contacts with company_id
+        // Prepare contact update data with bi-directional sync
+        let contactUpdateData: any = {
+          company_id: company.id,
+          updated_at: new Date().toISOString()
+        };
+
+        // If company is a lead, inherit lead fields for bi-directional sync
+        if (newCompany.type === 'lead') {
+          console.log('Company is a lead, inheriting lead fields to contacts');
+          contactUpdateData = {
+            ...contactUpdateData,
+            type: newCompany.type,
+            lead_status: newCompany.lead_status,
+            lead_temperature: newCompany.lead_temperature,
+            lead_source: newCompany.lead_source,
+            lead_assigned_date: newCompany.lead_assigned_date,
+            lead_owner_id: newCompany.lead_owner_id
+          };
+        }
+
+        // Update contacts with company_id and inherited lead fields
         const contactUpdates = assignContacts.map(contactId => 
           tx
             .update(contacts)
-            .set({ 
-              company_id: company.id,
-              updated_at: new Date().toISOString()
-            })
+            .set(contactUpdateData)
             .where(eq(contacts.id, contactId))
             .run()
         );
         
         await Promise.all(contactUpdates);
-        console.log('Contact assignments completed');
-        
-        // Bi-directional sync: If any assigned contacts have lead data and company doesn't have type,
-        // inherit lead data from the first contact with lead information
-        const leadContact = contactsToUpdate.find(c => 
-          c.type === 'lead' && (c.lead_status || c.lead_temperature || c.lead_source)
-        );
-        
-        if (leadContact && !companyData.type) {
-          console.log(`Inheriting lead data from contact ${leadContact.id}`);
-          
-          const companyUpdateData: any = {
-            updated_at: new Date().toISOString()
-          };
-          
-          // Inherit lead fields from contact
-          if (leadContact.lead_status) companyUpdateData.lead_status = leadContact.lead_status;
-          if (leadContact.lead_temperature) companyUpdateData.lead_temperature = leadContact.lead_temperature;
-          if (leadContact.lead_source) companyUpdateData.lead_source = leadContact.lead_source;
-          if (leadContact.lead_owner_id) companyUpdateData.lead_owner_id = leadContact.lead_owner_id;
-          if (leadContact.lead_assigned_date) companyUpdateData.lead_assigned_date = leadContact.lead_assigned_date;
-          if (leadContact.type) companyUpdateData.type = leadContact.type;
-          
-          await tx
-            .update(companies)
-            .set(companyUpdateData)
-            .where(eq(companies.id, company.id))
-            .run();
-          
-          console.log('Company lead data inherited from contact');
-          
-          // Update the returned company object with inherited data
-          Object.assign(company, companyUpdateData);
-        }
+        console.log('Contact assignments and lead field inheritance completed');
       }
       
       return company;

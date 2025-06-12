@@ -12,6 +12,15 @@ import { Loader2, User } from 'lucide-react';
 import { formatPhone, formatState, formatEmail, isValidEmail, isValidPhone } from '@/lib/formatUtils';
 import { CompanyPicker } from '@/components/companies/CompanyPicker';
 
+interface Contact {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  contact_type?: string;
+}
+
 interface NewContact {
   first_name: string;
   last_name: string;
@@ -23,8 +32,14 @@ interface NewContact {
   state_province?: string;
   postal_code?: string;
   is_primary?: boolean;
-  type?: string;
   owner_user_id?: number;
+  type?: string;
+  // Lead management fields
+  lead_status?: string;
+  lead_temperature?: string;
+  lead_source?: string;
+  lead_assigned_date?: string;
+  lead_owner_id?: number;
 }
 
 interface NewContactModalProps {
@@ -32,7 +47,11 @@ interface NewContactModalProps {
   onClose: () => void;
   companyId?: number;  // Optional when called from contacts page
   companyName?: string;  // Optional when called from contacts page
-  onSuccess: () => void;
+  companyData?: {  // New prop for company creation flow
+    name: string;
+    type: string;
+  };
+  onSuccess: (createdContact?: Contact) => void;
 }
 
 export function NewContactModal({
@@ -40,6 +59,7 @@ export function NewContactModal({
   onClose,
   companyId,
   companyName,
+  companyData,
   onSuccess
 }: NewContactModalProps) {
   const [formData, setFormData] = useState<NewContact>({
@@ -53,8 +73,14 @@ export function NewContactModal({
     state_province: '',
     postal_code: '',
     is_primary: false,
-    type: 'lead',
-    owner_user_id: undefined
+    owner_user_id: undefined,
+    type: '',
+    // Lead management fields
+    lead_status: '',
+    lead_temperature: '',
+    lead_source: '',
+    lead_assigned_date: '',
+    lead_owner_id: undefined
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -114,6 +140,7 @@ export function NewContactModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling to parent form
     
     if (!validateForm()) {
       return;
@@ -122,11 +149,20 @@ export function NewContactModal({
     setSaving(true);
 
     try {
-      const contactData = {
+      let contactData = {
         ...formData,
         company_id: selectedCompany?.id || null,
         created_at: new Date().toISOString()
       };
+
+      // Handle company creation flow - inherit type only, no company linking yet
+      if (companyData) {
+        contactData = {
+          ...contactData,
+          company_id: null, // Will be linked when company is created
+          type: companyData.type // Inherit entity type from company
+        };
+      }
 
       const res = await fetch('/api/contacts', {
         method: 'POST',
@@ -139,9 +175,17 @@ export function NewContactModal({
         throw new Error(errorData.error || 'Failed to create contact');
       }
 
+      const createdContact = await res.json();
+      
       // Reset form and close modal
       handleClose();
-      onSuccess();
+      
+      // Pass created contact data to callback for company creation flow
+      if (companyData && createdContact) {
+        onSuccess(createdContact);
+      } else {
+        onSuccess();
+      }
     } catch (error) {
       console.error('Error creating contact:', error);
       setErrors({ submit: error instanceof Error ? error.message : 'Failed to create contact. Please try again.' });
@@ -163,8 +207,14 @@ export function NewContactModal({
         state_province: '',
         postal_code: '',
         is_primary: false,
-        type: 'lead',
-        owner_user_id: undefined
+        owner_user_id: undefined,
+        type: '',
+        // Lead management fields
+        lead_status: '',
+        lead_temperature: '',
+        lead_source: '',
+        lead_assigned_date: '',
+        lead_owner_id: undefined
       });
       setSelectedCompany(companyId && companyName ? { id: companyId, name: companyName } : null);
       setErrors({});
@@ -183,6 +233,8 @@ export function NewContactModal({
           <DialogDescription>
             {companyName 
               ? `Add a new contact for ${companyName}. This contact will be automatically linked to the company.`
+              : companyData
+              ? `Add a new contact for ${companyData.name}. This contact will be automatically linked to the company when it's created.`
               : 'Add a new contact to your CRM system. You can optionally assign them to a company.'
             }
           </DialogDescription>
@@ -319,38 +371,22 @@ export function NewContactModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Entity Type</Label>
-              <select
-                id="type"
-                value={formData.type}
-                onChange={(e) => handleInputChange('type', e.target.value)}
+          <div className="space-y-2">
+            <Label htmlFor="is_primary" className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="is_primary"
+                checked={formData.is_primary || false}
+                onChange={(e) => handleInputChange('is_primary', e.target.checked)}
                 disabled={saving}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
-              >
-                <option value="lead">Lead</option>
-                <option value="customer">Customer</option>
-                <option value="partner">Partner</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="is_primary" className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_primary"
-                  checked={formData.is_primary || false}
-                  onChange={(e) => handleInputChange('is_primary', e.target.checked)}
-                  disabled={saving}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                Primary Contact
-              </Label>
-            </div>
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Primary Contact
+            </Label>
           </div>
 
-          {/* Company Selection - Only show when companyId not provided and not -1 (special flag) */}
-          {!companyId && companyId !== -1 && (
+          {/* Company Selection - Only show when companyId not provided and not during company creation */}
+          {!companyId && companyId !== -1 && !companyData && (
             <div className="space-y-2">
               <Label>Company</Label>
               <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900">
