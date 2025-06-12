@@ -127,38 +127,9 @@ export async function POST(req: NextRequest) {
         await Promise.all(contactUpdates);
         console.log('Contact assignments completed');
         
-        // Bi-directional sync: If any assigned contacts have lead data and company doesn't have type,
-        // inherit lead data from the first contact with lead information
-        const leadContact = contactsToUpdate.find(c => 
-          c.type === 'lead' && (c.lead_status || c.lead_temperature || c.lead_source)
-        );
-        
-        if (leadContact && !companyData.type) {
-          console.log(`Inheriting lead data from contact ${leadContact.id}`);
-          
-          const companyUpdateData: any = {
-            updated_at: new Date().toISOString()
-          };
-          
-          // Inherit lead fields from contact
-          if (leadContact.lead_status) companyUpdateData.lead_status = leadContact.lead_status;
-          if (leadContact.lead_temperature) companyUpdateData.lead_temperature = leadContact.lead_temperature;
-          if (leadContact.lead_source) companyUpdateData.lead_source = leadContact.lead_source;
-          if (leadContact.lead_owner_id) companyUpdateData.lead_owner_id = leadContact.lead_owner_id;
-          if (leadContact.lead_assigned_date) companyUpdateData.lead_assigned_date = leadContact.lead_assigned_date;
-          if (leadContact.type) companyUpdateData.type = leadContact.type;
-          
-          await tx
-            .update(companies)
-            .set(companyUpdateData)
-            .where(eq(companies.id, company.id))
-            .run();
-          
-          console.log('Company lead data inherited from contact');
-          
-          // Update the returned company object with inherited data
-          Object.assign(company, companyUpdateData);
-        }
+        // No inheritance logic - maintain independent entity types
+        // Contacts and companies maintain their own entity types independently
+        console.log('Contact assignment completed - maintaining independent entity types');
       }
       
       return company;

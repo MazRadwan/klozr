@@ -120,8 +120,43 @@ export async function POST(req: NextRequest) {
     const validated = contactSchema.parse(body);
     console.log('Validated contact data:', validated);
     
-    const inserted = db.insert(contacts).values(validated).run();
-    console.log('Contact created successfully:', inserted);
+    // Inherit lead fields from company if company_id is provided
+    let contactData = { ...validated };
+    
+    if (validated.company_id) {
+      console.log('Contact has company_id, checking for lead inheritance:', validated.company_id);
+      
+      // Fetch company data to inherit lead fields
+      const company = db
+        .select()
+        .from(companies)
+        .where(eq(companies.id, validated.company_id))
+        .limit(1)
+        .all();
+      
+      if (company.length > 0 && company[0].type === 'lead') {
+        console.log('Company is a lead, inheriting lead fields:', {
+          companyType: company[0].type,
+          leadStatus: company[0].lead_status,
+          leadTemperature: company[0].lead_temperature,
+          leadSource: company[0].lead_source
+        });
+        
+        // Inherit company's lead fields for bi-directional sync
+        contactData = {
+          ...contactData,
+          type: company[0].type,
+          lead_status: company[0].lead_status,
+          lead_temperature: company[0].lead_temperature,
+          lead_source: company[0].lead_source,
+          lead_owner_id: company[0].lead_owner_id,
+          lead_assigned_date: company[0].lead_assigned_date
+        };
+      }
+    }
+    
+    const inserted = db.insert(contacts).values(contactData).run();
+    console.log('Contact created successfully with inherited lead data:', inserted);
     
     return NextResponse.json(inserted, { status: 201 });
   } catch (error) {

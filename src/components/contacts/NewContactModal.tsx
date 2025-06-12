@@ -23,7 +23,6 @@ interface NewContact {
   state_province?: string;
   postal_code?: string;
   is_primary?: boolean;
-  type?: string;
   owner_user_id?: number;
 }
 
@@ -53,7 +52,6 @@ export function NewContactModal({
     state_province: '',
     postal_code: '',
     is_primary: false,
-    type: 'lead',
     owner_user_id: undefined
   });
   const [saving, setSaving] = useState(false);
@@ -163,8 +161,7 @@ export function NewContactModal({
         state_province: '',
         postal_code: '',
         is_primary: false,
-        type: 'lead',
-        owner_user_id: undefined
+            owner_user_id: undefined
       });
       setSelectedCompany(companyId && companyName ? { id: companyId, name: companyName } : null);
       setErrors({});
@@ -319,34 +316,18 @@ export function NewContactModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Entity Type</Label>
-              <select
-                id="type"
-                value={formData.type}
-                onChange={(e) => handleInputChange('type', e.target.value)}
+          <div className="space-y-2">
+            <Label htmlFor="is_primary" className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="is_primary"
+                checked={formData.is_primary || false}
+                onChange={(e) => handleInputChange('is_primary', e.target.checked)}
                 disabled={saving}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
-              >
-                <option value="lead">Lead</option>
-                <option value="customer">Customer</option>
-                <option value="partner">Partner</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="is_primary" className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_primary"
-                  checked={formData.is_primary || false}
-                  onChange={(e) => handleInputChange('is_primary', e.target.checked)}
-                  disabled={saving}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                Primary Contact
-              </Label>
-            </div>
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Primary Contact
+            </Label>
           </div>
 
           {/* Company Selection - Only show when companyId not provided and not -1 (special flag) */}
