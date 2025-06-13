@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { contacts, companies } from '@/lib/schema';
-import { eq, and, ne } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { requireAuth, isAuthError } from '@/lib/auth-guard';
+import { LeadSyncService } from '@/server/services/LeadSyncService';
 
 export async function PATCH(
   req: NextRequest, 
@@ -54,85 +55,19 @@ export async function PATCH(
       company_type: company?.type
     });
 
-    // Prepare contact update data
-    const contactUpdateData: any = {
-      type: type,
-      updated_at: new Date().toISOString()
-    };
+    // Use LeadSyncService for bi-directional type update
+    const leadSyncService = new LeadSyncService();
+    const result = await leadSyncService.updateContactType(contactId, type);
 
-    // Clear lead fields if transitioning away from 'lead' type
-    if (type && type !== 'lead') {
-      contactUpdateData.lead_status = null;
-      contactUpdateData.lead_temperature = null;
-      contactUpdateData.lead_source = null;
-      contactUpdateData.lead_assigned_date = null;
-      contactUpdateData.lead_owner_id = null;
-      contactUpdateData.individual_lead_status = null;
-      contactUpdateData.is_lead_contact = false;
-    }
-
-    console.log(`[Contact Type Update] Contact update data:`, contactUpdateData);
-
-    // BIDIRECTIONAL SYNC: Update related entities
-    const updates = [];
-
-    // 1. Update the contact itself
-    updates.push(
-      db.update(contacts)
-        .set(contactUpdateData)
-        .where(eq(contacts.id, contactId))
-    );
-
-    // 2. Update company if exists
-    if (contact.company_id) {
-      const companyUpdateData: any = {
-        type: type,
-        updated_at: new Date().toISOString()
-      };
-
-      // Clear company lead fields if transitioning away from 'lead' type
-      if (type && type !== 'lead') {
-        companyUpdateData.lead_status = null;
-        companyUpdateData.lead_temperature = null;
-        companyUpdateData.lead_source = null;
-        companyUpdateData.lead_assigned_date = null;
-        companyUpdateData.lead_owner_id = null;
-      }
-
-      updates.push(
-        db.update(companies)
-          .set(companyUpdateData)
-          .where(eq(companies.id, contact.company_id))
-      );
-
-      // 3. Update all other contacts in the same company
-      const otherContactsUpdateData = { ...contactUpdateData };
-      delete otherContactsUpdateData.individual_lead_status; // Don't override individual status
-      delete otherContactsUpdateData.is_lead_contact; // Don't change lead contact designation
-
-      updates.push(
-        db.update(contacts)
-          .set(otherContactsUpdateData)
-          .where(
-            and(
-              eq(contacts.company_id, contact.company_id),
-              ne(contacts.id, contactId)
-            )
-          )
-      );
-    }
-
-    // Execute all updates with proper error handling
-    try {
-      await Promise.all(updates);
-      console.log(`[Contact Type Update] Successfully updated contact ${contactId}, company ${contact.company_id}, and ${contact.company_id ? 'related contacts' : 'no related contacts'}`);
-    } catch (error) {
-      console.error(`[Contact Type Update] Failed to update entities for contact ${contactId}:`, error);
+    if (!result.success) {
+      console.error(`[Contact Type Update] Service failed for contact ${contactId}:`, result.error);
       return NextResponse.json({ 
         error: 'Failed to update entity type', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: result.error 
       }, { status: 500 });
     }
+
+    console.log(`[Contact Type Update] Successfully updated contact ${contactId}, company ${contact.company_id}, and related contacts via service`);
 
     // Return the updated contact with company info
     const updatedContact = await db

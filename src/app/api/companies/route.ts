@@ -26,30 +26,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-const companySchema = z.object({
-  name: z.string().min(1, 'Company name is required'),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().optional(),
-  website: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  country: z.string().optional(),
-  postal_code: z.string().optional(),
-  industry: z.string().optional(),
-  founded: z.string().optional(),
-  employees: z.number().optional(),
-  revenue: z.string().optional(),
-  description: z.string().optional(),
-  type: z.string().optional(),
-  // Lead management fields
-  lead_status: z.string().optional(),
-  lead_temperature: z.string().optional(),
-  lead_source: z.string().optional(),
-  lead_assigned_date: z.string().optional(),
-  lead_owner_id: z.number().optional(),
-  assignContacts: z.array(z.number()).optional()
-});
 
 export async function POST(req: NextRequest) {
   // Check authentication first
@@ -62,85 +38,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log('Company creation request body:', body);
     
-    // Validate request data
-    const validated = companySchema.parse(body);
-    const { assignContacts, ...companyData } = validated;
+    // Use CompanyService for creation with contact assignment and bi-directional sync
+    const companyService = new CompanyService();
     
-    console.log('Validated company data:', companyData);
-    console.log('Contacts to assign:', assignContacts);
-    
-    // Use transaction for atomic company creation + contact assignment
-    const result = await db.transaction(async (tx) => {
-      // Create company first
-      const newCompany = {
-        ...companyData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      
-      const [company] = await tx
-        .insert(companies)
-        .values(newCompany)
-        .returning({ 
-          id: companies.id,
-          name: companies.name,
-          email: companies.email,
-          phone: companies.phone,
-          website: companies.website
-        });
-      
-      console.log('Company created:', company);
-      
-      // If contacts are provided, assign them to the company
-      if (assignContacts && assignContacts.length > 0) {
-        console.log(`Assigning ${assignContacts.length} contacts to company ${company.id}`);
-        
-        // Get contact data for potential bi-directional sync
-        const contactsToUpdate = await tx
-          .select()
-          .from(contacts)
-          .where(or(...assignContacts.map(id => eq(contacts.id, id))));
-        
-        console.log('Contacts found for assignment:', contactsToUpdate.length);
-        
-        // Prepare contact update data with bi-directional sync
-        let contactUpdateData: any = {
-          company_id: company.id,
-          updated_at: new Date().toISOString()
-        };
+    // Validate and create company
+    const validated = companyService.validateCompanyInput(body);
+    const result = await companyService.createWithContactAssignment(validated);
 
-        // If company is a lead, inherit lead fields for bi-directional sync
-        if (newCompany.type === 'lead') {
-          console.log('Company is a lead, inheriting lead fields to contacts');
-          contactUpdateData = {
-            ...contactUpdateData,
-            type: newCompany.type,
-            lead_status: newCompany.lead_status,
-            lead_temperature: newCompany.lead_temperature,
-            lead_source: newCompany.lead_source,
-            lead_assigned_date: newCompany.lead_assigned_date,
-            lead_owner_id: newCompany.lead_owner_id
-          };
-        }
-
-        // Update contacts with company_id and inherited lead fields
-        const contactUpdates = assignContacts.map(contactId => 
-          tx
-            .update(contacts)
-            .set(contactUpdateData)
-            .where(eq(contacts.id, contactId))
-            .run()
-        );
-        
-        await Promise.all(contactUpdates);
-        console.log('Contact assignments and lead field inheritance completed');
-      }
-      
-      return company;
-    });
+    if (!result.success) {
+      console.error('Company creation failed:', result.error);
+      return NextResponse.json(
+        { error: 'Failed to create company', details: result.error },
+        { status: 500 }
+      );
+    }
     
-    console.log('Company creation transaction completed successfully');
-    return NextResponse.json(result, { status: 201 });
+    console.log('Company creation completed successfully via service');
+    return NextResponse.json(result.company, { status: 201 });
     
   } catch (error) {
     console.error('Error creating company:', error);

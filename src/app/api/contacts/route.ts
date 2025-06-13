@@ -34,29 +34,6 @@ export async function GET(req: NextRequest) {
 
 import { z } from 'zod';
 
-const contactSchema = z.object({
-  first_name: z.string().min(1),
-  last_name: z.string().min(1),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  contact_type: z.string().optional(),
-  company_id: z.number().nullable().optional(),
-  owner_user_id: z.number().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state_province: z.string().optional(),
-  postal_code: z.string().optional(),
-  is_primary: z.boolean().optional(),
-  type: z.string().optional(),
-  // Lead fields for bi-directional sync inheritance
-  lead_status: z.string().nullable().optional(),
-  lead_temperature: z.string().nullable().optional(),
-  lead_source: z.string().nullable().optional(),
-  lead_owner_id: z.number().nullable().optional(),
-  lead_assigned_date: z.string().nullable().optional(),
-  created_at: z.string().optional()
-});
-
 export async function POST(req: NextRequest) {
   // Check authentication first
   const authResult = await requireAuth();
@@ -68,56 +45,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log('Contact creation request body:', body);
     
-    const validated = contactSchema.parse(body);
-    console.log('Validated contact data:', validated);
+    // Use ContactService for creation with company association and bi-directional sync
+    const contactService = new ContactService();
     
-    // Inherit lead fields from company if company_id is provided
-    let contactData = { ...validated };
-    
-    if (validated.company_id) {
-      console.log('Contact has company_id, checking for lead inheritance:', validated.company_id);
-      
-      // Fetch company data to inherit lead fields
-      const company = db
-        .select()
-        .from(companies)
-        .where(eq(companies.id, validated.company_id))
-        .limit(1)
-        .all();
-      
-      if (company.length > 0 && company[0].type === 'lead') {
-        console.log('Company is a lead, inheriting lead fields:', {
-          companyType: company[0].type,
-          leadStatus: company[0].lead_status,
-          leadTemperature: company[0].lead_temperature,
-          leadSource: company[0].lead_source
-        });
-        
-        // Inherit company's lead fields for bi-directional sync
-        contactData = {
-          ...contactData,
-          type: company[0].type,
-          lead_status: company[0].lead_status,
-          lead_temperature: company[0].lead_temperature,
-          lead_source: company[0].lead_source,
-          lead_owner_id: company[0].lead_owner_id,
-          lead_assigned_date: company[0].lead_assigned_date
-        };
-      }
+    // Validate and create contact
+    const validated = contactService.validateContactInput(body);
+    const result = await contactService.createWithCompanyAssociation(validated);
+
+    if (!result.success) {
+      console.error('Contact creation failed:', result.error);
+      return NextResponse.json(
+        { error: 'Failed to create contact', details: result.error },
+        { status: 500 }
+      );
     }
     
-    const inserted = db.insert(contacts).values(contactData).run();
-    console.log('Contact created successfully with inherited lead data:', inserted);
+    console.log('Contact creation completed successfully via service');
+    return NextResponse.json(result.contact, { status: 201 });
     
-    // Return the complete contact data including the new ID
-    const newContact = db
-      .select()
-      .from(contacts)
-      .where(eq(contacts.id, inserted.lastInsertRowid as number))
-      .limit(1)
-      .all()[0];
-    
-    return NextResponse.json(newContact, { status: 201 });
   } catch (error) {
     console.error('Contact creation error:', error);
     
