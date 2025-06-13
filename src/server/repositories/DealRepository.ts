@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { deals, contacts, companies, offerings } from '@/lib/schema';
 import { eq, like, or } from 'drizzle-orm';
+import { DealInput } from '@/server/validation';
 
 export class DealRepository {
   constructor(private readonly database = db) {}
@@ -189,5 +190,45 @@ export class DealRepository {
       .all();
 
     return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * Create a new deal (safe - no bi-directional sync)
+   */
+  create(dealData: DealInput) {
+    const result = this.database
+      .insert(deals)
+      .values(dealData)
+      .returning({ id: deals.id })
+      .get();
+
+    return result;
+  }
+
+  /**
+   * Update a deal (safe - no bi-directional sync)
+   */
+  update(id: number, dealData: Partial<DealInput>) {
+    const result = this.database
+      .update(deals)
+      .set(dealData)
+      .where(eq(deals.id, id))
+      .returning({ id: deals.id })
+      .get();
+
+    return result;
+  }
+
+  /**
+   * Delete a deal (safe - no bi-directional sync)
+   */
+  delete(id: number) {
+    const result = this.database
+      .delete(deals)
+      .where(eq(deals.id, id))
+      .returning({ id: deals.id })
+      .get();
+
+    return result;
   }
 }
