@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   Table,
   TableHeader,
@@ -17,12 +17,16 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { 
   Search, ChevronUp, ChevronDown, Upload, Download, Plus,
-  Building2, User, Globe, Phone, Mail, MapPin, MoreVertical
+  Building2, User, Globe, Phone, Mail, MapPin, MoreVertical, Trash2
 } from 'lucide-react';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
   DropdownMenuLabel, DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import { 
+  Dialog, DialogContent, DialogDescription, DialogFooter, 
+  DialogHeader, DialogTitle 
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EntityToggle } from '@/components/ui/entity-toggle';
@@ -81,25 +85,83 @@ export default function CompaniesPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Delete modal states
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Request management
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Refs for cleanup
+  const fetchCompaniesRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchCompanies();
   }, []);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      fetchCompaniesRef.current?.abort();
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   // Fetch companies from database
   async function fetchCompanies() {
+    if (isRefreshing) {
+      console.log('Skipping fetch - already refreshing');
+      return;
+    }
+    
+    // Cancel previous request
+    fetchCompaniesRef.current?.abort();
+    fetchCompaniesRef.current = new AbortController();
+    
+    setIsRefreshing(true);
     setLoading(true);
+    let aborted = false;
     try {
-      const res = await fetch("/api/companies");
+      console.log('Fetching companies...');
+      const res = await fetch("/api/companies", {
+        signal: fetchCompaniesRef.current.signal
+      });
       if (!res.ok) throw new Error("Failed to fetch companies");
       const data = await res.json();
       setCompanies(data);
+      console.log('Companies fetched successfully');
     } catch (e: any) {
-      setError(e.message);
+      if (e.name === 'AbortError') {
+        aborted = true;
+      } else {
+        console.error('Fetch error:', e);
+        setError(e.message);
+      }
     } finally {
-      setLoading(false);
+      if (!aborted) {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }
+
+  // Debounced version with proper cleanup
+  const debouncedFetchCompanies = useCallback(() => {
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      console.log('Debounced fetch triggered');
+      fetchCompanies();
+    }, 300);
+  }, []); // No dependencies - stable reference
 
   const handleCompanyClick = (companyId: string) => {
     router.push(`/dashboard/companies/${companyId}`);
@@ -110,7 +172,7 @@ export default function CompaniesPage() {
   };
 
   const handleCompanyCreated = (company: any) => {
-    fetchCompanies();
+    debouncedFetchCompanies();
   };
 
   const handleEditCompany = (company: Company) => {
@@ -119,16 +181,68 @@ export default function CompaniesPage() {
     setEditModalOpen(true);
   };
 
-  const handleDeleteCompany = async (companyId: string) => {
+  const handleDeleteClick = (company: Company) => {
+    setCompanyToDelete(company);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    // Only handle state cleanup if not already closing
+    if (deleteModalOpen) {
+      setDeleteModalOpen(false);
+      setCompanyToDelete(null);
+      setIsDeleting(false);
+      setError(null); // Clear any previous errors
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!companyToDelete) return;
+    
+    setIsDeleting(true);
+    setError(null); // Clear any existing errors
+    
     try {
-      const res = await fetch(`/api/companies/${companyId}`, {
+      console.log('Deleting company:', companyToDelete.id);
+      const res = await fetch(`/api/companies/${companyToDelete.id}`, {
         method: 'DELETE',
       });
-      if (!res.ok) throw new Error('Failed to delete company');
       
-      await fetchCompanies(); // Refresh the list
+      console.log('Delete response status:', res.status);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to delete company' }));
+        throw new Error(errorData.error || 'Failed to delete company');
+      }
+      
+      console.log('Company deleted successfully, closing dialog...');
+      
+      // Store the company ID before clearing state
+      const deletedCompanyId = companyToDelete.id;
+      
+      // Clear all dialog-related state first
+      setDeleteModalOpen(false);
+      setCompanyToDelete(null);
+      setIsDeleting(false);
+      
+      // Use setTimeout to ensure dialog cleanup completes before other updates
+      setTimeout(() => {
+        // Clear selection if deleted company was selected
+        setSelectedCompanies(prev => 
+          prev.filter(id => id !== deletedCompanyId.toString())
+        );
+        
+        // Refresh list in background
+        fetchCompanies();
+        console.log('Delete operation completed');
+      }, 100);
+      
     } catch (e: any) {
+      console.error('Delete error:', e);
       setError(e.message);
+      // Keep modal open on error so user can see the error and retry
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -152,7 +266,7 @@ export default function CompaniesPage() {
         if (!res.ok) throw new Error('Failed to create company');
       }
       
-      await fetchCompanies(); // Refresh the list
+      await fetchCompanies(); // Refresh the list (keep direct call for save operations)
     } catch (e: any) {
       setError(e.message);
       throw e; // Re-throw to let the modal handle the error
@@ -460,7 +574,7 @@ export default function CompaniesPage() {
                       company={{
                         type: company.type
                       }}
-                      onTypeUpdate={fetchCompanies}
+                      onTypeUpdate={debouncedFetchCompanies}
                       size="sm"
                     />
                   </TableCell>
@@ -523,7 +637,7 @@ export default function CompaniesPage() {
                           lead_owner_id: company.lead_owner_id,
                           type: company.type
                         }}
-                        onStatusUpdate={fetchCompanies}
+                        onStatusUpdate={debouncedFetchCompanies}
                         size="sm"
                       />
                     ) : (
@@ -542,7 +656,7 @@ export default function CompaniesPage() {
                           lead_owner_id: company.lead_owner_id,
                           type: company.type
                         }}
-                        onTemperatureUpdate={fetchCompanies}
+                        onTemperatureUpdate={debouncedFetchCompanies}
                         size="sm"
                       />
                     ) : (
@@ -585,8 +699,15 @@ export default function CompaniesPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           className="text-red-600 dark:text-red-400"
-                          onClick={() => handleDeleteCompany(company.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Close dropdown menu first, then open dialog after a brief delay
+                            setTimeout(() => {
+                              handleDeleteClick(company);
+                            }, 0);
+                          }}
                         >
+                          <Trash2 className="h-4 w-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -634,7 +755,7 @@ export default function CompaniesPage() {
                             company={{
                               type: company.type
                             }}
-                            onTypeUpdate={fetchCompanies}
+                            onTypeUpdate={debouncedFetchCompanies}
                             size="sm"
                           />
                         </div>
@@ -656,7 +777,7 @@ export default function CompaniesPage() {
                                   lead_owner_id: company.lead_owner_id,
                                   type: company.type
                                 }}
-                                onStatusUpdate={fetchCompanies}
+                                onStatusUpdate={debouncedFetchCompanies}
                                 size="sm"
                               />
                             </div>
@@ -671,7 +792,7 @@ export default function CompaniesPage() {
                                   lead_owner_id: company.lead_owner_id,
                                   type: company.type
                                 }}
-                                onTemperatureUpdate={fetchCompanies}
+                                onTemperatureUpdate={debouncedFetchCompanies}
                                 size="sm"
                               />
                             </div>
@@ -703,8 +824,15 @@ export default function CompaniesPage() {
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       className="text-red-600 dark:text-red-400"
-                      onClick={() => handleDeleteCompany(company.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Close dropdown menu first, then open dialog after a brief delay
+                        setTimeout(() => {
+                          handleDeleteClick(company);
+                        }, 0);
+                      }}
                     >
+                      <Trash2 className="h-4 w-4 mr-2" />
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -792,6 +920,48 @@ export default function CompaniesPage() {
         onClose={() => setAddModalOpen(false)}
         onCompanyCreated={handleCompanyCreated}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog 
+        open={deleteModalOpen} 
+        onOpenChange={(open) => {
+          // Only call handleDeleteCancel if dialog is being closed
+          if (!open) {
+            handleDeleteCancel();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Company</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{companyToDelete?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {error && (
+            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 p-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={handleDeleteCancel}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete} 
+              className="text-white"
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Company'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </ClientDashboardLayout>
   );

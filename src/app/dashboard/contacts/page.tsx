@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   Table,
   TableHeader,
@@ -126,9 +126,28 @@ export default function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  
+  // Delete modal states
+  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Request management flags similar to CompaniesPage
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const fetchContactsRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchContacts();
+  }, []);
+
+  // Cleanup when component unmounts to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      fetchContactsRef.current?.abort();
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, []);
 
   // Handle select all checkbox
@@ -139,18 +158,51 @@ export default function ContactsPage() {
   }, [selectedContacts, contacts, searchTerm, filterType]);
 
   async function fetchContacts() {
+    if (isRefreshing) {
+      console.log("Skipping fetch - already refreshing");
+      return;
+    }
+
+    // Abort any in-flight request
+    fetchContactsRef.current?.abort();
+    fetchContactsRef.current = new AbortController();
+
+    setIsRefreshing(true);
     setLoading(true);
+
+    let aborted = false;
     try {
-      const res = await fetch("/api/contacts?include_company=true");
+      const res = await fetch("/api/contacts?include_company=true", {
+        signal: fetchContactsRef.current.signal,
+      });
       if (!res.ok) throw new Error("Failed to fetch contacts");
       const data = await res.json();
       setContacts(data);
     } catch (e: any) {
-      setError(e.message);
+      if (e.name === "AbortError") {
+        aborted = true; // skip resetting loading state
+      } else {
+        console.error("Fetch error:", e);
+        setError(e.message);
+      }
     } finally {
-      setLoading(false);
+      if (!aborted) {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }
+
+  // Debounced version to be reused by dropdowns / edits, mirroring CompaniesPage
+  const debouncedFetchContacts = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      fetchContacts();
+    }, 300);
+  }, []);
 
   // CRUD Operations
   const handleContactClick = (contactId: string) => {
@@ -164,8 +216,18 @@ export default function ContactsPage() {
   };
 
   const handleDelete = (contact: Contact) => {
-    setSelectedContact(contact);
+    setContactToDelete(contact);
     setDeleteModalOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    // Only handle state cleanup if not already closing
+    if (deleteModalOpen) {
+      setDeleteModalOpen(false);
+      setContactToDelete(null);
+      setIsDeleting(false);
+      setError(null); // Clear any previous errors
+    }
   };
 
   const handleAdd = () => {
@@ -177,19 +239,52 @@ export default function ContactsPage() {
   };
 
   const confirmDelete = async () => {
-    if (!selectedContact) return;
+    if (!contactToDelete) return;
+    
+    setIsDeleting(true);
+    setError(null); // Clear any existing errors
     
     try {
-      const res = await fetch(`/api/contacts/${selectedContact.id}`, {
+      console.log('Deleting contact:', contactToDelete.id);
+      const res = await fetch(`/api/contacts/${contactToDelete.id}`, {
         method: 'DELETE',
       });
-      if (!res.ok) throw new Error('Failed to delete contact');
       
-      await fetchContacts();
+      console.log('Delete response status:', res.status);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to delete contact' }));
+        throw new Error(errorData.error || 'Failed to delete contact');
+      }
+      
+      console.log('Contact deleted successfully, closing dialog...');
+      
+      // Store the contact ID before clearing state
+      const deletedContactId = contactToDelete.id;
+      
+      // Clear all dialog-related state first
       setDeleteModalOpen(false);
-      setSelectedContact(null);
+      setContactToDelete(null);
+      setIsDeleting(false);
+      
+      // Use setTimeout to ensure dialog cleanup completes before other updates
+      setTimeout(() => {
+        // Clear selection if deleted contact was selected
+        setSelectedContacts(prev => 
+          prev.filter(id => id !== deletedContactId.toString())
+        );
+        
+        // Refresh list in background
+        fetchContacts();
+        console.log('Delete operation completed');
+      }, 100);
+      
     } catch (e: any) {
+      console.error('Delete error:', e);
       setError(e.message);
+      // Keep modal open on error so user can see the error and retry
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -233,7 +328,7 @@ export default function ContactsPage() {
   };
 
   const handleContactCreated = () => {
-    fetchContacts();
+    debouncedFetchContacts();
   };
 
   // Handle individual contact selection
@@ -397,7 +492,7 @@ export default function ContactsPage() {
               contact={{
                 type: contact.type
               }}
-              onTypeUpdate={fetchContacts}
+              onTypeUpdate={debouncedFetchContacts}
               size="sm"
             />
           </div>
@@ -426,7 +521,7 @@ export default function ContactsPage() {
                 lead_owner_id: contact.lead_owner_id,
                 type: contact.type
               }}
-              onStatusUpdate={fetchContacts}
+              onStatusUpdate={debouncedFetchContacts}
               size="sm"
             />
           </div>
@@ -463,7 +558,7 @@ export default function ContactsPage() {
                 lead_owner_id: contact.lead_owner_id,
                 type: contact.type
               }}
-              onTemperatureUpdate={fetchContacts}
+              onTemperatureUpdate={debouncedFetchContacts}
               size="sm"
             />
           </div>
@@ -503,23 +598,27 @@ export default function ContactsPage() {
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-        <CardHeader>
-          <Skeleton className="h-8 w-48" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <Skeleton className="h-10 flex-1" />
-              <Skeleton className="h-10 w-32" />
-              <Skeleton className="h-10 w-32" />
-            </div>
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full rounded" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <ClientDashboardLayout>
+        <div className="p-4 sm:p-8">
+          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+            <CardHeader>
+              <Skeleton className="h-8 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <Skeleton className="h-10 flex-1" />
+                  <Skeleton className="h-10 w-32" />
+                  <Skeleton className="h-10 w-32" />
+                </div>
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </ClientDashboardLayout>
     );
   }
 
@@ -653,19 +752,6 @@ export default function ContactsPage() {
       {/* Contacts Table/Cards */}
       <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none">
         <CardContent className="p-0">
-          {filteredAndSortedContacts.length === 0 ? (
-            <div className="text-center py-12">
-              <User className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No contacts found</h3>
-              <p className="mt-2 text-gray-600 dark:text-gray-400">
-                {searchTerm || filterType !== "all" 
-                  ? "Try adjusting your search or filter criteria."
-                  : "Get started by adding your first contact."
-                }
-              </p>
-            </div>
-          ) : (
-            <>
               {/* Desktop Table View */}
               <div className="hidden md:block">
                 <div className="relative">
@@ -748,7 +834,13 @@ export default function ContactsPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem 
-                                    onClick={() => handleDelete(contact)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Close dropdown menu first, then open dialog after a brief delay
+                                      setTimeout(() => {
+                                        handleDelete(contact);
+                                      }, 0);
+                                    }}
                                     className="text-red-600 dark:text-red-400"
                                   >
                                     <Trash2 className="h-4 w-4 mr-2" />
@@ -839,7 +931,7 @@ export default function ContactsPage() {
                                   contact={{
                                     type: contact.type
                                   }}
-                                  onTypeUpdate={fetchContacts}
+                                  onTypeUpdate={debouncedFetchContacts}
                                   size="sm"
                                 />
                               </div>
@@ -854,7 +946,7 @@ export default function ContactsPage() {
                                     lead_owner_id: contact.lead_owner_id,
                                     type: contact.type
                                   }}
-                                  onStatusUpdate={fetchContacts}
+                                  onStatusUpdate={debouncedFetchContacts}
                                   size="sm"
                                 />
                               </div>
@@ -874,7 +966,13 @@ export default function ContactsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
-                                onClick={() => handleDelete(contact)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Close dropdown menu first, then open dialog after a brief delay
+                                  setTimeout(() => {
+                                    handleDelete(contact);
+                                  }, 0);
+                                }}
                                 className="text-red-600 dark:text-red-400"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
@@ -928,10 +1026,33 @@ export default function ContactsPage() {
                   ))}
                 </div>
               </div>
-            </>
-          )}
         </CardContent>
       </Card>
+
+      {/* Empty State */}
+      {filteredAndSortedContacts.length === 0 && !loading && (
+        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <User className="h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              No contacts found
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+              {searchTerm || filterType !== "all" 
+                ? "Try adjusting your search or filter criteria."
+                : "Get started by adding your first contact."
+              }
+            </p>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+              onClick={handleAdd}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Contact
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Results Summary */}
       {filteredAndSortedContacts.length > 0 && (
@@ -1034,30 +1155,41 @@ export default function ContactsPage() {
       </Dialog>
 
       {/* Delete Contact Modal */}
-      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+      <Dialog 
+        open={deleteModalOpen} 
+        onOpenChange={(open) => {
+          // Only call handleDeleteCancel if dialog is being closed
+          if (!open) {
+            handleDeleteCancel();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Contact</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this contact? This action cannot be undone.
+              Are you sure you want to delete "{contactToDelete?.first_name} {contactToDelete?.last_name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          {selectedContact && (
-            <div className="py-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                <strong>{selectedContact.first_name} {selectedContact.last_name}</strong>
-                {selectedContact.email && ` (${selectedContact.email})`}
-              </p>
-            </div>
+          {error && (
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleDeleteCancel} disabled={isDeleting}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              Delete Contact
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="text-white"
+            >
+              {isDeleting ? "Deleting..." : "Delete Contact"}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
