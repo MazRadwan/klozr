@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { companies, contacts } from '@/lib/schema';
-import { like, or, eq } from 'drizzle-orm';
-import { requireAuth, isAuthError } from '@/lib/auth-guard';
+import { CompanyService } from '@/server/services';
+import { requireAuth, isAuthError } from '@/server/lib';
+import { httpError } from '@/server/lib';
 import { z } from 'zod';
 
 export async function GET(req: NextRequest) {
@@ -16,28 +15,14 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('q');
     
-    let allCompanies;
+    const companyService = new CompanyService();
     
-    if (query) {
-      // Search companies by name, phone, email, or website
-      allCompanies = db.select().from(companies)
-        .where(
-          or(
-            like(companies.name, `%${query}%`),
-            like(companies.phone, `%${query}%`),
-            like(companies.email, `%${query}%`),
-            like(companies.website, `%${query}%`)
-          )
-        )
-        .all();
-    } else {
-      allCompanies = db.select().from(companies).all();
-    }
+    const result = await companyService.getCompanies(query || undefined);
     
-    return NextResponse.json(allCompanies);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching companies:', error);
-    return NextResponse.json({ error: 'Failed to fetch companies' }, { status: 500 });
+    return httpError.internal('Failed to fetch companies');
   }
 }
 

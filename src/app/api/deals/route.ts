@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { deals, contacts, companies, offerings } from '@/lib/schema';
-import { eq, like, or } from 'drizzle-orm';
+import { DealService } from '@/server/services';
+import { requireAuth, isAuthError } from '@/server/lib';
+import { httpError } from '@/server/lib';
 import { z } from 'zod';
-import { requireAuth, isAuthError } from '@/lib/auth-guard';
 
 export async function GET(req: NextRequest) {
   // Check authentication first
@@ -17,64 +16,17 @@ export async function GET(req: NextRequest) {
     const searchQuery = searchParams.get('q');
     const companyId = searchParams.get('company_id');
 
-    // Base query setup
-    const baseQuery = db
-      .select({
-        deal: deals,
-        contact: {
-          id: contacts.id,
-          first_name: contacts.first_name,
-          last_name: contacts.last_name,
-          email: contacts.email,
-          phone: contacts.phone,
-          address: contacts.address,
-          city: contacts.city,
-          state_province: contacts.state_province,
-          postal_code: contacts.postal_code,
-        },
-        company: {
-          id: companies.id,
-          name: companies.name,
-          website: companies.website,
-          address: companies.address,
-          city: companies.city,
-          state: companies.state,
-          country: companies.country,
-          phone: companies.phone,
-        },
-        offering: {
-          id: offerings.id,
-          name: offerings.name,
-          type: offerings.type,
-          description: offerings.description,
-          price: offerings.price,
-        },
-      })
-      .from(deals)
-      .leftJoin(contacts, eq(deals.contact_id, contacts.id))
-      .leftJoin(companies, eq(deals.company_id, companies.id))
-      .leftJoin(offerings, eq(deals.offering_id, offerings.id));
-
-    // Apply filters and execute query
-    let result;
-    if (companyId) {
-      result = baseQuery.where(eq(deals.company_id, parseInt(companyId))).all();
-    } else if (searchQuery) {
-      result = baseQuery.where(
-        or(
-          like(deals.title, `%${searchQuery}%`),
-          like(companies.name, `%${searchQuery}%`),
-          like(deals.deal_notes, `%${searchQuery}%`)
-        )
-      ).all();
-    } else {
-      result = baseQuery.all();
-    }
+    const dealService = new DealService();
+    
+    const result = await dealService.getDeals({
+      companyId: companyId ? parseInt(companyId) : undefined,
+      searchQuery: searchQuery || undefined
+    });
 
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching deals:', error);
-    return NextResponse.json({ error: 'Failed to fetch deals' }, { status: 500 });
+    return httpError.internal('Failed to fetch deals');
   }
 }
 
