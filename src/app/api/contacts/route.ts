@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ContactService } from '@/server/services';
+import { makeContactService } from '@/server/services';
 import { withAuthHandler } from '@/server/lib';
 
 export const GET = withAuthHandler(async (req: NextRequest) => {
@@ -8,7 +8,7 @@ export const GET = withAuthHandler(async (req: NextRequest) => {
   const searchQuery = searchParams.get('q');
   const includeCompany = searchParams.get('include_company') === 'true';
   
-  const contactService = new ContactService();
+  const contactService = makeContactService();
   
   const result = await contactService.getContacts({
     companyId: companyId ? parseInt(companyId) : undefined,
@@ -25,7 +25,7 @@ export const POST = withAuthHandler(async (req: NextRequest) => {
   console.log('Contact creation request body:', body);
   
   // Use ContactService for creation with company association and bi-directional sync
-  const contactService = new ContactService();
+  const contactService = makeContactService();
   
   // Validate and create contact
   const validated = contactService.validateContactInput(body);

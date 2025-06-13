@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { companies } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
 import { withAuthParamsHandler, throwError } from '@/server/lib';
-import { LeadSyncService } from '@/server/services/LeadSyncService';
+import { makeLeadSyncService } from '@/server/services';
 
 export const PATCH = withAuthParamsHandler(async (
   req: NextRequest, 
@@ -40,7 +40,7 @@ export const PATCH = withAuthParamsHandler(async (
   });
 
   // Use LeadSyncService for bi-directional type update
-  const leadSyncService = new LeadSyncService();
+  const leadSyncService = makeLeadSyncService();
   const result = await leadSyncService.updateCompanyType(companyId, type);
 
   if (!result.success) {

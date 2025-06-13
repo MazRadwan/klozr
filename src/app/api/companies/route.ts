@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CompanyService } from '@/server/services';
+import { makeCompanyService } from '@/server/services';
 import { withAuthHandler } from '@/server/lib';
-import { z } from 'zod';
 
 export const GET = withAuthHandler(async (req: NextRequest) => {
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('q');
   
-  const companyService = new CompanyService();
+  const companyService = makeCompanyService();
   const result = await companyService.getCompanies(query || undefined);
   
   return NextResponse.json(result);
 });
-
 
 export const POST = withAuthHandler(async (req: NextRequest) => {
   const body = await req.json();
   console.log('Company creation request body:', body);
   
   // Use CompanyService for creation with contact assignment and bi-directional sync
-  const companyService = new CompanyService();
+  const companyService = makeCompanyService();
   
   // Validate and create company
   const validated = companyService.validateCompanyInput(body);
