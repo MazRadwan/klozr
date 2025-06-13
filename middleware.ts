@@ -2,6 +2,11 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export function middleware(request: NextRequest) {
+  // Skip auth check if testing mode is enabled
+  if (process.env.NODE_ENV === 'development' && process.env.TESTING_MODE === 'true') {
+    return NextResponse.next();
+  }
+  
   // Simple test - block all API routes except auth
   if (request.nextUrl.pathname.startsWith('/api/') && 
       !request.nextUrl.pathname.startsWith('/api/auth/')) {
