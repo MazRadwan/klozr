@@ -33,9 +33,40 @@ export class DealService {
 
   /**
    * Validate deal input data
-   * NOTE: Creation/updates will be handled separately
    */
   validateDealInput(data: unknown): DealInput {
     return parseDealInput(data);
+  }
+
+  /**
+   * Create a new deal (safe - no bi-directional sync)
+   */
+  async createDeal(dealData: DealInput) {
+    // Validate input
+    const validatedData = this.validateDealInput(dealData);
+    
+    // Create deal
+    const newDeal = this.dealRepo.create(validatedData);
+    
+    // Return with related data
+    return this.dealRepo.findById(newDeal.id);
+  }
+
+  /**
+   * Update a deal (safe - no bi-directional sync)
+   */
+  async updateDeal(id: number, dealData: Partial<DealInput>) {
+    // Update deal
+    const updatedDeal = this.dealRepo.update(id, dealData);
+    
+    // Return with related data
+    return this.dealRepo.findById(updatedDeal.id);
+  }
+
+  /**
+   * Delete a deal (safe - no bi-directional sync)
+   */
+  async deleteDeal(id: number) {
+    return this.dealRepo.delete(id);
   }
 }
