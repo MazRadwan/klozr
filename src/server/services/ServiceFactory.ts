@@ -4,6 +4,7 @@ import { ContactService } from './ContactService';
 import { CompanyService } from './CompanyService';
 import { DealService } from './DealService';
 import { LeadSyncService } from './LeadSyncService';
+import { OfferingService } from './OfferingService';
 
 /**
  * Service factory for creating service instances with proper dependency injection
@@ -23,6 +24,7 @@ export class ServiceFactory {
   private contactService?: ContactService;
   private companyService?: CompanyService;
   private dealService?: DealService;
+  private offeringService?: OfferingService;
 
   constructor(
     // Allow dependency injection for testing
@@ -103,6 +105,16 @@ export class ServiceFactory {
   }
 
   /**
+   * Get OfferingService instance
+   */
+  getOfferingService(): OfferingService {
+    if (!this.offeringService) {
+      this.offeringService = new OfferingService();
+    }
+    return this.offeringService;
+  }
+
+  /**
    * Clear service cache (useful for testing)
    */
   clearCache(): void {
@@ -110,6 +122,7 @@ export class ServiceFactory {
     this.contactService = undefined;
     this.companyService = undefined;
     this.dealService = undefined;
+    this.offeringService = undefined;
   }
 }
 
@@ -135,4 +148,8 @@ export function makeDealService(): DealService {
 
 export function makeLeadSyncService(): LeadSyncService {
   return serviceFactory.getLeadSyncService();
+}
+
+export function makeOfferingService(): OfferingService {
+  return serviceFactory.getOfferingService();
 }
