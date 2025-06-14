@@ -1,191 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { contacts, companies } from '@/lib/schema';
-import { eq, like, or } from 'drizzle-orm';
-import { requireAuth, isAuthError } from '@/lib/auth-guard';
+import { makeContactService } from '@/server/services';
+import { withAuthHandler } from '@/server/lib';
 
-export async function GET(req: NextRequest) {
-  // Check authentication first
-  const authResult = await requireAuth();
-  if (isAuthError(authResult)) {
-    return authResult;
-  }
+export const GET = withAuthHandler(async (req: NextRequest) => {
   const { searchParams } = new URL(req.url);
   const companyId = searchParams.get('company_id');
   const searchQuery = searchParams.get('q');
   const includeCompany = searchParams.get('include_company') === 'true';
   
-  // Base query structure
-  const baseQuery = includeCompany 
-    ? db
-        .select({
-          id: contacts.id,
-          first_name: contacts.first_name,
-          last_name: contacts.last_name,
-          email: contacts.email,
-          phone: contacts.phone,
-          contact_type: contacts.contact_type,
-          type: contacts.type,
-          company_id: contacts.company_id,
-          owner_user_id: contacts.owner_user_id,
-          address: contacts.address,
-          city: contacts.city,
-          state_province: contacts.state_province,
-          postal_code: contacts.postal_code,
-          is_primary: contacts.is_primary,
-          // Lead management fields
-          lead_status: contacts.lead_status,
-          lead_temperature: contacts.lead_temperature,
-          individual_lead_status: contacts.individual_lead_status,
-          is_lead_contact: contacts.is_lead_contact,
-          lead_source: contacts.lead_source,
-          lead_assigned_date: contacts.lead_assigned_date,
-          lead_owner_id: contacts.lead_owner_id,
-          created_at: contacts.created_at,
-          updated_at: contacts.updated_at,
-          // Company information
-          company: {
-            id: companies.id,
-            name: companies.name,
-            lead_status: companies.lead_status,
-            type: companies.type,
-            lead_source: companies.lead_source,
-            lead_temperature: companies.lead_temperature,
-            lead_owner_id: companies.lead_owner_id,
-          }
-        })
-        .from(contacts)
-        .leftJoin(companies, eq(contacts.company_id, companies.id))
-    : db.select().from(contacts);
+  const contactService = makeContactService();
   
-  // If search query is provided, search contacts by name and email
-  if (searchQuery) {
-    const searchTerm = `%${searchQuery}%`;
-    const searchResults = baseQuery
-      .where(
-        or(
-          like(contacts.first_name, searchTerm),
-          like(contacts.last_name, searchTerm),
-          like(contacts.email, searchTerm)
-        )
-      )
-      .limit(20) // Limit search results
-      .all();
-    return NextResponse.json(searchResults);
-  }
+  const result = await contactService.getContacts({
+    companyId: companyId ? parseInt(companyId) : undefined,
+    searchQuery: searchQuery || undefined,
+    includeCompany,
+    limit: 20
+  });
   
-  // If company_id is provided, filter contacts by that company
-  if (companyId) {
-    const companyContacts = baseQuery
-      .where(eq(contacts.company_id, parseInt(companyId)))
-      .all();
-    return NextResponse.json(companyContacts);
-  }
-  
-  // Otherwise, fetch all contacts
-  const allContacts = baseQuery.all();
-  return NextResponse.json(allContacts);
-}
-
-import { z } from 'zod';
-
-const contactSchema = z.object({
-  first_name: z.string().min(1),
-  last_name: z.string().min(1),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  contact_type: z.string().optional(),
-  company_id: z.number().nullable().optional(),
-  owner_user_id: z.number().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state_province: z.string().optional(),
-  postal_code: z.string().optional(),
-  is_primary: z.boolean().optional(),
-  type: z.string().optional(),
-  // Lead fields for bi-directional sync inheritance
-  lead_status: z.string().nullable().optional(),
-  lead_temperature: z.string().nullable().optional(),
-  lead_source: z.string().nullable().optional(),
-  lead_owner_id: z.number().nullable().optional(),
-  lead_assigned_date: z.string().nullable().optional(),
-  created_at: z.string().optional()
+  return NextResponse.json(result);
 });
 
-export async function POST(req: NextRequest) {
-  // Check authentication first
-  const authResult = await requireAuth();
-  if (isAuthError(authResult)) {
-    return authResult;
-  }
+export const POST = withAuthHandler(async (req: NextRequest) => {
+  const body = await req.json();
+  console.log('Contact creation request body:', body);
+  
+  // Use ContactService for creation with company association and bi-directional sync
+  const contactService = makeContactService();
+  
+  // Validate and create contact
+  const validated = contactService.validateContactInput(body);
+  const result = await contactService.createWithCompanyAssociation(validated);
 
-  try {
-    const body = await req.json();
-    console.log('Contact creation request body:', body);
-    
-    const validated = contactSchema.parse(body);
-    console.log('Validated contact data:', validated);
-    
-    // Inherit lead fields from company if company_id is provided
-    let contactData = { ...validated };
-    
-    if (validated.company_id) {
-      console.log('Contact has company_id, checking for lead inheritance:', validated.company_id);
-      
-      // Fetch company data to inherit lead fields
-      const company = db
-        .select()
-        .from(companies)
-        .where(eq(companies.id, validated.company_id))
-        .limit(1)
-        .all();
-      
-      if (company.length > 0 && company[0].type === 'lead') {
-        console.log('Company is a lead, inheriting lead fields:', {
-          companyType: company[0].type,
-          leadStatus: company[0].lead_status,
-          leadTemperature: company[0].lead_temperature,
-          leadSource: company[0].lead_source
-        });
-        
-        // Inherit company's lead fields for bi-directional sync
-        contactData = {
-          ...contactData,
-          type: company[0].type,
-          lead_status: company[0].lead_status,
-          lead_temperature: company[0].lead_temperature,
-          lead_source: company[0].lead_source,
-          lead_owner_id: company[0].lead_owner_id,
-          lead_assigned_date: company[0].lead_assigned_date
-        };
-      }
-    }
-    
-    const inserted = db.insert(contacts).values(contactData).run();
-    console.log('Contact created successfully with inherited lead data:', inserted);
-    
-    // Return the complete contact data including the new ID
-    const newContact = db
-      .select()
-      .from(contacts)
-      .where(eq(contacts.id, inserted.lastInsertRowid as number))
-      .limit(1)
-      .all()[0];
-    
-    return NextResponse.json(newContact, { status: 201 });
-  } catch (error) {
-    console.error('Contact creation error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
-        { status: 400 }
-      );
-    }
-    
+  if (!result.success) {
+    console.error('Contact creation failed:', result.error);
     return NextResponse.json(
-      { error: 'Failed to create contact', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to create contact', details: result.error },
       { status: 500 }
     );
   }
-}
+  
+  console.log('Contact creation completed successfully via service');
+  return NextResponse.json(result.contact, { status: 201 });
+});
