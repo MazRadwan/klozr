@@ -218,4 +218,32 @@ export class ContactRepository {
 
     return result.length > 0 ? result[0] : null;
   }
+
+  /**
+   * Update contact by ID
+   */
+  update(id: number, data: any) {
+    const result = this.database
+      .update(contacts)
+      .set(data)
+      .where(eq(contacts.id, id))
+      .run();
+
+    if (result.changes === 0) {
+      return null;
+    }
+
+    // Return the updated contact
+    return this.findById(id);
+  }
+
+  /**
+   * Delete contact by ID
+   */
+  delete(id: number) {
+    return this.database
+      .delete(contacts)
+      .where(eq(contacts.id, id))
+      .run();
+  }
 }

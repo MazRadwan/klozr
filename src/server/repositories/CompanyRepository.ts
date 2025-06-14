@@ -43,4 +43,32 @@ export class CompanyRepository {
 
     return result.length > 0 ? result[0] : null;
   }
+
+  /**
+   * Update company by ID
+   */
+  update(id: number, data: any) {
+    const result = this.database
+      .update(companies)
+      .set(data)
+      .where(eq(companies.id, id))
+      .run();
+
+    if (result.changes === 0) {
+      return null;
+    }
+
+    // Return the updated company
+    return this.findById(id);
+  }
+
+  /**
+   * Delete company by ID
+   */
+  delete(id: number) {
+    return this.database
+      .delete(companies)
+      .where(eq(companies.id, id))
+      .run();
+  }
 }

@@ -37,6 +37,53 @@ export class CompanyService {
   }
 
   /**
+   * Update company
+   */
+  async updateCompany(id: number, data: any): Promise<{ success: boolean; company?: any; error?: string }> {
+    try {
+      const updatedData = {
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+
+      const result = await this.companyRepo.update(id, updatedData);
+      
+      if (!result) {
+        return { success: false, error: 'Company not found' };
+      }
+
+      return { success: true, company: result };
+    } catch (error) {
+      console.error('Error in CompanyService.updateCompany:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Delete company
+   */
+  async deleteCompany(id: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await this.companyRepo.delete(id);
+      
+      if (result.changes === 0) {
+        return { success: false, error: 'Company not found' };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in CompanyService.deleteCompany:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
    * Create company with optional contact assignment and bi-directional sync
    * Handles the complex transaction logic for company creation + contact assignment
    */

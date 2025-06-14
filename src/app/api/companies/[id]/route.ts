@@ -1,126 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { companies } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
-import { requireAuth, isAuthError } from '@/lib/auth-guard';
+import { withAuthParamsHandler, throwError } from '@/server/lib';
+import { makeCompanyService } from '@/server/services';
 
-// GET individual company
-export async function GET(
+export const GET = withAuthParamsHandler(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  // Check authentication first
-  const authResult = await requireAuth();
-  if (isAuthError(authResult)) {
-    return authResult;
+) => {
+  const { id } = await params;
+  const companyId = parseInt(id);
+  
+  if (isNaN(companyId)) {
+    throwError.badRequest('Invalid company ID');
   }
-
-  try {
-    const { id } = await params;
-    const companyId = parseInt(id);
-    
-    // Validate that the ID is a valid integer
-    if (isNaN(companyId)) {
-      return NextResponse.json(
-        { error: 'Invalid company ID' },
-        { status: 400 }
-      );
-    }
-    
-    const company = db.select().from(companies).where(eq(companies.id, companyId)).get();
-    
-    if (!company) {
-      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
-    }
-    
-    return NextResponse.json(company);
-  } catch (error) {
-    console.error('Error fetching company:', error);
-    return NextResponse.json({ error: 'Failed to fetch company' }, { status: 500 });
+  
+  const companyService = makeCompanyService();
+  const company = await companyService.getCompanyById(companyId);
+  
+  if (!company) {
+    throwError.notFound('Company not found');
   }
-}
+  
+  return NextResponse.json(company);
+});
 
-// UPDATE company
-export async function PUT(
+export const PUT = withAuthParamsHandler(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  // Check authentication first
-  const authResult = await requireAuth();
-  if (isAuthError(authResult)) {
-    return authResult;
+) => {
+  const { id } = await params;
+  const companyId = parseInt(id);
+  
+  if (isNaN(companyId)) {
+    throwError.badRequest('Invalid company ID');
   }
-
-  try {
-    const { id } = await params;
-    const companyId = parseInt(id);
-    
-    // Validate that the ID is a valid integer
-    if (isNaN(companyId)) {
-      return NextResponse.json(
-        { error: 'Invalid company ID' },
-        { status: 400 }
-      );
+  
+  const body = await req.json();
+  const companyService = makeCompanyService();
+  
+  const result = await companyService.updateCompany(companyId, body);
+  
+  if (!result.success) {
+    if (result.error === 'Company not found') {
+      throwError.notFound('Company not found');
     }
-    
-    const body = await req.json();
-    
-    const updatedData = {
-      ...body,
-      updated_at: new Date().toISOString(),
-    };
-    
-    const result = db
-      .update(companies)
-      .set(updatedData)
-      .where(eq(companies.id, companyId))
-      .run();
-    
-    if (result.changes === 0) {
-      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
-    }
-    
-    // Return updated company
-    const updatedCompany = db.select().from(companies).where(eq(companies.id, companyId)).get();
-    return NextResponse.json(updatedCompany);
-  } catch (error) {
-    console.error('Error updating company:', error);
-    return NextResponse.json({ error: 'Failed to update company' }, { status: 500 });
+    throwError.internal(`Failed to update company: ${result.error}`);
   }
-}
+  
+  return NextResponse.json(result.company);
+});
 
-// DELETE company
-export async function DELETE(
+export const DELETE = withAuthParamsHandler(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
-  // Check authentication first
-  const authResult = await requireAuth();
-  if (isAuthError(authResult)) {
-    return authResult;
+) => {
+  const { id } = await params;
+  const companyId = parseInt(id);
+  
+  if (isNaN(companyId)) {
+    throwError.badRequest('Invalid company ID');
   }
-
-  try {
-    const { id } = await params;
-    const companyId = parseInt(id);
-    
-    // Validate that the ID is a valid integer
-    if (isNaN(companyId)) {
-      return NextResponse.json(
-        { error: 'Invalid company ID' },
-        { status: 400 }
-      );
+  
+  const companyService = makeCompanyService();
+  const result = await companyService.deleteCompany(companyId);
+  
+  if (!result.success) {
+    if (result.error === 'Company not found') {
+      throwError.notFound('Company not found');
     }
-    
-    const result = db.delete(companies).where(eq(companies.id, companyId)).run();
-    
-    if (result.changes === 0) {
-      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
-    }
-    
-    return NextResponse.json({ message: 'Company deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting company:', error);
-    return NextResponse.json({ error: 'Failed to delete company' }, { status: 500 });
+    throwError.internal(`Failed to delete company: ${result.error}`);
   }
-} 
+  
+  return NextResponse.json({ message: 'Company deleted successfully' });
+}); 
