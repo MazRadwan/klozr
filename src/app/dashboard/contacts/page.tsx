@@ -782,7 +782,7 @@ export default function ContactsPage() {
                             </TableHead>
                           ))}
                           {/* Sticky Actions Header */}
-                          <TableHead className="sticky right-0 w-16 font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10">
+                          <TableHead className="sticky right-0 w-16 font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-40">
                             Actions
                           </TableHead>
                         </TableRow>
@@ -817,7 +817,7 @@ export default function ContactsPage() {
                             ))}
                             {/* Sticky Actions Cell */}
                             <TableCell 
-                              className={`sticky right-0 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10 transition-colors ${
+                              className={`sticky right-0 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-40 transition-colors ${
                                 selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'
                               }`}
                               onClick={(e) => e.stopPropagation()}
