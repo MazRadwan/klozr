@@ -90,6 +90,7 @@ export default function CompaniesPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   
   // Request management
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -246,6 +247,55 @@ export default function CompaniesPage() {
     }
   };
 
+  const handleBulkDelete = () => {
+    setBulkDeleteModalOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedCompanies.length === 0) return;
+    
+    setIsDeleting(true);
+    setError(null);
+    
+    try {
+      console.log('Bulk deleting companies:', selectedCompanies);
+      
+      // Delete all selected companies
+      const deletePromises = selectedCompanies.map(companyId =>
+        fetch(`/api/companies/${companyId}`, {
+          method: 'DELETE',
+        })
+      );
+      
+      const responses = await Promise.all(deletePromises);
+      const failedDeletes = responses.filter(res => !res.ok);
+      
+      if (failedDeletes.length > 0) {
+        throw new Error(`Failed to delete ${failedDeletes.length} companies`);
+      }
+      
+      console.log('Bulk delete completed successfully');
+      
+      // Clear all state
+      setBulkDeleteModalOpen(false);
+      setSelectedCompanies([]);
+      setSelectAll(false);
+      setIsDeleting(false);
+      
+      // Refresh list
+      setTimeout(() => {
+        fetchCompanies();
+        console.log('Bulk delete operation completed');
+      }, 100);
+      
+    } catch (e: any) {
+      console.error('Bulk delete error:', e);
+      setError(e.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleSaveCompany = async (companyData: any) => {
     try {
       if (isEditing && selectedCompany) {
@@ -275,11 +325,18 @@ export default function CompaniesPage() {
 
   // Handle individual company selection
   const handleCompanySelect = (companyId: string, checked: boolean) => {
-    setSelectedCompanies(prev => 
-      checked 
+    setSelectedCompanies(prev => {
+      const newSelection = checked 
         ? [...prev, companyId]
-        : prev.filter(id => id !== companyId)
-    );
+        : prev.filter(id => id !== companyId);
+      
+      // Update selectAll state based on whether all visible companies are selected
+      const allVisibleIds = filteredAndSortedCompanies.map(c => c.id);
+      const allSelected = allVisibleIds.every(id => newSelection.includes(id));
+      setSelectAll(allSelected);
+      
+      return newSelection;
+    });
   };
 
   // Handle select all
@@ -288,8 +345,10 @@ export default function CompaniesPage() {
     if (isChecked) {
       const allVisible = filteredAndSortedCompanies.map(c => c.id);
       setSelectedCompanies(allVisible);
+      setSelectAll(true);
     } else {
       setSelectedCompanies([]);
+      setSelectAll(false);
     }
   };
 
@@ -460,6 +519,40 @@ export default function CompaniesPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk Selection Actions */}
+      {selectedCompanies.length > 0 && (
+        <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 shadow-none">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                {selectedCompanies.length} compan{selectedCompanies.length > 1 ? 'ies' : 'y'} selected
+              </span>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedCompanies([]);
+                    setSelectAll(false);
+                  }}
+                  className="border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300"
+                >
+                  Clear Selection
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Selected
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Desktop Table */}
       <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none hidden md:block">
         <CardContent className="p-0">
@@ -469,7 +562,7 @@ export default function CompaniesPage() {
               <Table className="relative">
                 <TableHeader>
                   <TableRow className="border-gray-200 dark:border-gray-800 hover:bg-transparent">
-                    <TableHead className="w-12 pl-6 bg-white dark:bg-gray-950">
+                    <TableHead className="sticky left-0 w-12 pl-6 bg-white dark:bg-gray-950 shadow-[8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_8px_-8px_rgba(0,0,0,0.3)] z-20">
                       <Checkbox
                         checked={selectAll}
                         onCheckedChange={handleSelectAll}
@@ -547,7 +640,7 @@ export default function CompaniesPage() {
                   className="border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer transition-colors"
                   onClick={() => handleCompanyClick(company.id)}
                 >
-                  <TableCell className="pl-6">
+                  <TableCell className="sticky left-0 pl-6 bg-white dark:bg-gray-950 shadow-[8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50 transition-colors">
                     <Checkbox
                       checked={selectedCompanies.includes(company.id)}
                       onCheckedChange={(checked) => handleCompanySelect(company.id, checked as boolean)}
@@ -958,6 +1051,40 @@ export default function CompaniesPage() {
               disabled={isDeleting}
             >
               {isDeleting ? 'Deleting...' : 'Delete Company'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Dialog open={bulkDeleteModalOpen} onOpenChange={setBulkDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Companies</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedCompanies.length} compan{selectedCompanies.length > 1 ? 'ies' : 'y'}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {error && (
+            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 p-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setBulkDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmBulkDelete} 
+              className="text-white"
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : `Delete ${selectedCompanies.length} Compan${selectedCompanies.length > 1 ? 'ies' : 'y'}`}
             </Button>
           </DialogFooter>
         </DialogContent>
