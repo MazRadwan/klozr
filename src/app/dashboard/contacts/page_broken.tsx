@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
+  StickyTable,
+  StickyTableTable,
+  StickyTableHeader,
+  StickyTableBody,
+  StickyTableRow,
+  StickyTableHead,
+  StickyTableCell,
+} from "@/components/ui/sticky-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ import { EntityTypeBadge, EntityTypeDropdown } from '@/components/entityTypes';
 import { getContactEntityType, ENTITY_TYPES, getEntityTypeDisplayText } from '@/lib/entityTypeUtils';
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { NewContactModal } from "@/components/contacts/NewContactModal";
+import { useColumnManager } from "@/hooks/useColumnManager";
 
 interface Contact {
   id: string;
@@ -78,18 +80,28 @@ interface Contact {
   [key: string]: any;
 }
 
-interface TableColumn {
-  key: string;
-  label: string;
-  sortable: boolean;
-  visible: boolean;
-  width?: string;
-}
+// Default column configuration for contacts
+const DEFAULT_CONTACTS_COLUMNS = [
+  { key: 'checkbox', label: 'Select', sortable: false, visible: true, width: '48px', sticky: 'left' as const },
+  { key: 'name', label: 'Name', sortable: true, visible: true, width: '200px' },
+  { key: 'email', label: 'Email', sortable: true, visible: true, width: '220px' },
+  { key: 'phone', label: 'Phone', sortable: true, visible: true, width: '140px' },
+  { key: 'entity_type', label: 'Entity Type', sortable: true, visible: true, width: '120px' },
+  { key: 'contact_type', label: 'Job Title', sortable: true, visible: true, width: '150px' },
+  { key: 'lead_status', label: 'Lead Status', sortable: true, visible: true, width: '140px' },
+  { key: 'lead_source', label: 'Lead Source', sortable: true, visible: true, width: '130px' },
+  { key: 'lead_temperature', label: 'Temperature', sortable: true, visible: true, width: '120px' },
+  { key: 'lead_owner', label: 'Lead Owner', sortable: true, visible: false, width: '120px' },
+  { key: 'city', label: 'City', sortable: true, visible: true, width: '120px' },
+  { key: 'state_province', label: 'State', sortable: true, visible: true, width: '100px' },
+  { key: 'created_at', label: 'Added', sortable: true, visible: true, width: '120px' },
+  { key: 'actions', label: 'Actions', sortable: false, visible: true, width: '80px', sticky: 'right' as const },
+];
 
 type SortField = 'first_name' | 'last_name' | 'email' | 'phone' | 'contact_type' | 'city' | 'state_province' | 'lead_status' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
-export default function ContactsPage() {
+export default function ContactsPageOld() {
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,21 +115,17 @@ export default function ContactsPage() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   
-  // Column management
-  const [columns, setColumns] = useState<TableColumn[]>([
-    { key: 'name', label: 'Name', sortable: true, visible: true, width: 'w-48' },
-    { key: 'email', label: 'Email', sortable: true, visible: true, width: 'w-64' },
-    { key: 'phone', label: 'Phone', sortable: true, visible: true, width: 'w-40' },
-    { key: 'entity_type', label: 'Entity Type', sortable: true, visible: true, width: 'w-32' },
-    { key: 'contact_type', label: 'Job Title', sortable: true, visible: true, width: 'w-32' },
-    { key: 'lead_status', label: 'Lead Status', sortable: true, visible: true, width: 'w-36' },
-    { key: 'lead_source', label: 'Lead Source', sortable: true, visible: true, width: 'w-32' },
-    { key: 'lead_temperature', label: 'Temperature', sortable: true, visible: true, width: 'w-28' },
-    { key: 'lead_owner', label: 'Lead Owner', sortable: true, visible: false, width: 'w-36' },
-    { key: 'city', label: 'City', sortable: true, visible: true, width: 'w-32' },
-    { key: 'state_province', label: 'State', sortable: true, visible: true, width: 'w-24' },
-    { key: 'created_at', label: 'Added', sortable: true, visible: true, width: 'w-32' },
-  ]);
+  // Column management with enhanced hook
+  const {
+    columns,
+    visibleColumns,
+    toggleColumnVisibility,
+    updateColumnWidth,
+    calculateStickyOffset
+  } = useColumnManager({
+    storageKey: 'contacts-table-columns',
+    defaultColumns: DEFAULT_CONTACTS_COLUMNS
+  });
   
   // Modal states
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -351,19 +359,7 @@ export default function ContactsPage() {
     }
   };
 
-  // Column visibility toggle
-  const toggleColumnVisibility = (columnKey: string) => {
-    setColumns(prev => 
-      prev.map(col => 
-        col.key === columnKey 
-          ? { ...col, visible: !col.visible }
-          : col
-      )
-    );
-  };
-
-  // Get visible columns
-  const visibleColumns = columns.filter(col => col.visible);
+  // Legacy support - these are now handled by the useColumnManager hook
 
   const filteredAndSortedContacts = useMemo(() => {
     let filtered = contacts.filter(contact => {
@@ -503,7 +499,7 @@ export default function ContactsPage() {
          ) : (
            <span className="text-gray-400">—</span>
          );
-      case 'lead_status':
+      case 'lead_status': {
         // Only show lead status for entities with type 'lead'
         const contactType = getContactEntityType({ type: contact.type });
         if (contactType.type !== 'lead') {
@@ -519,14 +515,15 @@ export default function ContactsPage() {
                 lead_temperature: contact.lead_temperature,
                 lead_source: contact.lead_source,
                 lead_owner_id: contact.lead_owner_id,
-                type: contact.type
+                type: contact.type,
               }}
               onStatusUpdate={debouncedFetchContacts}
               size="sm"
             />
           </div>
         );
-      case 'lead_source':
+      }
+      case 'lead_source': {
         // Only show lead source for entities with type 'lead'
         const sourceContactType = getContactEntityType({ type: contact.type });
         if (sourceContactType.type !== 'lead') {
@@ -535,12 +532,15 @@ export default function ContactsPage() {
         const leadSource = contact.lead_source;
         return leadSource ? (
           <span className="text-gray-900 dark:text-gray-100 text-sm">
-            {leadSource.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+            {leadSource
+              .replace(/_/g, ' ')
+              .replace(/\b\w/g, (l: string) => l.toUpperCase())}
           </span>
         ) : (
           <span className="text-gray-400">—</span>
         );
-      case 'lead_temperature':
+      }
+      case 'lead_temperature': {
         // Only show lead temperature for entities with type 'lead'
         const tempContactType = getContactEntityType({ type: contact.type });
         if (tempContactType.type !== 'lead') {
@@ -556,14 +556,15 @@ export default function ContactsPage() {
                 lead_temperature: contact.lead_temperature,
                 lead_source: contact.lead_source,
                 lead_owner_id: contact.lead_owner_id,
-                type: contact.type
+                type: contact.type,
               }}
               onTemperatureUpdate={debouncedFetchContacts}
               size="sm"
             />
           </div>
         );
-      case 'lead_owner':
+      }
+      case 'lead_owner': {
         // Only show lead owner for entities with type 'lead'
         const ownerContactType = getContactEntityType({ type: contact.type });
         if (ownerContactType.type !== 'lead') {
@@ -571,12 +572,11 @@ export default function ContactsPage() {
         }
         const ownerId = contact.lead_owner_id;
         return ownerId ? (
-          <span className="text-gray-900 dark:text-gray-100 text-sm">
-            Owner #{ownerId}
-          </span>
+          <span className="text-gray-900 dark:text-gray-100 text-sm">Owner #{ownerId}</span>
         ) : (
           <span className="text-gray-400">—</span>
         );
+      }
       case 'city':
         return contact.city ? (
           <span className="text-gray-900 dark:text-gray-100">{contact.city}</span>
@@ -624,10 +624,14 @@ export default function ContactsPage() {
 
   if (error) {
     return (
-      <Alert variant="destructive" className="bg-red-50 border-red-200 dark:bg-red-950/10 dark:border-red-900">
-        <AlertTitle className="text-red-800 dark:text-red-400">Error Loading Contacts</AlertTitle>
-        <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
-      </Alert>
+      <ClientDashboardLayout>
+        <div className="p-4 sm:p-8">
+          <Alert variant="destructive" className="bg-red-50 border-red-200 dark:bg-red-950/10 dark:border-red-900">
+            <AlertTitle className="text-red-800 dark:text-red-400">Error Loading Contacts</AlertTitle>
+            <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
+          </Alert>
+        </div>
+      </ClientDashboardLayout>
     );
   }
 
@@ -635,8 +639,8 @@ export default function ContactsPage() {
     <ClientDashboardLayout>
       <div className="p-4 sm:p-8">
         <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
             Contacts
@@ -663,60 +667,62 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-            <EntityToggle />
-            <div className="relative flex-1 md:max-w-md lg:max-w-lg">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search contacts..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 shadow-none focus:shadow-none hover:shadow-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm md:text-base"
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 md:flex-shrink-0">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100 flex-1 sm:flex-none"
-              >
-                <option value="all">All Types</option>
-                {getEntityTypes().map((type: string) => (
-                  <option key={type} value={type}>{getEntityTypeDisplayText(type)}</option>
-                ))}
-              </select>
-              
-              {/* Column Visibility Dropdown - Hidden on mobile */}
-              <div className="hidden md:block">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
-                      <Columns className="h-4 w-4 mr-2" />
-                      Columns
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>Show/Hide Columns</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {columns.map(column => (
-                      <DropdownMenuCheckboxItem
-                        key={column.key}
-                        checked={column.visible}
-                        onCheckedChange={() => toggleColumnVisibility(column.key)}
-                      >
-                        {column.label}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+      {/* Sticky Filters and Search */}
+      <div className="sticky top-0 z-30 bg-white dark:bg-gray-950 pb-6">
+        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-sm">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+              <EntityToggle />
+              <div className="relative flex-1 md:max-w-md lg:max-w-lg">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search contacts..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 shadow-none focus:shadow-none hover:shadow-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm md:text-base"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 md:flex-shrink-0">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100 flex-1 sm:flex-none"
+                >
+                  <option value="all">All Types</option>
+                  {getEntityTypes().map((type: string) => (
+                    <option key={type} value={type}>{getEntityTypeDisplayText(type)}</option>
+                  ))}
+                </select>
+                
+                {/* Column Visibility Dropdown */}
+                <div className="hidden md:block">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                        <Columns className="h-4 w-4 mr-2" />
+                        Columns
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Show/Hide Columns</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {columns.filter(col => col.key !== 'checkbox' && col.key !== 'actions').map(column => (
+                        <DropdownMenuCheckboxItem
+                          key={column.key}
+                          checked={column.visible}
+                          onCheckedChange={() => toggleColumnVisibility(column.key)}
+                        >
+                          {column.label}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Desktop Bulk Actions Bar */}
       {selectedContacts.length > 0 && (
@@ -750,115 +756,133 @@ export default function ContactsPage() {
       )}
 
       {/* Contacts Table/Cards */}
-      <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none">
-        <CardContent className="p-0">
-              {/* Desktop Table View */}
-              <div className="hidden md:block">
-                <div className="relative">
-                  {/* Scrollable Table Container */}
-                  <div className="overflow-x-auto">
-                    <Table className="relative">
-                      <TableHeader>
-                        <TableRow className="border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
-                          <TableHead className="sticky left-0 w-12 bg-gray-50 dark:bg-gray-900/50 shadow-[8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_8px_-8px_rgba(0,0,0,0.3)] z-20">
-                            <Checkbox
-                              checked={selectAll}
-                              onCheckedChange={handleSelectAll}
-                              aria-label="Select all contacts"
-                            />
-                          </TableHead>
-                          {visibleColumns.map(column => (
-                            <TableHead 
-                              key={column.key}
-                              className={`font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/50 ${
-                                column.sortable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors' : ''
-                              } ${column.width || ''}`}
-                              onClick={() => column.sortable && column.key !== 'name' ? handleSort(column.key as SortField) : column.key === 'name' && handleSort('first_name')}
-                            >
-                              <div className="flex items-center">
-                                {column.label}
-                                {column.sortable && getSortIcon(column.key === 'name' ? 'first_name' : column.key as SortField)}
-                              </div>
-                            </TableHead>
-                          ))}
-                          {/* Sticky Actions Header */}
-                          <TableHead className="sticky right-0 w-16 font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/50 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredAndSortedContacts.map((contact, i) => (
-                          <TableRow 
-                            key={contact.id} 
-                            className={`
-                              group border-gray-200 dark:border-gray-800 transition-colors cursor-pointer
-                              ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950'}
-                            `}
-                            onClick={() => handleContactClick(contact.id)}
-                          >
-                            <TableCell 
-                              onClick={(e) => e.stopPropagation()}
-                              className={`sticky left-0 shadow-[8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10 transition-colors ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'}`}
-                            >
-                              <Checkbox
-                                checked={selectedContacts.includes(contact.id)}
-                                onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
-                                aria-label={`Select ${contact.first_name} ${contact.last_name}`}
-                              />
-                            </TableCell>
-                            {visibleColumns.map(column => (
-                              <TableCell 
-                                key={column.key} 
-                                className={`py-3 transition-colors ${selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'}`}
-                              >
-                                {renderCellContent(contact, column.key)}
-                              </TableCell>
-                            ))}
-                            {/* Sticky Actions Cell */}
-                            <TableCell 
-                              className={`sticky right-0 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10 transition-colors ${
-                                selectedContacts.includes(contact.id) ? 'bg-blue-50 dark:bg-blue-950/20' : 'bg-white dark:bg-gray-950 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50'
-                              }`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                  >
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      // Close dropdown menu first, then open dialog after a brief delay
-                                      setTimeout(() => {
-                                        handleDelete(contact);
-                                      }, 0);
-                                    }}
-                                    className="text-red-600 dark:text-red-400"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </div>
+      <div className="hidden md:block">
+        <StickyTable height="calc(100vh - 320px)" className="shadow-sm">
+          <StickyTableTable>
+            <StickyTableHeader>
+              <StickyTableRow className="border-gray-200 dark:border-gray-800 hover:bg-transparent">
+                <StickyTableHead 
+                  sticky="left" 
+                  stickyOffset={0}
+                  className="w-12 pl-6"
+                >
+                  <Checkbox
+                    checked={selectAll}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all contacts"
+                    className="border-gray-300 dark:border-gray-600"
+                  />
+                </StickyTableHead>
+                {visibleColumns.filter(col => col.key !== 'checkbox' && col.key !== 'actions').map(column => {
+                  const sortField = column.key === 'name' ? 'first_name' : 
+                                  column.key === 'email' ? 'email' :
+                                  column.key === 'phone' ? 'phone' :
+                                  column.key === 'contact_type' ? 'contact_type' :
+                                  column.key === 'city' ? 'city' :
+                                  column.key === 'state_province' ? 'state_province' :
+                                  column.key === 'lead_status' ? 'lead_status' :
+                                  column.key === 'created_at' ? 'created_at' : null;
+                  
+                  return (
+                    <StickyTableHead 
+                      key={column.key}
+                      className={`${column.sortable && sortField ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors' : ''}`}
+                      onClick={() => column.sortable && sortField && handleSort(sortField as SortField)}
+                      style={{ width: column.width }}
+                    >
+                      <div className="flex items-center font-semibold text-gray-900 dark:text-gray-100">
+                        {column.label}
+                        {column.sortable && sortField && getSortIcon(sortField as SortField)}
+                      </div>
+                    </StickyTableHead>
+                  );
+                })}
+                
+                {/* Sticky Actions Header */}
+                <StickyTableHead 
+                  sticky="right" 
+                  stickyOffset={0}
+                  className="w-16 pr-6"
+                >
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">Actions</span>
+                </StickyTableHead>
+              </StickyTableRow>
+            </StickyTableHeader>
+            <StickyTableBody>
+              {filteredAndSortedContacts.map((contact, i) => (
+                <StickyTableRow 
+                  key={contact.id} 
+                  className="border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer transition-colors group"
+                  onClick={() => handleContactClick(contact.id)}
+                  data-state={selectedContacts.includes(contact.id) ? 'selected' : undefined}
+                >
+                  <StickyTableCell 
+                    sticky="left" 
+                    stickyOffset={0}
+                    className="pl-6"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedContacts.includes(contact.id)}
+                      onCheckedChange={(checked) => handleContactSelect(contact.id, checked as boolean)}
+                      aria-label={`Select ${contact.first_name} ${contact.last_name}`}
+                      className="border-gray-300 dark:border-gray-600"
+                    />
+                  </StickyTableCell>
+                  {visibleColumns.filter(col => col.key !== 'checkbox' && col.key !== 'actions').map(column => (
+                    <StickyTableCell 
+                      key={column.key} 
+                      className="py-3"
+                      style={{ width: column.width }}
+                      onClick={['entity_type', 'lead_status', 'lead_temperature'].includes(column.key) ? (e) => e.stopPropagation() : undefined}
+                    >
+                      {renderCellContent(contact, column.key)}
+                    </StickyTableCell>
+                  ))}
+                  {/* Sticky Actions Cell */}
+                  <StickyTableCell 
+                    sticky="right" 
+                    stickyOffset={0}
+                    className="pr-6"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Close dropdown menu first, then open dialog after a brief delay
+                            setTimeout(() => {
+                              handleDelete(contact);
+                            }, 0);
+                          }}
+                          className="text-red-600 dark:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </StickyTableCell>
+                </StickyTableRow>
+              ))}
+            </StickyTableBody>
+          </StickyTableTable>
+        </StickyTable>
+      </div>
 
-              {/* Mobile Card View */}
-              <div className="md:hidden">
+        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-none">
+          <CardContent className="p-0">
                 {/* Mobile Bulk Actions */}
                 {selectedContacts.length > 0 && (
                   <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-b border-blue-200 dark:border-blue-800">
@@ -1025,9 +1049,10 @@ export default function ContactsPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Empty State */}
       {filteredAndSortedContacts.length === 0 && !loading && (
