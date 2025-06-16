@@ -67,6 +67,15 @@ export function CompanyPicker({ contactId, currentCompany, onCompanyChange }: Co
   }, [searchTerm, debouncedSearch]);
 
   const handleAssignCompany = async (company: Company) => {
+    // If contactId is 0, this is for new contact creation - just update local state
+    if (contactId === 0) {
+      onCompanyChange(company);
+      setSearchTerm("");
+      setSearchResults([]);
+      return;
+    }
+
+    // For existing contacts, make API call to update the association
     try {
       const response = await fetch(`/api/contacts/${contactId}`, {
         method: 'PATCH',
@@ -91,6 +100,13 @@ export function CompanyPicker({ contactId, currentCompany, onCompanyChange }: Co
   };
 
   const handleRemoveCompany = async () => {
+    // If contactId is 0, this is for new contact creation - just update local state
+    if (contactId === 0) {
+      onCompanyChange(null);
+      return;
+    }
+
+    // For existing contacts, make API call to remove the association
     try {
       const response = await fetch(`/api/contacts/${contactId}`, {
         method: 'PATCH',
