@@ -628,7 +628,7 @@ export default function CompaniesPage() {
                       </div>
                     </TableHead>
                     {/* Sticky Actions Header */}
-                    <TableHead className="sticky right-0 w-12 pr-6 bg-white dark:bg-gray-950 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-10">
+                    <TableHead className="sticky right-0 w-12 pr-6 bg-white dark:bg-gray-950 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] z-40">
                       <span className="sr-only">Actions</span>
                     </TableHead>
               </TableRow>
@@ -775,7 +775,7 @@ export default function CompaniesPage() {
                     </span>
                   </TableCell>
                   {/* Sticky Actions Cell */}
-                  <TableCell className="sticky right-0 pr-6 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] bg-white dark:bg-gray-950 z-10">
+                  <TableCell className="sticky right-0 pr-6 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.1)] dark:shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.3)] bg-white dark:bg-gray-950 z-40">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
