@@ -255,24 +255,35 @@ export function NewDealModal({ isOpen, onClose, contactId, companyId, companyNam
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="company_id">Company</Label>
-              <select
-                id="company_id"
-                name="company_id"
-                value={formData.company_id}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
-              >
-                <option value="">Select company</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className={`grid ${companyId ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+            {!companyId && (
+              <div className="space-y-2">
+                <Label htmlFor="company_id">Company</Label>
+                <select
+                  id="company_id"
+                  name="company_id"
+                  value={formData.company_id}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">Select company</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {companyId && companyName && (
+              <div className="space-y-2">
+                <Label>Company</Label>
+                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100">
+                  {companyName}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="offering_id">Product/Service</Label>
