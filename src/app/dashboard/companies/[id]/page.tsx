@@ -17,7 +17,7 @@ import { LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads'
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
-  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink
+  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink, Check
 } from 'lucide-react';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -107,6 +107,7 @@ export default function CompanyDetailPage() {
   }, [companyId]);
 
   const fetchCompanyData = async () => {
+    console.log('📊 fetchCompanyData called for company:', companyId);
     setLoading(true);
     try {
       // Fetch company data from API
@@ -164,10 +165,14 @@ export default function CompanyDetailPage() {
       }
 
       // Fetch real deals for this company
+      console.log('🎯 Fetching deals for company:', companyId);
       const dealsRes = await fetch(`/api/deals?company_id=${companyId}`);
       let realDeals: any[] = [];
       if (dealsRes.ok) {
         realDeals = await dealsRes.json();
+        console.log('📈 Fetched deals:', realDeals);
+      } else {
+        console.error('❌ Failed to fetch deals:', dealsRes.status);
       }
 
       setCompany(companyData);
@@ -175,6 +180,7 @@ export default function CompanyDetailPage() {
       setActivities(mockActivities);
       setContacts(realContacts);
       setDeals(realDeals);
+      console.log('✅ Updated deals state with:', realDeals.length, 'deals');
     } catch (error) {
       console.error('Error fetching company data:', error);
     } finally {
@@ -210,6 +216,7 @@ export default function CompanyDetailPage() {
   };
 
   const handleDealsUpdate = () => {
+    console.log('🔄 handleDealsUpdate called, refetching company data...');
     fetchCompanyData();
   };
 
@@ -686,7 +693,17 @@ export default function CompanyDetailPage() {
                   Related Deals ({deals.length})
                 </div>
               </CardTitle>
-              {!isEditingDeals && (
+              {isEditingDeals ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingDeals(false)}
+                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Done
+                </Button>
+              ) : (
                 <Button
                   variant="outline"
                   size="sm"

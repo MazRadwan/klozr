@@ -72,15 +72,20 @@ export function CompanyDealPicker({ companyId, companyName, currentDeals, onDeal
           const res = await fetch(`/api/deals?q=${encodeURIComponent(searchTerm)}`);
           if (res.ok) {
             const results = await res.json();
+            console.log('🔍 Deal search results:', results);
             // Filter out deals already linked to this company
             const currentDealIds = currentDeals.map(d => d.id);
             const availableDeals = results.filter((deal: DealSearchResult) => 
               !currentDealIds.includes(deal.deal.id)
             );
+            console.log('✨ Filtered available deals:', availableDeals);
             setSearchResults(availableDeals);
+          } else {
+            const errorText = await res.text();
+            console.error('❌ Deal search failed:', res.status, errorText);
           }
         } catch (error) {
-          console.error('Error searching deals:', error);
+          console.error('💥 Error searching deals:', error);
         } finally {
           setIsSearching(false);
         }
@@ -97,6 +102,7 @@ export function CompanyDealPicker({ companyId, companyName, currentDeals, onDeal
   }, [searchTerm, currentDeals]);
 
   const handleAddDeal = async (deal: DealSearchResult) => {
+    console.log('➕ Adding deal:', deal.deal.id, 'to company:', companyId);
     setIsUpdating(true);
     try {
       const res = await fetch(`/api/deals/${deal.deal.id}`, {
@@ -107,22 +113,24 @@ export function CompanyDealPicker({ companyId, companyName, currentDeals, onDeal
 
       if (res.ok) {
         const updatedDeal = await res.json();
+        console.log('✅ Deal successfully linked:', updatedDeal);
         onDealsUpdate();
         // Remove from search results and clear search
         setSearchResults(prev => prev.filter(d => d.deal.id !== deal.deal.id));
         setSearchTerm('');
       } else {
         const errorText = await res.text();
-        console.error('Failed to link deal to company:', res.status, errorText);
+        console.error('❌ Failed to link deal to company:', res.status, errorText);
       }
     } catch (error) {
-      console.error('Error linking deal:', error);
+      console.error('💥 Error linking deal:', error);
     } finally {
       setIsUpdating(false);
     }
   };
 
   const handleRemoveDeal = async (deal: Deal) => {
+    console.log('🔥 Removing deal:', deal.id, 'from company:', companyId);
     setIsUpdating(true);
     try {
       const res = await fetch(`/api/deals/${deal.id}`, {
@@ -133,13 +141,14 @@ export function CompanyDealPicker({ companyId, companyName, currentDeals, onDeal
 
       if (res.ok) {
         const updatedDeal = await res.json();
+        console.log('✅ Deal successfully unlinked:', updatedDeal);
         onDealsUpdate();
       } else {
         const errorText = await res.text();
-        console.error('Failed to unlink deal from company:', res.status, errorText);
+        console.error('❌ Failed to unlink deal from company:', res.status, errorText);
       }
     } catch (error) {
-      console.error('Error unlinking deal:', error);
+      console.error('💥 Error unlinking deal:', error);
     } finally {
       setIsUpdating(false);
     }
@@ -169,58 +178,55 @@ export function CompanyDealPicker({ companyId, companyName, currentDeals, onDeal
     <div className="space-y-4">
       {/* Current Deals */}
       {currentDeals.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Current Deals ({currentDeals.length})
-          </h4>
-          <div className="space-y-2">
+          </label>
+          <div className="flex flex-wrap gap-2">
             {currentDeals.map((deal) => (
-              <div
+              <Badge
                 key={deal.id}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
+                variant="secondary"
+                className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800 flex items-center gap-2 pr-1"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {deal.title}
+                <div className="flex items-center gap-2 min-w-0">
+                  <DollarSign className="h-3 w-3 flex-shrink-0 text-green-600 dark:text-green-400" />
+                  <span className="truncate max-w-32">
+                    {deal.title}
+                  </span>
+                  <span className="text-xs opacity-75">
+                    • {formatCurrency(deal.amount)}
+                  </span>
+                  {deal.stage && (
+                    <span className="text-xs opacity-75">
+                      • {deal.stage}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatCurrency(deal.amount)}
-                    </span>
-                    <Badge variant="secondary" className={`${getStageColor(deal.stage)} text-xs`}>
-                      {deal.stage || 'Unknown'}
-                    </Badge>
-                    {deal.contact && (
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                        <User className="h-3 w-3" />
-                        <span className="truncate">
-                          {`${deal.contact.first_name || ''} ${deal.contact.last_name || ''}`.trim()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => handleRemoveDeal(deal)}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  onClick={() => {
+                    console.log('🖱️ X button clicked for deal:', deal.id);
+                    handleRemoveDeal(deal);
+                  }}
                   disabled={isUpdating}
-                  className="ml-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
             ))}
           </div>
         </div>
       )}
 
       {/* Search Deals */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          Link Existing Deal
-        </h4>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Add Existing Deal
+        </label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
