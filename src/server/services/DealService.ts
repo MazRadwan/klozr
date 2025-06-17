@@ -88,6 +88,7 @@ export class DealService {
 
       // Auto-sync logic: If contact is being linked/changed, update company to match contact's company
       if (contact_id !== undefined && contact_id !== null) {
+        // @ts-ignore - internal access needed for one-off validation query
         const [contactWithCompany] = await this.dealRepo.database
           .select({ company_id: contacts.company_id })
           .from(contacts)
@@ -100,18 +101,28 @@ export class DealService {
         finalUpdateData.contact_id = contact_id;
       }
 
-      // If company is being changed manually, check if current contact belongs to new company
-      if (company_id !== undefined && existingDeal.deal.contact_id) {
-        const [currentContactCompany] = await this.dealRepo.database
-          .select({ company_id: contacts.company_id })
-          .from(contacts)
-          .where(eq(contacts.id, existingDeal.deal.contact_id))
-          .limit(1);
+      // If company is being changed manually we always carry over that change.
+      // When a deal already has a contact *and* the caller is NOT simultaneously supplying
+      // a new contact, make sure that existing contact still belongs to the new company.
+      if (company_id !== undefined) {
+        // Handle mismatch-detection only when:
+        //   1) the deal currently has a contact, AND
+        //   2) the update payload is not replacing that contact (contact_id is undefined)
+        if (existingDeal.deal.contact_id && contact_id === undefined) {
+          // @ts-ignore - internal access needed for one-off validation query
+          const [currentContactCompany] = await this.dealRepo.database
+            .select({ company_id: contacts.company_id })
+            .from(contacts)
+            .where(eq(contacts.id, existingDeal.deal.contact_id))
+            .limit(1);
 
-        // If contact exists but doesn't belong to the new company, unlink the contact
-        if (currentContactCompany && currentContactCompany.company_id !== company_id) {
-          finalUpdateData.contact_id = null;
+          // If the current contact belongs to a different company, unlink it
+          if (currentContactCompany && currentContactCompany.company_id !== company_id) {
+            finalUpdateData.contact_id = null;
+          }
         }
+
+        // Always apply the explicit company change (including null to unlink)
         finalUpdateData.company_id = company_id;
       }
 
