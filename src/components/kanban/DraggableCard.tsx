@@ -39,6 +39,19 @@ interface DraggableCardProps {
 }
 
 export function DraggableCard({ deal, index, isDragDisabled = false }: DraggableCardProps) {
+  // Get the accent color for the stage
+  const getStageAccentColor = (stage?: string): string => {
+    const colors = {
+      'Prospecting': 'bg-blue-500',
+      'Qualification': 'bg-yellow-500', 
+      'Proposal': 'bg-purple-500',
+      'Negotiation': 'bg-orange-500',
+      'Closed Won': 'bg-green-500',
+      'Closed Lost': 'bg-red-500',
+    };
+    return colors[stage as keyof typeof colors] || 'bg-gray-400';
+  };
+
   return (
     <Draggable 
       draggableId={String(deal.deal.id)} 
@@ -52,8 +65,8 @@ export function DraggableCard({ deal, index, isDragDisabled = false }: Draggable
           {...provided.dragHandleProps}
           style={provided.draggableProps.style}
           className={cn(
-            "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-            "rounded-lg p-4 shadow-sm transition-shadow duration-200",
+            "relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
+            "rounded-lg pl-5 pr-4 py-4 shadow-sm transition-shadow duration-200",
             "cursor-grab active:cursor-grabbing group select-none",
             "hover:shadow-md",
             snapshot.isDragging && "shadow-lg border-blue-300 dark:border-blue-600",
@@ -74,9 +87,19 @@ export function DraggableCard({ deal, index, isDragDisabled = false }: Draggable
             }
           }}
         >
+          {/* Stage Accent Stripe */}
+          <div className={cn(
+            "absolute left-0 top-0 w-1 h-full rounded-l-lg",
+            getStageAccentColor(deal.deal.stage)
+          )} />
+
+          {/* Drag Handle */}
+          <div className="absolute top-3 right-3 text-gray-400 dark:text-gray-500">
+            <GripVertical className="h-4 w-4" />
+          </div>
 
           {/* Deal Title */}
-          <div className="font-medium text-gray-900 dark:text-gray-100 text-sm mb-3">
+          <div className="font-medium text-gray-900 dark:text-gray-100 text-sm mb-3 pr-6">
             {deal.deal.title}
           </div>
 
