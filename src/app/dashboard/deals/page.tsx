@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { 
   Plus, Eye, Edit, Trash2, Upload, Download, Search, Filter, 
-  ChevronUp, ChevronDown, DollarSign, MoreVertical
+  ChevronUp, ChevronDown, DollarSign, MoreVertical, LayoutGrid, Columns
 } from "lucide-react";
 import Link from "next/link";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { DealStageDropdown } from "@/components/deals/DealStageDropdown";
 import { getDealStageColor } from "@/lib/dealUtils";
+import { KanbanBoard } from "@/components/kanban";
 
 interface Contact {
   id: number;
@@ -74,6 +75,7 @@ export default function DealsPage() {
   const [stageFilter, setStageFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>('title');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [viewMode, setViewMode] = useState<'table' | 'kanban' >('table');
 
   useEffect(() => {
     fetchDeals();
@@ -343,17 +345,40 @@ export default function DealsPage() {
                   <option value="Closed Won">Closed Won</option>
                   <option value="Closed Lost">Closed Lost</option>
                 </select>
-                <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
-                  <Filter className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 flex items-center gap-1">
+                  <Filter className="h-4 w-4" />
                   Filters
                 </Button>
+                {/* View mode dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 gap-2 text-gray-700 dark:text-gray-300">
+                      {viewMode === 'table' ? (
+                        <LayoutGrid className="h-4 w-4" />
+                      ) : (
+                        <Columns className="h-4 w-4" />
+                      )}
+                      <span className="hidden sm:inline capitalize">
+                        {viewMode === 'table' ? 'Table' : 'Board'}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem onClick={() => setViewMode('table')} className="flex items-center gap-2 text-gray-900 dark:text-gray-100"> 
+                      <LayoutGrid className="h-4 w-4" /> <span>Table view</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setViewMode('kanban')} className="flex items-center gap-2 text-gray-900 dark:text-gray-100"> 
+                      <Columns className="h-4 w-4" /> <span>Board view</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Desktop Table */}
-        <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-lg hidden md:block">
+        <Card className={`${viewMode==='kanban'?'hidden':''} bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-lg hidden md:block`}>
           <CardContent className="p-0">
             {filteredDeals.length === 0 ? (
               <div className="text-center py-12">
@@ -528,8 +553,12 @@ export default function DealsPage() {
           </CardContent>
         </Card>
 
+        {viewMode === 'kanban' && (
+          <KanbanBoard deals={filteredDeals} />
+        )}
+
         {/* Mobile Cards */}
-        <div className="block md:hidden space-y-4">
+        <div className={`${viewMode==='kanban'?'hidden':''} block md:hidden space-y-4`}>
           {filteredDeals.length === 0 ? (
             <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
               <CardContent className="text-center py-12">
