@@ -14,6 +14,7 @@ import Link from "next/link";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { DealCompanyPicker } from "@/components/deals/DealCompanyPicker";
+import { DealContactPicker } from "@/components/deals/DealContactPicker";
 
 interface Contact {
   id: number;
@@ -69,6 +70,7 @@ export default function DealDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
+  const [isEditingContact, setIsEditingContact] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -101,6 +103,13 @@ export default function DealDetailPage() {
     if (params.id) {
       await fetchDeal(params.id as string);
       setIsEditingCompany(false);
+    }
+  };
+
+  const handleContactUpdate = async () => {
+    if (params.id) {
+      await fetchDeal(params.id as string);
+      setIsEditingContact(false);
     }
   };
 
@@ -366,86 +375,127 @@ export default function DealDetailPage() {
             {/* Right Column - Contact & Company */}
             <div className="space-y-6">
               {/* Contact Information */}
-              {deal.contact && (
-                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-                  <CardHeader>
+              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <User className="h-5 w-5" />
                       Contact
                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                        {deal.contact.first_name ? deal.contact.first_name.charAt(0).toUpperCase() : 'C'}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {deal.contact.first_name} {deal.contact.last_name}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Primary Contact</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {deal.contact.email && (
-                        <div className="flex items-center gap-3">
-                          <Mail className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                            <a 
-                              href={`mailto:${deal.contact.email}`}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {deal.contact.email}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-
-                      {deal.contact.phone && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
-                            <a 
-                              href={`tel:${deal.contact.phone}`}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {deal.contact.phone}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-
-                      {(deal.contact.address || deal.contact.city) && (
-                        <div className="flex items-start gap-3">
-                          <MapPin className="h-4 w-4 text-gray-400 mt-1" />
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Address</p>
-                            <p className="text-gray-900 dark:text-gray-100">
-                              {deal.contact.address && <span>{deal.contact.address}<br /></span>}
-                              {deal.contact.city && <span>{deal.contact.city}</span>}
-                              {deal.contact.state_province && <span>, {deal.contact.state_province}</span>}
-                              {deal.contact.postal_code && <span> {deal.contact.postal_code}</span>}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Separator />
-                    <div className="flex gap-2">
-                      <Link href={`/dashboard/contacts/${deal.contact.id}`}>
-                        <Button variant="outline" size="sm" className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          View Contact
+                    {!isEditingContact && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsEditingContact(true)}
+                        className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Manage
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isEditingContact ? (
+                    <div className="space-y-4">
+                      <DealContactPicker
+                        dealId={deal.deal.id}
+                        currentContact={deal.contact || null}
+                        onContactUpdate={handleContactUpdate}
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setIsEditingContact(false)}
+                          className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          Cancel
                         </Button>
-                      </Link>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  ) : deal.contact ? (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {deal.contact.first_name ? deal.contact.first_name.charAt(0).toUpperCase() : 'C'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {deal.contact.first_name} {deal.contact.last_name}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Primary Contact</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {deal.contact.email && (
+                          <div className="flex items-center gap-3">
+                            <Mail className="h-4 w-4 text-gray-400" />
+                            <div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
+                              <a 
+                                href={`mailto:${deal.contact.email}`}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {deal.contact.email}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {deal.contact.phone && (
+                          <div className="flex items-center gap-3">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
+                              <a 
+                                href={`tel:${deal.contact.phone}`}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {deal.contact.phone}
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {(deal.contact.address || deal.contact.city) && (
+                          <div className="flex items-start gap-3">
+                            <MapPin className="h-4 w-4 text-gray-400 mt-1" />
+                            <div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Address</p>
+                              <p className="text-gray-900 dark:text-gray-100">
+                                {deal.contact.address && <span>{deal.contact.address}<br /></span>}
+                                {deal.contact.city && <span>{deal.contact.city}</span>}
+                                {deal.contact.state_province && <span>, {deal.contact.state_province}</span>}
+                                {deal.contact.postal_code && <span> {deal.contact.postal_code}</span>}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator />
+                      <div className="flex gap-2">
+                        <Link href={`/dashboard/contacts/${deal.contact.id}`}>
+                          <Button variant="outline" size="sm" className="flex-1 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            View Contact
+                          </Button>
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <User className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-4 text-sm font-medium text-gray-900 dark:text-gray-100">No contact assigned</h3>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Link this deal to a contact.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Company Information */}
               <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
