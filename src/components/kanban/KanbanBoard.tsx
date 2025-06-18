@@ -1,6 +1,10 @@
 +"use client";
 import React from "react";
+import { DragDropContext } from '@hello-pangea/dnd';
 import { useKanbanColumns } from "@/hooks/useKanbanColumns";
+import { useKanbanDragDrop } from "@/hooks/useKanbanDragDrop";
+import { DraggableCard } from './DraggableCard';
+import { DroppableColumn } from './DroppableColumn';
 
 interface KanbanBoardProps {
   searchTerm?: string;
@@ -9,6 +13,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ searchTerm, stageFilter }: KanbanBoardProps) {
   const { data, isLoading, error } = useKanbanColumns(searchTerm, stageFilter);
+  const { handleDragStart, handleDragEnd, isDragging, isUpdating } = useKanbanDragDrop();
 
   if (isLoading) {
     return (
@@ -43,7 +48,11 @@ export function KanbanBoard({ searchTerm, stageFilter }: KanbanBoardProps) {
   const totalDeals = data.reduce((sum, col) => sum + col.deals.length, 0);
 
   return (
-    <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg">
+    <DragDropContext 
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg">
       {/* Kanban Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between">
@@ -52,6 +61,11 @@ export function KanbanBoard({ searchTerm, stageFilter }: KanbanBoardProps) {
           </h2>
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {totalDeals} {totalDeals === 1 ? 'deal' : 'deals'} total
+            {(isDragging || isUpdating) && (
+              <span className="ml-2 text-blue-600 dark:text-blue-400">
+                {isDragging ? '(Dragging...)' : '(Updating...)'}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -76,61 +90,22 @@ export function KanbanBoard({ searchTerm, stageFilter }: KanbanBoardProps) {
                 </div>
               </div>
 
-              {/* Column Content */}
-              <div className="flex-1 p-3 space-y-3 overflow-y-auto">
-                {col.deals.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="text-gray-400 dark:text-gray-600 text-sm">
-                      No deals in this stage
-                    </div>
-                  </div>
-                ) : (
-                  col.deals.map((deal) => (
-                    <div
-                      key={deal.deal.id}
-                      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
-                      onClick={() => window.location.href = `/dashboard/deals/${deal.deal.id}`}
-                    >
-                      {/* Deal Title */}
-                      <div className="font-medium text-gray-900 dark:text-gray-100 text-sm mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                        {deal.deal.title}
-                      </div>
-
-                      {/* Deal Amount */}
-                      {deal.deal.amount && (
-                        <div className="text-green-600 dark:text-green-400 font-semibold text-sm mb-2">
-                          ${deal.deal.amount.toLocaleString()}
-                        </div>
-                      )}
-
-                      {/* Company & Contact */}
-                      <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                        {deal.company?.name && (
-                          <div className="truncate">
-                            <span className="font-medium">Company:</span> {deal.company.name}
-                          </div>
-                        )}
-                        {deal.contact && (
-                          <div className="truncate">
-                            <span className="font-medium">Contact:</span> {deal.contact.first_name} {deal.contact.last_name}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Close Date */}
-                      {deal.deal.close_date && (
-                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                          Close: {new Date(deal.deal.close_date).toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
+              {/* Droppable Column Content */}
+              <DroppableColumn stage={col.stage}>
+                {col.deals.map((deal, index) => (
+                  <DraggableCard
+                    key={deal.deal.id}
+                    deal={deal}
+                    index={index}
+                    isDragDisabled={isUpdating}
+                  />
+                ))}
+              </DroppableColumn>
             </div>
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </DragDropContext>
   );
 } 
