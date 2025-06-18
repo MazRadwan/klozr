@@ -3,7 +3,7 @@
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
-import { Calendar, Building2, GripVertical } from 'lucide-react';
+import { Calendar, Building2, User, GripVertical } from 'lucide-react';
 
 interface Deal {
   deal: {
@@ -66,7 +66,11 @@ export function DraggableCard({ deal, index, isDragDisabled = false }: Draggable
           onClick={(e) => {
             // Only navigate if not dragging and it's a simple click
             if (!snapshot.isDragging && !isDragDisabled) {
-              window.location.href = `/dashboard/deals/${deal.deal.id}`;
+              // Validate that deal.id is a number to prevent XSS
+              const dealId = Number(deal.deal.id);
+              if (dealId && dealId > 0) {
+                window.location.href = `/dashboard/deals/${dealId}`;
+              }
             }
           }}
         >
@@ -83,13 +87,20 @@ export function DraggableCard({ deal, index, isDragDisabled = false }: Draggable
             </div>
           )}
 
-          {/* Company */}
-          {deal.company?.name && (
+          {/* Company or Contact (fallback) */}
+          {deal.company?.name ? (
             <div className="flex items-center space-x-2 mb-2 text-xs text-gray-600 dark:text-gray-400">
               <Building2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
               <span className="truncate font-medium">{deal.company.name}</span>
             </div>
-          )}
+          ) : deal.contact && (deal.contact.first_name || deal.contact.last_name) ? (
+            <div className="flex items-center space-x-2 mb-2 text-xs text-gray-600 dark:text-gray-400">
+              <User className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+              <span className="truncate font-medium">
+                {deal.contact.first_name} {deal.contact.last_name}
+              </span>
+            </div>
+          ) : null}
 
           {/* Close Date */}
           {deal.deal.close_date && (
