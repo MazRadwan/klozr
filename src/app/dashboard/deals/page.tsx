@@ -18,6 +18,7 @@ import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout
 import { DealStageDropdown } from "@/components/deals/DealStageDropdown";
 import { getDealStageColor } from "@/lib/dealUtils";
 import { KanbanBoard } from "@/components/kanban";
+import { useViewMode } from "@/hooks/useViewMode";
 
 interface Contact {
   id: number;
@@ -75,7 +76,7 @@ export default function DealsPage() {
   const [stageFilter, setStageFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>('title');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [viewMode, setViewMode] = useState<'table' | 'kanban' >('table');
+  const [viewMode, setViewMode] = useViewMode('table');
 
   useEffect(() => {
     fetchDeals();
@@ -364,11 +365,21 @@ export default function DealsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={() => setViewMode('table')} className="flex items-center gap-2 text-gray-900 dark:text-gray-100"> 
-                      <LayoutGrid className="h-4 w-4" /> <span>Table view</span>
+                    <DropdownMenuItem 
+                      onClick={() => setViewMode('table')} 
+                      className={`flex items-center gap-2 text-gray-900 dark:text-gray-100 ${viewMode === 'table' ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
+                    > 
+                      <LayoutGrid className="h-4 w-4" /> 
+                      <span>Table view</span>
+                      {viewMode === 'table' && <span className="ml-auto text-xs text-blue-600">✓</span>}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setViewMode('kanban')} className="flex items-center gap-2 text-gray-900 dark:text-gray-100"> 
-                      <Columns className="h-4 w-4" /> <span>Board view</span>
+                    <DropdownMenuItem 
+                      onClick={() => setViewMode('kanban')} 
+                      className={`flex items-center gap-2 text-gray-900 dark:text-gray-100 ${viewMode === 'kanban' ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
+                    > 
+                      <Columns className="h-4 w-4" /> 
+                      <span>Board view</span>
+                      {viewMode === 'kanban' && <span className="ml-auto text-xs text-blue-600">✓</span>}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
