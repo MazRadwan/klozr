@@ -20,25 +20,18 @@ export function DroppableColumn({ stage, children, className }: DroppableColumnP
           className={cn(
             "flex-1 p-3 space-y-3 overflow-y-auto min-h-[400px]",
             "transition-colors duration-200",
-            snapshot.isDraggingOver && [
-              "bg-blue-50 dark:bg-blue-950/20",
-              "border-2 border-dashed border-blue-300 dark:border-blue-600",
-              "rounded-lg"
-            ],
+            snapshot.isDraggingOver && "bg-blue-50 dark:bg-blue-950/20",
             className
           )}
         >
           {children}
           {provided.placeholder}
           
-          {/* Empty State */}
+          {/* Simple Empty State */}
           {React.Children.count(children) === 0 && (
             <div className="text-center py-8">
               <div className="text-gray-400 dark:text-gray-600 text-sm">
-                {snapshot.isDraggingOver 
-                  ? "Drop deal here" 
-                  : "No deals in this stage"
-                }
+                No deals in this stage
               </div>
             </div>
           )}
