@@ -378,7 +378,7 @@ export default function DealsPage() {
         </Card>
 
         {/* Desktop Table */}
-        <Card className={`${viewMode==='kanban'?'hidden':''} bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-lg hidden md:block`}>
+        <Card className={`${viewMode === 'kanban' ? 'hidden' : 'hidden md:block'} bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 shadow-lg`}>
           <CardContent className="p-0">
             {filteredDeals.length === 0 ? (
               <div className="text-center py-12">
@@ -553,12 +553,15 @@ export default function DealsPage() {
           </CardContent>
         </Card>
 
+        {/* Kanban Board */}
         {viewMode === 'kanban' && (
-          <KanbanBoard deals={filteredDeals} />
+          <div className="w-full">
+            <KanbanBoard searchTerm={searchTerm} stageFilter={stageFilter} />
+          </div>
         )}
 
         {/* Mobile Cards */}
-        <div className={`${viewMode==='kanban'?'hidden':''} block md:hidden space-y-4`}>
+        <div className={`${viewMode === 'kanban' ? 'hidden' : 'block md:hidden'} space-y-4`}>
           {filteredDeals.length === 0 ? (
             <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
               <CardContent className="text-center py-12">
