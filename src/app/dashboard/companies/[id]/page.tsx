@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { ClientDashboardLayout } from '@/components/layout/ClientDashboardLayout';
 import { ContactPicker } from '@/components/contacts/ContactPicker';
@@ -17,7 +18,7 @@ import { LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads'
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
-  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink, Check
+  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink, Check, Save, X
 } from 'lucide-react';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -99,6 +100,16 @@ export default function CompanyDetailPage() {
   
   // Edit states
   const [isEditingDeals, setIsEditingDeals] = useState(false);
+  const [isEditingCompanyInfo, setIsEditingCompanyInfo] = useState(false);
+  const [editingCompanyData, setEditingCompanyData] = useState({
+    email: '',
+    phone: '',
+    website: '',
+    address: '',
+    city: '',
+    state: '',
+    founded: ''
+  });
 
   useEffect(() => {
     if (companyId) {
@@ -222,6 +233,48 @@ export default function CompanyDetailPage() {
 
   const handleCancelDealsEdit = () => {
     setIsEditingDeals(false);
+  };
+
+  const handleEditCompanyInfo = () => {
+    if (!company) return;
+    
+    setEditingCompanyData({
+      email: company.email || '',
+      phone: company.phone || '',
+      website: company.website || '',
+      address: company.address || '',
+      city: company.city || '',
+      state: company.state || '',
+      founded: company.founded || ''
+    });
+    setIsEditingCompanyInfo(true);
+  };
+
+  const handleSaveCompanyInfo = async () => {
+    if (!company) return;
+    
+    try {
+      const response = await fetch(`/api/companies/${companyId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editingCompanyData),
+      });
+
+      if (response.ok) {
+        await fetchCompanyData();
+        setIsEditingCompanyInfo(false);
+      } else {
+        console.error('Failed to update company');
+      }
+    } catch (error) {
+      console.error('Error updating company:', error);
+    }
+  };
+
+  const handleCancelCompanyInfoEdit = () => {
+    setIsEditingCompanyInfo(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -443,78 +496,198 @@ export default function CompanyDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Company Information */}
           <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Company Information
               </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {company.email && (
-                  <div className="flex items-center space-x-3">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                      <a 
-                        href={`mailto:${company.email}`}
-                        className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        {company.email}
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {company.phone && (
-                  <div className="flex items-center space-x-3">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Phone</p>
-                      <a 
-                        href={`tel:${company.phone}`}
-                        className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        {company.phone}
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {company.website && (
-                  <div className="flex items-center space-x-3">
-                    <Globe className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Website</p>
-                      <a 
-                        href={`https://${company.website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        {company.website}
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {(company.address || company.city || company.state) && (
-                  <div className="flex items-center space-x-3">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Address</p>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
-                        {[company.address, company.city, company.state].filter(Boolean).join(', ')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {company.founded && (
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Founded</p>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{company.founded}</p>
-                    </div>
-                  </div>
+              <div className="flex gap-2">
+                {isEditingCompanyInfo ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleSaveCompanyInfo}
+                    >
+                      <Save className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelCompanyInfoEdit}
+                    >
+                      <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditCompanyInfo}
+                    className="opacity-100"
+                  >
+                    <Edit className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                  </Button>
                 )}
               </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isEditingCompanyInfo ? (
+                // Edit Mode
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Email
+                      </label>
+                      <Input
+                        type="email"
+                        value={editingCompanyData.email}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, email: e.target.value})}
+                        placeholder="Email address"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Phone
+                      </label>
+                      <Input
+                        value={editingCompanyData.phone}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, phone: e.target.value})}
+                        placeholder="Phone number"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Website
+                      </label>
+                      <Input
+                        value={editingCompanyData.website}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, website: e.target.value})}
+                        placeholder="Website URL"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Address
+                      </label>
+                      <Input
+                        value={editingCompanyData.address}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, address: e.target.value})}
+                        placeholder="Street address"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          City
+                        </label>
+                        <Input
+                          value={editingCompanyData.city}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, city: e.target.value})}
+                          placeholder="City"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          State
+                        </label>
+                        <Input
+                          value={editingCompanyData.state}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, state: e.target.value})}
+                          placeholder="State"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Founded
+                      </label>
+                      <Input
+                        value={editingCompanyData.founded}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, founded: e.target.value})}
+                        placeholder="Founded year"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // View Mode
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {company.email && (
+                    <div className="flex items-center space-x-3">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
+                        <a 
+                          href={`mailto:${company.email}`}
+                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {company.email}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {company.phone && (
+                    <div className="flex items-center space-x-3">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Phone</p>
+                        <a 
+                          href={`tel:${company.phone}`}
+                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {company.phone}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {company.website && (
+                    <div className="flex items-center space-x-3">
+                      <Globe className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Website</p>
+                        <a 
+                          href={`https://${company.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {company.website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {(company.address || company.city || company.state) && (
+                    <div className="flex items-center space-x-3">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Address</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                          {[company.address, company.city, company.state].filter(Boolean).join(', ')}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {company.founded && (
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Founded</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.founded}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
