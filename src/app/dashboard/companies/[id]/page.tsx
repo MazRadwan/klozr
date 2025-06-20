@@ -18,7 +18,7 @@ import { LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads'
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
-  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink, Check, Save, X
+  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink, Check
 } from 'lucide-react';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -516,24 +516,7 @@ export default function CompanyDetailPage() {
                 Company Information
               </CardTitle>
               <div className="flex gap-2">
-                {isEditingCompanyInfo ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleSaveCompanyInfo}
-                    >
-                      <Save className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelCompanyInfoEdit}
-                    >
-                      <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                    </Button>
-                  </>
-                ) : (
+                {!isEditingCompanyInfo && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -548,164 +531,183 @@ export default function CompanyDetailPage() {
             <CardContent className="space-y-4">
               {isEditingCompanyInfo ? (
                 // Edit Mode
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Email
-                      </label>
-                      <Input
-                        type="email"
-                        value={editingCompanyData.email}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, email: e.target.value})}
-                        placeholder="Email address"
-                        className="text-gray-900 dark:text-gray-100"
-                      />
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Email
+                        </label>
+                        <Input
+                          type="email"
+                          value={editingCompanyData.email}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, email: e.target.value})}
+                          placeholder="Email address"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Phone
+                        </label>
+                        <Input
+                          value={editingCompanyData.phone}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, phone: e.target.value})}
+                          placeholder="Phone number"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Website
+                        </label>
+                        <Input
+                          value={editingCompanyData.website}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, website: e.target.value})}
+                          placeholder="Website URL"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Phone
-                      </label>
-                      <Input
-                        value={editingCompanyData.phone}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, phone: e.target.value})}
-                        placeholder="Phone number"
-                        className="text-gray-900 dark:text-gray-100"
-                      />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Address
+                        </label>
+                        <Input
+                          value={editingCompanyData.address}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, address: e.target.value})}
+                          placeholder="Street address"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            City
+                          </label>
+                          <Input
+                            value={editingCompanyData.city}
+                            onChange={(e) => setEditingCompanyData({...editingCompanyData, city: e.target.value})}
+                            placeholder="City"
+                            className="text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            State
+                          </label>
+                          <Input
+                            value={editingCompanyData.state}
+                            onChange={(e) => setEditingCompanyData({...editingCompanyData, state: e.target.value})}
+                            placeholder="State"
+                            className="text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Postal Code
+                          </label>
+                          <Input
+                            value={editingCompanyData.postal_code}
+                            onChange={(e) => setEditingCompanyData({...editingCompanyData, postal_code: e.target.value})}
+                            placeholder="Postal code"
+                            className="text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Country
+                          </label>
+                          <Input
+                            value={editingCompanyData.country}
+                            onChange={(e) => setEditingCompanyData({...editingCompanyData, country: e.target.value})}
+                            placeholder="Country"
+                            className="text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Founded
+                        </label>
+                        <Input
+                          value={editingCompanyData.founded}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, founded: e.target.value})}
+                          placeholder="Founded year"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Industry
+                        </label>
+                        <Input
+                          value={editingCompanyData.industry}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, industry: e.target.value})}
+                          placeholder="Industry"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Employees
+                          </label>
+                          <Input
+                            type="number"
+                            value={editingCompanyData.employees}
+                            onChange={(e) => setEditingCompanyData({...editingCompanyData, employees: e.target.value})}
+                            placeholder="# of employees"
+                            className="text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Revenue
+                          </label>
+                          <Input
+                            value={editingCompanyData.revenue}
+                            onChange={(e) => setEditingCompanyData({...editingCompanyData, revenue: e.target.value})}
+                            placeholder="Annual revenue"
+                            className="text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Website
-                      </label>
-                      <Input
-                        value={editingCompanyData.website}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, website: e.target.value})}
-                        placeholder="Website URL"
-                        className="text-gray-900 dark:text-gray-100"
-                      />
+                    <div className="md:col-span-2">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Description
+                        </label>
+                        <textarea
+                          value={editingCompanyData.description}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, description: e.target.value})}
+                          placeholder="Company description"
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Address
-                      </label>
-                      <Input
-                        value={editingCompanyData.address}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, address: e.target.value})}
-                        placeholder="Street address"
-                        className="text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          City
-                        </label>
-                        <Input
-                          value={editingCompanyData.city}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, city: e.target.value})}
-                          placeholder="City"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          State
-                        </label>
-                        <Input
-                          value={editingCompanyData.state}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, state: e.target.value})}
-                          placeholder="State"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Postal Code
-                        </label>
-                        <Input
-                          value={editingCompanyData.postal_code}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, postal_code: e.target.value})}
-                          placeholder="Postal code"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Country
-                        </label>
-                        <Input
-                          value={editingCompanyData.country}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, country: e.target.value})}
-                          placeholder="Country"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Founded
-                      </label>
-                      <Input
-                        value={editingCompanyData.founded}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, founded: e.target.value})}
-                        placeholder="Founded year"
-                        className="text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Industry
-                      </label>
-                      <Input
-                        value={editingCompanyData.industry}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, industry: e.target.value})}
-                        placeholder="Industry"
-                        className="text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Employees
-                        </label>
-                        <Input
-                          type="number"
-                          value={editingCompanyData.employees}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, employees: e.target.value})}
-                          placeholder="# of employees"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Revenue
-                        </label>
-                        <Input
-                          value={editingCompanyData.revenue}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, revenue: e.target.value})}
-                          placeholder="Annual revenue"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Description
-                      </label>
-                      <textarea
-                        value={editingCompanyData.description}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, description: e.target.value})}
-                        placeholder="Company description"
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelCompanyInfoEdit}
+                      className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCompanyInfo}
+                      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white"
+                    >
+                      Save
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -772,42 +774,6 @@ export default function CompanyDetailPage() {
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Founded</p>
                         <p className="font-medium text-gray-900 dark:text-gray-100">{company.founded}</p>
-                      </div>
-                    </div>
-                  )}
-                  {company.industry && (
-                    <div className="flex items-center space-x-3">
-                      <Building2 className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Industry</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.industry}</p>
-                      </div>
-                    </div>
-                  )}
-                  {company.employees && (
-                    <div className="flex items-center space-x-3">
-                      <Users className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Employees</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.employees.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  )}
-                  {company.revenue && (
-                    <div className="flex items-center space-x-3">
-                      <DollarSign className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Revenue</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.revenue}</p>
-                      </div>
-                    </div>
-                  )}
-                  {company.description && (
-                    <div className="flex items-start space-x-3 md:col-span-2">
-                      <FileText className="h-4 w-4 text-gray-400 mt-1" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Description</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.description}</p>
                       </div>
                     </div>
                   )}
