@@ -20,6 +20,7 @@ import { CompanyPicker } from "@/components/companies/CompanyPicker";
 import { DealPicker } from "@/components/deals/DealPicker";
 import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown";
 import { LeadStatusDropdown, LeadTemperatureDropdown } from "@/components/leads";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 interface Contact {
   contact: {
@@ -118,6 +119,8 @@ export default function ContactDetailPage() {
     postal_code: '',
     is_primary: false
   });
+  const [showPrimaryContactModal, setShowPrimaryContactModal] = useState(false);
+  const [existingPrimaryContact, setExistingPrimaryContact] = useState<any>(null);
 
   const contactId = params.id as string;
 
@@ -275,7 +278,39 @@ export default function ContactDetailPage() {
     setIsEditingContactInfo(true);
   };
 
+  const checkForExistingPrimaryContact = async (): Promise<any | null> => {
+    if (!contact?.company?.id) return null;
+    
+    try {
+      const response = await fetch(`/api/contacts?company_id=${contact.company.id}`);
+      if (response.ok) {
+        const contacts = await response.json();
+        return contacts.find((c: any) => c.is_primary && c.id !== parseInt(contactId));
+      }
+    } catch (error) {
+      console.error('Error checking for existing primary contact:', error);
+    }
+    return null;
+  };
+
   const handleSaveContactInfo = async () => {
+    if (!contact) return;
+    
+    // If setting this contact as primary, check for conflicts
+    if (editingContactData.is_primary && !contact.contact.is_primary) {
+      const existingPrimary = await checkForExistingPrimaryContact();
+      if (existingPrimary) {
+        setExistingPrimaryContact(existingPrimary);
+        setShowPrimaryContactModal(true);
+        return; // Don't save yet, wait for user confirmation
+      }
+    }
+    
+    // No conflict or user confirmed, proceed with save
+    await saveContactInfo();
+  };
+
+  const saveContactInfo = async () => {
     if (!contact) return;
     
     try {
@@ -290,12 +325,28 @@ export default function ContactDetailPage() {
       if (response.ok) {
         await fetchContactData();
         setIsEditingContactInfo(false);
+        setShowPrimaryContactModal(false);
+        setExistingPrimaryContact(null);
       } else {
         console.error('Failed to update contact');
       }
     } catch (error) {
       console.error('Error updating contact:', error);
     }
+  };
+
+  const handleConfirmPrimaryContactChange = async () => {
+    await saveContactInfo();
+  };
+
+  const handleCancelPrimaryContactChange = () => {
+    setShowPrimaryContactModal(false);
+    setExistingPrimaryContact(null);
+    // Reset the is_primary checkbox to its original state
+    setEditingContactData({
+      ...editingContactData,
+      is_primary: contact?.contact.is_primary || false
+    });
   };
 
   const handleCancelContactInfoEdit = () => {
@@ -1267,6 +1318,22 @@ export default function ContactDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Primary Contact Conflict Resolution Modal */}
+      <ConfirmationModal
+        isOpen={showPrimaryContactModal}
+        onClose={handleCancelPrimaryContactChange}
+        onConfirm={handleConfirmPrimaryContactChange}
+        title="Change Primary Contact?"
+        description={
+          existingPrimaryContact
+            ? `${existingPrimaryContact.first_name} ${existingPrimaryContact.last_name} is currently the primary contact for ${contact?.company?.name}. Setting this contact as primary will remove the primary status from ${existingPrimaryContact.first_name} ${existingPrimaryContact.last_name}. Do you want to continue?`
+            : "This will change the primary contact for this company. Do you want to continue?"
+        }
+        confirmText="Yes, Change Primary Contact"
+        cancelText="Cancel"
+        variant="warning"
+      />
     </ClientDashboardLayout>
   );
 } 
