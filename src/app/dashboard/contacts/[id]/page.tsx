@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { 
   ArrowLeft, Mail, Phone, MapPin, Building2, Calendar, 
   DollarSign, ExternalLink, User, Globe, Plus, MessageSquare,
-  FileText, Clock, Send, Edit, Trash2
+  FileText, Clock, Send, Edit, Trash2, Save, X
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -103,6 +104,18 @@ export default function ContactDetailPage() {
   const [addingNote, setAddingNote] = useState(false);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isEditingDeals, setIsEditingDeals] = useState(false);
+  const [isEditingContactInfo, setIsEditingContactInfo] = useState(false);
+  const [editingContactData, setEditingContactData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    contact_type: '',
+    address: '',
+    city: '',
+    state_province: '',
+    postal_code: ''
+  });
 
   const contactId = params.id as string;
 
@@ -240,6 +253,50 @@ export default function ContactDetailPage() {
 
   const handleCancelDealsEdit = () => {
     setIsEditingDeals(false);
+  };
+
+  const handleEditContactInfo = () => {
+    if (!contact) return;
+    
+    setEditingContactData({
+      first_name: contact.contact.first_name || '',
+      last_name: contact.contact.last_name || '',
+      email: contact.contact.email || '',
+      phone: contact.contact.phone || '',
+      contact_type: contact.contact.contact_type || '',
+      address: contact.contact.address || '',
+      city: contact.contact.city || '',
+      state_province: contact.contact.state_province || '',
+      postal_code: contact.contact.postal_code || ''
+    });
+    setIsEditingContactInfo(true);
+  };
+
+  const handleSaveContactInfo = async () => {
+    if (!contact) return;
+    
+    try {
+      const response = await fetch(`/api/contacts/${contactId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editingContactData),
+      });
+
+      if (response.ok) {
+        await fetchContactData();
+        setIsEditingContactInfo(false);
+      } else {
+        console.error('Failed to update contact');
+      }
+    } catch (error) {
+      console.error('Error updating contact:', error);
+    }
+  };
+
+  const handleCancelContactInfoEdit = () => {
+    setIsEditingContactInfo(false);
   };
 
   const formatCurrency = (amount?: number) => 
@@ -443,96 +500,238 @@ export default function ContactDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Contact Information */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                   <User className="h-5 w-5" />
                   Contact Information
                 </CardTitle>
+                <div className="flex gap-2">
+                  {isEditingContactInfo ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSaveContactInfo}
+                      >
+                        <Save className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelContactInfoEdit}
+                      >
+                        <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEditContactInfo}
+                      className="opacity-100"
+                    >
+                      <Edit className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Full Name
-                      </label>
-                      <p className="text-gray-900 dark:text-gray-100 font-medium">
-                        {fullName || 'Not specified'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Email
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-gray-400" />
-                        {contact.contact.email ? (
-                          <a 
-                            href={`mailto:${contact.contact.email}`}
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            {contact.contact.email}
-                          </a>
-                        ) : (
-                          <span className="text-gray-500">Not specified</span>
-                        )}
+                {isEditingContactInfo ? (
+                  // Edit Mode
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          First Name
+                        </label>
+                        <Input
+                          value={editingContactData.first_name}
+                          onChange={(e) => setEditingContactData({...editingContactData, first_name: e.target.value})}
+                          placeholder="First name"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Last Name
+                        </label>
+                        <Input
+                          value={editingContactData.last_name}
+                          onChange={(e) => setEditingContactData({...editingContactData, last_name: e.target.value})}
+                          placeholder="Last name"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Email
+                        </label>
+                        <Input
+                          type="email"
+                          value={editingContactData.email}
+                          onChange={(e) => setEditingContactData({...editingContactData, email: e.target.value})}
+                          placeholder="Email address"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Phone
+                        </label>
+                        <Input
+                          value={editingContactData.phone}
+                          onChange={(e) => setEditingContactData({...editingContactData, phone: e.target.value})}
+                          placeholder="Phone number"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
                       </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Phone
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-gray-400" />
-                        {contact.contact.phone ? (
-                          <a 
-                            href={`tel:${contact.contact.phone}`}
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            {contact.contact.phone}
-                          </a>
-                        ) : (
-                          <span className="text-gray-500">Not specified</span>
-                        )}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Contact Type
+                        </label>
+                        <Input
+                          value={editingContactData.contact_type}
+                          onChange={(e) => setEditingContactData({...editingContactData, contact_type: e.target.value})}
+                          placeholder="Contact type"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Address
+                        </label>
+                        <Input
+                          value={editingContactData.address}
+                          onChange={(e) => setEditingContactData({...editingContactData, address: e.target.value})}
+                          placeholder="Street address"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          City
+                        </label>
+                        <Input
+                          value={editingContactData.city}
+                          onChange={(e) => setEditingContactData({...editingContactData, city: e.target.value})}
+                          placeholder="City"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            State/Province
+                          </label>
+                          <Input
+                            value={editingContactData.state_province}
+                            onChange={(e) => setEditingContactData({...editingContactData, state_province: e.target.value})}
+                            placeholder="State"
+                            className="text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Postal Code
+                          </label>
+                          <Input
+                            value={editingContactData.postal_code}
+                            onChange={(e) => setEditingContactData({...editingContactData, postal_code: e.target.value})}
+                            placeholder="Postal code"
+                            className="text-gray-900 dark:text-gray-100"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Contact Type
-                      </label>
-                      <p className="text-gray-900 dark:text-gray-100">
-                        {contact.contact.contact_type || 'Not specified'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Address
-                      </label>
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                        <p className="text-gray-900 dark:text-gray-100">
-                          {fullAddress || 'Not specified'}
+                ) : (
+                  // View Mode
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Full Name
+                        </label>
+                        <p className="text-gray-900 dark:text-gray-100 font-medium">
+                          {fullName || 'Not specified'}
                         </p>
                       </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Email
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-gray-400" />
+                          {contact.contact.email ? (
+                            <a 
+                              href={`mailto:${contact.contact.email}`}
+                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {contact.contact.email}
+                            </a>
+                          ) : (
+                            <span className="text-gray-500">Not specified</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Phone
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-gray-400" />
+                          {contact.contact.phone ? (
+                            <a 
+                              href={`tel:${contact.contact.phone}`}
+                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {contact.contact.phone}
+                            </a>
+                          ) : (
+                            <span className="text-gray-500">Not specified</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Created
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Contact Type
+                        </label>
                         <p className="text-gray-900 dark:text-gray-100">
-                          {contact.contact.created_at 
-                            ? new Date(contact.contact.created_at).toLocaleDateString()
-                            : 'Not specified'
-                          }
+                          {contact.contact.contact_type || 'Not specified'}
                         </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Address
+                        </label>
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                          <p className="text-gray-900 dark:text-gray-100">
+                            {fullAddress || 'Not specified'}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Created
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <p className="text-gray-900 dark:text-gray-100">
+                            {contact.contact.created_at 
+                              ? new Date(contact.contact.created_at).toLocaleDateString()
+                              : 'Not specified'
+                            }
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 

@@ -180,12 +180,9 @@ export function NewContactModal({
       // Reset form and close modal
       handleClose();
       
-      // Pass created contact data to callback for company creation flow
-      if (companyData && createdContact) {
-        onSuccess(createdContact);
-      } else {
-        onSuccess();
-      }
+      // Always pass the newly created contact to the parent callback. 
+      // Callers that don't need it can simply ignore the argument, while components that rely on it (e.g. DealContactPicker) can safely access its fields.
+      onSuccess(createdContact);
     } catch (error) {
       console.error('Error creating contact:', error);
       setErrors({ submit: error instanceof Error ? error.message : 'Failed to create contact. Please try again.' });
