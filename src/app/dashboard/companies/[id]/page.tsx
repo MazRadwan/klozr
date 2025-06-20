@@ -105,6 +105,7 @@ export default function CompanyDetailPage() {
   const [isEditingDeals, setIsEditingDeals] = useState(false);
   const [isEditingCompanyInfo, setIsEditingCompanyInfo] = useState(false);
   const [editingCompanyData, setEditingCompanyData] = useState({
+    name: '',
     email: '',
     phone: '',
     website: '',
@@ -248,6 +249,7 @@ export default function CompanyDetailPage() {
     if (!company) return;
     
     setEditingCompanyData({
+      name: company.name || '',
       email: company.email || '',
       phone: company.phone || '',
       website: company.website || '',
@@ -510,7 +512,7 @@ export default function CompanyDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Company Information */}
-          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 max-w-screen-md w-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Company Information
@@ -532,164 +534,174 @@ export default function CompanyDetailPage() {
               {isEditingCompanyInfo ? (
                 // Edit Mode
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Email
-                        </label>
-                        <Input
-                          type="email"
-                          value={editingCompanyData.email}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, email: e.target.value})}
-                          placeholder="Email address"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Phone
-                        </label>
-                        <Input
-                          value={editingCompanyData.phone}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, phone: e.target.value})}
-                          placeholder="Phone number"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Website
-                        </label>
-                        <Input
-                          value={editingCompanyData.website}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, website: e.target.value})}
-                          placeholder="Website URL"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    {/* Company Name */}
+                    <div className="md:col-span-12">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Company Name
+                      </label>
+                      <Input
+                        value={editingCompanyData.name}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, name: e.target.value})}
+                        placeholder="Company name"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
                     </div>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Address
-                        </label>
-                        <Input
-                          value={editingCompanyData.address}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, address: e.target.value})}
-                          placeholder="Street address"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            City
-                          </label>
-                          <Input
-                            value={editingCompanyData.city}
-                            onChange={(e) => setEditingCompanyData({...editingCompanyData, city: e.target.value})}
-                            placeholder="City"
-                            className="text-gray-900 dark:text-gray-100"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            State
-                          </label>
-                          <Input
-                            value={editingCompanyData.state}
-                            onChange={(e) => setEditingCompanyData({...editingCompanyData, state: e.target.value})}
-                            placeholder="State"
-                            className="text-gray-900 dark:text-gray-100"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Postal Code
-                          </label>
-                          <Input
-                            value={editingCompanyData.postal_code}
-                            onChange={(e) => setEditingCompanyData({...editingCompanyData, postal_code: e.target.value})}
-                            placeholder="Postal code"
-                            className="text-gray-900 dark:text-gray-100"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Country
-                          </label>
-                          <Input
-                            value={editingCompanyData.country}
-                            onChange={(e) => setEditingCompanyData({...editingCompanyData, country: e.target.value})}
-                            placeholder="Country"
-                            className="text-gray-900 dark:text-gray-100"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Founded
-                        </label>
-                        <Input
-                          value={editingCompanyData.founded}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, founded: e.target.value})}
-                          placeholder="Founded year"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Industry
-                        </label>
-                        <Input
-                          value={editingCompanyData.industry}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, industry: e.target.value})}
-                          placeholder="Industry"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Employees
-                          </label>
-                          <Input
-                            type="number"
-                            value={editingCompanyData.employees}
-                            onChange={(e) => setEditingCompanyData({...editingCompanyData, employees: e.target.value})}
-                            placeholder="# of employees"
-                            className="text-gray-900 dark:text-gray-100"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Revenue
-                          </label>
-                          <Input
-                            value={editingCompanyData.revenue}
-                            onChange={(e) => setEditingCompanyData({...editingCompanyData, revenue: e.target.value})}
-                            placeholder="Annual revenue"
-                            className="text-gray-900 dark:text-gray-100"
-                          />
-                        </div>
-                      </div>
+
+                    {/* Address Row */}
+                    <div className="md:col-span-8">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Address
+                      </label>
+                      <Input
+                        value={editingCompanyData.address}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, address: e.target.value})}
+                        placeholder="Street address"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        City
+                      </label>
+                      <Input
+                        value={editingCompanyData.city}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, city: e.target.value})}
+                        placeholder="City"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    {/* State / Postal / Country */}
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        State
+                      </label>
+                      <Input
+                        value={editingCompanyData.state}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, state: e.target.value})}
+                        placeholder="State"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Postal Code
+                      </label>
+                      <Input
+                        value={editingCompanyData.postal_code}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, postal_code: e.target.value})}
+                        placeholder="Postal code"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Country
+                      </label>
+                      <Input
+                        value={editingCompanyData.country}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, country: e.target.value})}
+                        placeholder="Country"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    {/* Contact Row */}
+                    <div className="md:col-span-5">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Email
+                      </label>
+                      <Input
+                        type="email"
+                        value={editingCompanyData.email}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, email: e.target.value})}
+                        placeholder="Email address"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Phone
+                      </label>
+                      <Input
+                        value={editingCompanyData.phone}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, phone: e.target.value})}
+                        placeholder="Phone number"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Website
+                      </label>
+                      <Input
+                        value={editingCompanyData.website}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, website: e.target.value})}
+                        placeholder="Website URL"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    {/* Business Metrics Row */}
+                    <div className="md:col-span-5">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Industry
+                      </label>
+                      <Input
+                        value={editingCompanyData.industry}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, industry: e.target.value})}
+                        placeholder="Industry"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Founded
+                      </label>
+                      <Input
+                        value={editingCompanyData.founded}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, founded: e.target.value})}
+                        placeholder="Year"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
                     </div>
                     <div className="md:col-span-2">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Description
-                        </label>
-                        <textarea
-                          value={editingCompanyData.description}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, description: e.target.value})}
-                          placeholder="Company description"
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Employees
+                      </label>
+                      <Input
+                        type="number"
+                        value={editingCompanyData.employees}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, employees: e.target.value})}
+                        placeholder="#"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Revenue
+                      </label>
+                      <Input
+                        value={editingCompanyData.revenue}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, revenue: e.target.value})}
+                        placeholder="Annual revenue"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div className="md:col-span-12">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Description
+                      </label>
+                      <textarea
+                        value={editingCompanyData.description}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, description: e.target.value})}
+                        placeholder="Company description"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
                     </div>
                   </div>
                   <div className="flex justify-end gap-2">
