@@ -62,6 +62,7 @@ export class ContactService {
           city: contacts.city,
           state_province: contacts.state_province,
           postal_code: contacts.postal_code,
+          is_primary: contacts.is_primary,
           // Lead management fields
           lead_status: contacts.lead_status,
           individual_lead_status: contacts.individual_lead_status,
@@ -129,10 +130,21 @@ export class ContactService {
   }
 
   /**
-   * Update contact
+   * Update contact with primary contact business logic
    */
   async updateContact(id: number, data: any): Promise<{ success: boolean; contact?: any; error?: string }> {
     try {
+      // Handle primary contact logic if is_primary is being updated
+      if ('is_primary' in data && data.is_primary === true) {
+        const primaryContactResult = await this.handlePrimaryContactAssignment(id, data);
+        if (!primaryContactResult.success) {
+          return primaryContactResult;
+        }
+        // If successful, the primary contact logic has already updated the contact
+        return { success: true, contact: primaryContactResult.contact };
+      }
+
+      // Standard update for non-primary contact changes
       const updatedData = {
         ...data,
         updated_at: new Date().toISOString(),
@@ -155,14 +167,94 @@ export class ContactService {
   }
 
   /**
-   * Delete contact
+   * Handle primary contact assignment with business logic
+   * Ensures only one primary contact per company
+   */
+  private async handlePrimaryContactAssignment(contactId: number, data: any): Promise<{ success: boolean; contact?: any; error?: string }> {
+    try {
+      // Get the contact to check if it has a company
+      const contact = await this.contactRepo.findById(contactId);
+      if (!contact) {
+        return { success: false, error: 'Contact not found' };
+      }
+
+      // Only apply primary contact logic if contact has a company
+      if (!contact.company_id) {
+        // If no company, just update normally (is_primary will be false effectively)
+        const updatedData = {
+          ...data,
+          is_primary: false, // Force to false if no company
+          updated_at: new Date().toISOString(),
+        };
+        const result = await this.contactRepo.update(contactId, updatedData);
+        return { success: true, contact: result };
+      }
+
+      // Find existing primary contact for this company
+      const existingPrimary = await this.contactRepo.findPrimaryByCompany(contact.company_id);
+      
+      // Begin transaction-like operation
+      const results = [];
+      
+      // If there's an existing primary contact, unset it first
+      if (existingPrimary && existingPrimary.id !== contactId) {
+        const unsetResult = await this.contactRepo.update(existingPrimary.id, {
+          is_primary: false,
+          updated_at: new Date().toISOString(),
+        });
+        results.push(unsetResult);
+      }
+
+      // Set the new primary contact
+      const updatedData = {
+        ...data,
+        is_primary: true,
+        updated_at: new Date().toISOString(),
+      };
+      
+      const newPrimaryResult = await this.contactRepo.update(contactId, updatedData);
+      if (!newPrimaryResult) {
+        return { success: false, error: 'Failed to set primary contact' };
+      }
+
+      return { 
+        success: true, 
+        contact: newPrimaryResult,
+        previousPrimary: existingPrimary 
+      };
+    } catch (error) {
+      console.error('Error in handlePrimaryContactAssignment:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Delete contact with primary contact cleanup
    */
   async deleteContact(id: number): Promise<{ success: boolean; result?: any; error?: string }> {
     try {
+      // Check if this contact was primary before deleting
+      const contactToDelete = await this.contactRepo.findById(id);
+      if (!contactToDelete) {
+        return { success: false, error: 'Contact not found' };
+      }
+
+      const wasPrimary = contactToDelete.is_primary;
+      const companyId = contactToDelete.company_id;
+
       const result = await this.contactRepo.delete(id);
       
       if (result.changes === 0) {
         return { success: false, error: 'Contact not found' };
+      }
+
+      // If the deleted contact was primary and had a company, 
+      // automatically assign primary status to the first remaining contact
+      if (wasPrimary && companyId) {
+        await this.autoAssignPrimaryContact(companyId);
       }
 
       return { success: true, result };
@@ -172,6 +264,26 @@ export class ContactService {
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
       };
+    }
+  }
+
+  /**
+   * Automatically assign primary contact to first available contact in company
+   */
+  private async autoAssignPrimaryContact(companyId: number): Promise<void> {
+    try {
+      const remainingContacts = await this.contactRepo.findByCompany(companyId);
+      if (remainingContacts.length > 0) {
+        // Assign primary to the first contact (oldest by ID)
+        const firstContact = remainingContacts[0];
+        await this.contactRepo.update(firstContact.id, {
+          is_primary: true,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('Error in autoAssignPrimaryContact:', error);
+      // Don't throw - this is cleanup logic, failure shouldn't break delete
     }
   }
 

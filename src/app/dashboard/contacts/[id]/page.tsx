@@ -34,6 +34,7 @@ interface Contact {
     city?: string;
     state_province?: string;
     postal_code?: string;
+    is_primary?: boolean;
     created_at?: string;
     // Lead management fields
     lead_status?: string | null;
@@ -114,7 +115,8 @@ export default function ContactDetailPage() {
     address: '',
     city: '',
     state_province: '',
-    postal_code: ''
+    postal_code: '',
+    is_primary: false
   });
 
   const contactId = params.id as string;
@@ -267,7 +269,8 @@ export default function ContactDetailPage() {
       address: contact.contact.address || '',
       city: contact.contact.city || '',
       state_province: contact.contact.state_province || '',
-      postal_code: contact.contact.postal_code || ''
+      postal_code: contact.contact.postal_code || '',
+      is_primary: contact.contact.is_primary || false
     });
     setIsEditingContactInfo(true);
   };
@@ -598,6 +601,24 @@ export default function ContactDetailPage() {
                           className="text-gray-900 dark:text-gray-100"
                         />
                       </div>
+                      {contact.company && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Primary Contact
+                          </label>
+                          <div className="flex items-center gap-2 mt-1">
+                            <input
+                              type="checkbox"
+                              checked={editingContactData.is_primary}
+                              onChange={(e) => setEditingContactData({...editingContactData, is_primary: e.target.checked})}
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-600"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Mark as primary contact for {contact.company.name}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Address
@@ -704,6 +725,24 @@ export default function ContactDetailPage() {
                           {contact.contact.contact_type || 'Not specified'}
                         </p>
                       </div>
+                      {contact.company && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Primary Contact
+                          </label>
+                          <div className="flex items-center gap-2">
+                            {contact.contact.is_primary ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                Primary Contact
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 dark:text-gray-400">
+                                Not primary contact
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Address
