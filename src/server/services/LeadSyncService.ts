@@ -75,10 +75,12 @@ export class LeadSyncService {
       await Promise.all([
         dbInstance.update(companies)
           .set(companyUpdateData)
-          .where(eq(companies.id, companyId)),
+          .where(eq(companies.id, companyId))
+          .run(),
         dbInstance.update(contacts)
           .set(contactsUpdateData)
           .where(eq(contacts.company_id, companyId))
+          .run()
       ]);
 
       return { success: true };
@@ -143,6 +145,7 @@ export class LeadSyncService {
         dbInstance.update(contacts)
           .set(contactUpdateData)
           .where(eq(contacts.id, contactId))
+          .run()
       );
 
       // If contact has a company, update company and sibling contacts
@@ -182,6 +185,7 @@ export class LeadSyncService {
           dbInstance.update(companies)
             .set(companyUpdateData)
             .where(eq(companies.id, contact.company_id))
+            .run()
         );
 
         // Update other contacts in the same company
@@ -192,6 +196,7 @@ export class LeadSyncService {
               eq(contacts.company_id, contact.company_id),
               ne(contacts.id, contactId)
             ))
+            .run()
         );
       }
 
@@ -251,10 +256,12 @@ export class LeadSyncService {
       await Promise.all([
         dbInstance.update(companies)
           .set(updateData)
-          .where(eq(companies.id, companyId)),
+          .where(eq(companies.id, companyId))
+          .run(),
         dbInstance.update(contacts)
           .set(updateData)
           .where(eq(contacts.company_id, companyId))
+          .run()
       ]);
 
       return { success: true };
@@ -327,6 +334,7 @@ export class LeadSyncService {
         dbInstance.update(contacts)
           .set(updateData)
           .where(eq(contacts.id, contactId))
+          .run()
       );
 
       // If contact has a company, update company and sibling contacts
@@ -336,6 +344,7 @@ export class LeadSyncService {
           dbInstance.update(companies)
             .set(updateData)
             .where(eq(companies.id, contact.company_id))
+            .run()
         );
 
         // Update other contacts in the same company
@@ -346,6 +355,7 @@ export class LeadSyncService {
               eq(contacts.company_id, contact.company_id),
               ne(contacts.id, contactId)
             ))
+            .run()
         );
       }
 
@@ -381,7 +391,8 @@ export class LeadSyncService {
             company_id: null,
             updated_at: new Date().toISOString()
           })
-          .where(eq(contacts.id, contactId));
+          .where(eq(contacts.id, contactId))
+          .run();
         
         return { success: true };
       }
@@ -428,7 +439,8 @@ export class LeadSyncService {
       // Update contact
       await dbInstance.update(contacts)
         .set(contactUpdateData)
-        .where(eq(contacts.id, contactId));
+        .where(eq(contacts.id, contactId))
+        .run();
 
       return { success: true };
     } catch (error) {
