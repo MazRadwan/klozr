@@ -52,6 +52,7 @@ interface Contact {
     address?: string;
     city?: string;
     state?: string;
+    postal_code?: string;
     country?: string;
     phone?: string;
     website?: string;

@@ -41,6 +41,8 @@ interface Company {
   address?: string;
   city?: string;
   state?: string;
+  postal_code?: string;
+  country?: string;
   employees?: number;
   revenue?: string;
   founded?: string;
@@ -109,7 +111,13 @@ export default function CompanyDetailPage() {
     address: '',
     city: '',
     state: '',
-    founded: ''
+    postal_code: '',
+    country: '',
+    founded: '',
+    industry: '',
+    description: '',
+    employees: '',
+    revenue: ''
   });
 
   useEffect(() => {
@@ -246,7 +254,13 @@ export default function CompanyDetailPage() {
       address: company.address || '',
       city: company.city || '',
       state: company.state || '',
-      founded: company.founded || ''
+      postal_code: company.postal_code || '',
+      country: company.country || '',
+      founded: company.founded || '',
+      industry: company.industry || '',
+      description: company.description || '',
+      employees: company.employees?.toString() || '',
+      revenue: company.revenue || ''
     });
     setIsEditingCompanyInfo(true);
   };
@@ -607,6 +621,30 @@ export default function CompanyDetailPage() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Postal Code
+                        </label>
+                        <Input
+                          value={editingCompanyData.postal_code}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, postal_code: e.target.value})}
+                          placeholder="Postal code"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Country
+                        </label>
+                        <Input
+                          value={editingCompanyData.country}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, country: e.target.value})}
+                          placeholder="Country"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                    </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Founded
@@ -616,6 +654,56 @@ export default function CompanyDetailPage() {
                         onChange={(e) => setEditingCompanyData({...editingCompanyData, founded: e.target.value})}
                         placeholder="Founded year"
                         className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Industry
+                      </label>
+                      <Input
+                        value={editingCompanyData.industry}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, industry: e.target.value})}
+                        placeholder="Industry"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Employees
+                        </label>
+                        <Input
+                          type="number"
+                          value={editingCompanyData.employees}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, employees: e.target.value})}
+                          placeholder="# of employees"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Revenue
+                        </label>
+                        <Input
+                          value={editingCompanyData.revenue}
+                          onChange={(e) => setEditingCompanyData({...editingCompanyData, revenue: e.target.value})}
+                          placeholder="Annual revenue"
+                          className="text-gray-900 dark:text-gray-100"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Description
+                      </label>
+                      <textarea
+                        value={editingCompanyData.description}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, description: e.target.value})}
+                        placeholder="Company description"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   </div>
@@ -667,13 +755,13 @@ export default function CompanyDetailPage() {
                       </div>
                     </div>
                   )}
-                  {(company.address || company.city || company.state) && (
+                  {(company.address || company.city || company.state || company.postal_code || company.country) && (
                     <div className="flex items-center space-x-3">
                       <MapPin className="h-4 w-4 text-gray-400" />
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Address</p>
                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {[company.address, company.city, company.state].filter(Boolean).join(', ')}
+                          {[company.address, company.city, company.state, company.postal_code, company.country].filter(Boolean).join(', ')}
                         </p>
                       </div>
                     </div>
@@ -684,6 +772,42 @@ export default function CompanyDetailPage() {
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Founded</p>
                         <p className="font-medium text-gray-900 dark:text-gray-100">{company.founded}</p>
+                      </div>
+                    </div>
+                  )}
+                  {company.industry && (
+                    <div className="flex items-center space-x-3">
+                      <Building2 className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Industry</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.industry}</p>
+                      </div>
+                    </div>
+                  )}
+                  {company.employees && (
+                    <div className="flex items-center space-x-3">
+                      <Users className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Employees</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.employees.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  )}
+                  {company.revenue && (
+                    <div className="flex items-center space-x-3">
+                      <DollarSign className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Revenue</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.revenue}</p>
+                      </div>
+                    </div>
+                  )}
+                  {company.description && (
+                    <div className="flex items-start space-x-3 md:col-span-2">
+                      <FileText className="h-4 w-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Description</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.description}</p>
                       </div>
                     </div>
                   )}

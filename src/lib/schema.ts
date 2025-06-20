@@ -20,6 +20,7 @@ export const companies = sqliteTable('companies', {
   address: text('address'),
   city: text('city'),
   state: text('state'),
+  postal_code: text('postal_code'),
   country: text('country'),
   phone: text('phone'),
   email: text('email'),
