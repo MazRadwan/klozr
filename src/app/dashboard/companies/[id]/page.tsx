@@ -77,6 +77,7 @@ interface Contact {
   city?: string;
   state_province?: string;
   postal_code?: string;
+  is_primary?: boolean;
   created_at?: string;
   avatar?: string;
 }
@@ -824,9 +825,16 @@ export default function CompanyDetailPage() {
                         {contact.avatar || `${contact.first_name?.[0] || ''}${contact.last_name?.[0] || ''}`}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {`${contact.first_name || ''} ${contact.last_name || ''}`.trim()}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {`${contact.first_name || ''} ${contact.last_name || ''}`.trim()}
+                          </p>
+                          {contact.is_primary && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                              Primary Contact
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{contact.contact_type}</p>
                       </div>
                     </div>
