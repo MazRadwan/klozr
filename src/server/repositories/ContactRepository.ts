@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { contacts, companies } from '@/lib/schema';
-import { eq, like, or } from 'drizzle-orm';
+import { eq, like, or, and } from 'drizzle-orm';
 
 export class ContactRepository {
   constructor(private readonly database = db) {}
@@ -213,6 +213,23 @@ export class ContactRepository {
 
     const result = baseQuery
       .where(eq(contacts.id, id))
+      .limit(1)
+      .all();
+
+    return result.length > 0 ? result[0] : null;
+  }
+
+  /**
+   * Find primary contact for a company
+   */
+  findPrimaryByCompany(companyId: number) {
+    const result = this.database
+      .select()
+      .from(contacts)
+      .where(and(
+        eq(contacts.company_id, companyId),
+        eq(contacts.is_primary, true)
+      ))
       .limit(1)
       .all();
 

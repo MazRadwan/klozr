@@ -456,6 +456,11 @@ export default function ContactsPage() {
               <div className="font-medium text-gray-900 dark:text-gray-100">
                 {`${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unnamed Contact'}
               </div>
+              {contact.company?.name && (
+                <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  {contact.company.name}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -918,6 +923,11 @@ export default function ContactsPage() {
                             <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
                               {`${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unnamed Contact'}
                             </h3>
+                            {contact.company?.name && (
+                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                                {contact.company.name}
+                              </div>
+                            )}
                                                          <div className="flex flex-wrap gap-2 mt-1">
                                {contact.contact_type && (
                                  <span className="text-sm text-gray-600 dark:text-gray-400">

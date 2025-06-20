@@ -20,6 +20,7 @@ import { CompanyPicker } from "@/components/companies/CompanyPicker";
 import { DealPicker } from "@/components/deals/DealPicker";
 import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown";
 import { LeadStatusDropdown, LeadTemperatureDropdown } from "@/components/leads";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 interface Contact {
   contact: {
@@ -34,6 +35,7 @@ interface Contact {
     city?: string;
     state_province?: string;
     postal_code?: string;
+    is_primary?: boolean;
     created_at?: string;
     // Lead management fields
     lead_status?: string | null;
@@ -50,6 +52,7 @@ interface Contact {
     address?: string;
     city?: string;
     state?: string;
+    postal_code?: string;
     country?: string;
     phone?: string;
     website?: string;
@@ -114,8 +117,11 @@ export default function ContactDetailPage() {
     address: '',
     city: '',
     state_province: '',
-    postal_code: ''
+    postal_code: '',
+    is_primary: false
   });
+  const [showPrimaryContactModal, setShowPrimaryContactModal] = useState(false);
+  const [existingPrimaryContact, setExistingPrimaryContact] = useState<any>(null);
 
   const contactId = params.id as string;
 
@@ -267,12 +273,45 @@ export default function ContactDetailPage() {
       address: contact.contact.address || '',
       city: contact.contact.city || '',
       state_province: contact.contact.state_province || '',
-      postal_code: contact.contact.postal_code || ''
+      postal_code: contact.contact.postal_code || '',
+      is_primary: contact.contact.is_primary || false
     });
     setIsEditingContactInfo(true);
   };
 
+  const checkForExistingPrimaryContact = async (): Promise<any | null> => {
+    if (!contact?.company?.id) return null;
+    
+    try {
+      const response = await fetch(`/api/contacts?company_id=${contact.company.id}`);
+      if (response.ok) {
+        const contacts = await response.json();
+        return contacts.find((c: any) => c.is_primary && c.id !== parseInt(contactId));
+      }
+    } catch (error) {
+      console.error('Error checking for existing primary contact:', error);
+    }
+    return null;
+  };
+
   const handleSaveContactInfo = async () => {
+    if (!contact) return;
+    
+    // If setting this contact as primary, check for conflicts
+    if (editingContactData.is_primary && !contact.contact.is_primary) {
+      const existingPrimary = await checkForExistingPrimaryContact();
+      if (existingPrimary) {
+        setExistingPrimaryContact(existingPrimary);
+        setShowPrimaryContactModal(true);
+        return; // Don't save yet, wait for user confirmation
+      }
+    }
+    
+    // No conflict or user confirmed, proceed with save
+    await saveContactInfo();
+  };
+
+  const saveContactInfo = async () => {
     if (!contact) return;
     
     try {
@@ -287,12 +326,28 @@ export default function ContactDetailPage() {
       if (response.ok) {
         await fetchContactData();
         setIsEditingContactInfo(false);
+        setShowPrimaryContactModal(false);
+        setExistingPrimaryContact(null);
       } else {
         console.error('Failed to update contact');
       }
     } catch (error) {
       console.error('Error updating contact:', error);
     }
+  };
+
+  const handleConfirmPrimaryContactChange = async () => {
+    await saveContactInfo();
+  };
+
+  const handleCancelPrimaryContactChange = () => {
+    setShowPrimaryContactModal(false);
+    setExistingPrimaryContact(null);
+    // Reset the is_primary checkbox to its original state
+    setEditingContactData({
+      ...editingContactData,
+      is_primary: contact?.contact.is_primary || false
+    });
   };
 
   const handleCancelContactInfoEdit = () => {
@@ -598,6 +653,24 @@ export default function ContactDetailPage() {
                           className="text-gray-900 dark:text-gray-100"
                         />
                       </div>
+                      {contact.company && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Primary Contact
+                          </label>
+                          <div className="flex items-center gap-2 mt-1">
+                            <input
+                              type="checkbox"
+                              checked={editingContactData.is_primary}
+                              onChange={(e) => setEditingContactData({...editingContactData, is_primary: e.target.checked})}
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-blue-600"
+                            />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              Mark as primary contact for {contact.company.name}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Address
@@ -704,6 +777,24 @@ export default function ContactDetailPage() {
                           {contact.contact.contact_type || 'Not specified'}
                         </p>
                       </div>
+                      {contact.company && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Primary Contact
+                          </label>
+                          <div className="flex items-center gap-2">
+                            {contact.contact.is_primary ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                Primary Contact
+                              </span>
+                            ) : (
+                              <span className="text-gray-500 dark:text-gray-400">
+                                Not primary contact
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                           Address
@@ -1228,6 +1319,22 @@ export default function ContactDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Primary Contact Conflict Resolution Modal */}
+      <ConfirmationModal
+        isOpen={showPrimaryContactModal}
+        onClose={handleCancelPrimaryContactChange}
+        onConfirm={handleConfirmPrimaryContactChange}
+        title="Change Primary Contact?"
+        description={
+          existingPrimaryContact
+            ? `${existingPrimaryContact.first_name} ${existingPrimaryContact.last_name} is currently the primary contact for ${contact?.company?.name}. Setting this contact as primary will remove the primary status from ${existingPrimaryContact.first_name} ${existingPrimaryContact.last_name}. Do you want to continue?`
+            : "This will change the primary contact for this company. Do you want to continue?"
+        }
+        confirmText="Yes, Change Primary Contact"
+        cancelText="Cancel"
+        variant="warning"
+      />
     </ClientDashboardLayout>
   );
 } 
