@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { ClientDashboardLayout } from '@/components/layout/ClientDashboardLayout';
@@ -50,13 +49,6 @@ interface Company {
   created_at?: string;
 }
 
-interface Note {
-  id: string;
-  content: string;
-  created_at: string;
-  created_by: string;
-}
-
 interface Activity {
   id: string;
   type: 'email' | 'call' | 'meeting' | 'note';
@@ -90,12 +82,10 @@ export default function CompanyDetailPage() {
   const companyId = params.id as string;
   
   const [company, setCompany] = useState<Company | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newNote, setNewNote] = useState('');
   
   // Modal states
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
@@ -136,20 +126,6 @@ export default function CompanyDetailPage() {
       if (!res.ok) throw new Error('Failed to fetch company');
       const companyData = await res.json();
 
-      const mockNotes: Note[] = [
-        {
-          id: 'note-1',
-          content: 'Initial company research completed. Strong technology portfolio and growing market presence.',
-          created_at: '2024-01-15T10:30:00Z',
-          created_by: 'John Doe'
-        },
-        {
-          id: 'note-2', 
-          content: 'Discussed potential partnership opportunities. Follow up meeting scheduled for next week.',
-          created_at: '2024-01-10T14:20:00Z',
-          created_by: 'Jane Smith'
-        }
-      ];
 
       const mockActivities: Activity[] = [
         {
@@ -197,7 +173,6 @@ export default function CompanyDetailPage() {
       }
 
       setCompany(companyData);
-      setNotes(mockNotes);
       setActivities(mockActivities);
       setContacts(realContacts);
       setDeals(realDeals);
@@ -209,19 +184,6 @@ export default function CompanyDetailPage() {
     }
   };
 
-  const handleAddNote = async () => {
-    if (!newNote.trim()) return;
-    
-    const note: Note = {
-      id: Math.random().toString(36), // Temporary ID for UI
-      content: newNote,
-      created_at: new Date().toISOString(),
-      created_by: 'Current User'
-    };
-    
-    setNotes(prev => [note, ...prev]);
-    setNewNote('');
-  };
 
   const handleContactManagement = () => {
     setContactPickerOpen(true);
@@ -1086,49 +1048,6 @@ export default function CompanyDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Notes Section */}
-          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Add new note */}
-              <div className="space-y-2">
-                <Textarea
-                  placeholder="Add a note about this company..."
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  className="min-h-[80px] resize-none bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                />
-                <div className="flex justify-end">
-                  <Button 
-                    size="sm" 
-                    onClick={handleAddNote}
-                    disabled={!newNote.trim()}
-                  >
-                    Add Note
-                  </Button>
-                </div>
-              </div>
-
-              {/* Existing notes */}
-              <div className="space-y-3">
-                {notes.map((note) => (
-                  <div key={note.id} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-gray-900 dark:text-gray-100 text-sm leading-relaxed">
-                      {note.content}
-                    </p>
-                    <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      <span>By {note.created_by}</span>
-                      <span>{formatDate(note.created_at)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Sidebar */}
