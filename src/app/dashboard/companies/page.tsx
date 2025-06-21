@@ -17,11 +17,11 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { 
   Search, ChevronUp, ChevronDown, Upload, Download, Plus,
-  Building2, User, Globe, Phone, Mail, MapPin, MoreVertical, Trash2
+  Building2, User, Globe, Phone, Mail, MapPin, MoreVertical, Trash2, Columns
 } from 'lucide-react';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-  DropdownMenuLabel, DropdownMenuSeparator
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem
 } from '@/components/ui/dropdown-menu';
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, 
@@ -66,6 +66,13 @@ interface Company {
 type SortField = 'name' | 'industry' | 'city' | 'state' | 'employees' | 'lead_status' | 'lead_temperature' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
+// Column definition for visibility toggle
+interface TableColumn {
+  key: string;
+  label: string;
+  visible: boolean;
+}
+
 export default function CompaniesPage() {
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -98,6 +105,21 @@ export default function CompaniesPage() {
   // Refs for cleanup
   const fetchCompaniesRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Column visibility management
+  const [columnsState, setColumnsState] = useState<TableColumn[]>([
+    { key: 'industry', label: 'Industry', visible: true },
+    { key: 'website', label: 'Website', visible: true },
+    { key: 'contact', label: 'Contact', visible: true },
+    { key: 'location', label: 'Location', visible: true },
+    { key: 'employees', label: 'Employees', visible: true },
+  ]);
+
+  const isVisible = (key: string) => columnsState.find(c => c.key === key)?.visible;
+
+  const toggleColumnVisibility = (key: string) => {
+    setColumnsState(prev => prev.map(c => c.key === key ? { ...c, visible: !c.visible } : c));
+  };
 
   useEffect(() => {
     fetchCompanies();
@@ -514,6 +536,31 @@ export default function CompaniesPage() {
                   <option key={type} value={type}>{getEntityTypeDisplayText(type)}</option>
                 ))}
               </select>
+
+              {/* Column Visibility Dropdown - hidden on mobile */}
+              <div className="hidden md:block">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                      <Columns className="h-4 w-4 mr-2" />
+                      Columns
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Show/Hide Columns</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {columnsState.map(col => (
+                      <DropdownMenuCheckboxItem
+                        key={col.key}
+                        checked={col.visible}
+                        onCheckedChange={() => toggleColumnVisibility(col.key)}
+                      >
+                        {col.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -579,6 +626,7 @@ export default function CompaniesPage() {
                       </div>
                     </TableHead>
                     <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Entity Type</TableHead>
+                    {isVisible('industry') && (
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
                       onClick={() => handleSort('industry')}
@@ -587,9 +635,11 @@ export default function CompaniesPage() {
                         Industry
                         {getSortIcon('industry')}
                       </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Website</TableHead>
-                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Contact</TableHead>
+                    </TableHead>)}
+                    {isVisible('website') && (
+                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Website</TableHead>)}
+                    {isVisible('contact') && (
+                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Contact</TableHead>)}
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
                       onClick={() => handleSort('lead_status')}
@@ -608,6 +658,7 @@ export default function CompaniesPage() {
                         {getSortIcon('lead_temperature')}
                       </div>
                     </TableHead>
+                    {isVisible('location') && (
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
                       onClick={() => handleSort('city')}
@@ -616,8 +667,9 @@ export default function CompaniesPage() {
                         Location
                         {getSortIcon('city')}
                       </div>
-                    </TableHead>
-                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Employees</TableHead>
+                    </TableHead>)}
+                    {isVisible('employees') && (
+                    <TableHead className="font-semibold text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-950">Employees</TableHead>)}
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors bg-white dark:bg-gray-950"
                       onClick={() => handleSort('created_at')}
@@ -671,13 +723,15 @@ export default function CompaniesPage() {
                       size="sm"
                     />
                   </TableCell>
+                  {isVisible('industry') && (
                   <TableCell className="py-4">
                     {company.industry ? (
                       <span className="text-gray-900 dark:text-gray-100">{company.industry}</span>
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
-                  </TableCell>
+                  </TableCell>)}
+                  {isVisible('website') && (
                   <TableCell className="py-4">
                     {company.website ? (
                       <a 
@@ -693,7 +747,8 @@ export default function CompaniesPage() {
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
-                  </TableCell>
+                  </TableCell>)}
+                  {isVisible('contact') && (
                   <TableCell className="py-4">
                     <div className="space-y-1">
                       {company.email && (
@@ -717,7 +772,7 @@ export default function CompaniesPage() {
                         </a>
                       )}
                     </div>
-                  </TableCell>
+                  </TableCell>)}
                   <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
                     {company.type === 'lead' ? (
                       <LeadStatusDropdown
@@ -756,6 +811,7 @@ export default function CompaniesPage() {
                       <span className="text-gray-400 text-xs">N/A</span>
                     )}
                   </TableCell>
+                  {isVisible('location') && (
                   <TableCell className="py-4">
                     <div className="text-sm">
                       <div className="text-gray-900 dark:text-gray-100">
@@ -763,12 +819,13 @@ export default function CompaniesPage() {
                          company.city || company.state || <span className="text-gray-400">—</span>}
                       </div>
                     </div>
-                  </TableCell>
+                  </TableCell>)}
+                  {isVisible('employees') && (
                   <TableCell className="py-4">
                     <span className="text-sm text-gray-900 dark:text-gray-100">
                       {company.employees ? company.employees.toLocaleString() : <span className="text-gray-400">—</span>}
                     </span>
-                  </TableCell>
+                  </TableCell>)}
                   <TableCell className="py-4">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       {formatDate(company.created_at)}
