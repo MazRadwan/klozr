@@ -3,6 +3,7 @@ import { companies, contacts } from '@/lib/schema';
 import { eq, and, ne } from 'drizzle-orm';
 import { EntityType, EntityTypeUtilityService } from './EntityTypeUtilityService';
 import { LeadStatus, LeadTemperature, LeadSource } from './LeadUtilityService';
+import { Activity } from '@/lib/types/activities';
 
 /**
  * Service for handling bi-directional synchronization between companies and contacts
@@ -445,6 +446,94 @@ export class LeadSyncService {
       return { success: true };
     } catch (error) {
       console.error('Error in associateContactWithCompany:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Propagate activity to related entities based on business rules
+   * This method handles activity visibility and participant management
+   */
+  async propagateActivity(activity: Activity): Promise<{ success: boolean; error?: string }> {
+    try {
+      // For now, we don't need to propagate activities to other entities
+      // The ActivityService already handles auto-participant assignment
+      // This is a placeholder for future complex propagation rules
+      
+      console.log(`Activity ${activity.id} (${activity.activity_type}) propagated for ${activity.primary_entity_type}:${activity.primary_entity_id}`);
+      
+      // Future enhancements could include:
+      // 1. Notifying related users
+      // 2. Creating follow-up tasks
+      // 3. Updating entity scores or priorities
+      // 4. Triggering workflow automation
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error in propagateActivity:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Handle activity visibility rules (future enhancement)
+   * Determines which users/teams can see an activity based on:
+   * - Entity ownership
+   * - Team permissions
+   * - Activity sensitivity
+   */
+  async getActivityVisibilityRules(activity: Activity): Promise<{
+    visibleToUsers: number[];
+    visibleToTeams: string[];
+    isPublic: boolean;
+  }> {
+    // Placeholder implementation
+    // In the future, this could check:
+    // - Who owns the primary entity
+    // - Team membership rules
+    // - Activity type sensitivity (e.g., private notes vs public calls)
+    
+    return {
+      visibleToUsers: [activity.user_id], // Creator can always see
+      visibleToTeams: [],
+      isPublic: true // For now, all activities are public
+    };
+  }
+
+  /**
+   * Sync activity participants when entity relationships change
+   * Called when contacts are moved between companies, deals are reassigned, etc.
+   */
+  async syncActivityParticipants(
+    entityType: EntityType,
+    entityId: number,
+    oldRelationships: { companyId?: number; contactIds?: number[] },
+    newRelationships: { companyId?: number; contactIds?: number[] }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // This would be implemented when we need to handle:
+      // - Contact moved to different company
+      // - Deal reassigned to different contact/company
+      // - Company mergers
+      
+      console.log(`Syncing activity participants for ${entityType}:${entityId}`);
+      console.log('Old relationships:', oldRelationships);
+      console.log('New relationships:', newRelationships);
+      
+      // Future implementation would:
+      // 1. Find all activities where entity is participant
+      // 2. Update participant lists based on new relationships
+      // 3. Maintain activity history integrity
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error in syncActivityParticipants:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 

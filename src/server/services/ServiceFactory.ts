@@ -1,10 +1,11 @@
 import { db } from '@/lib/db';
-import { ContactRepository, CompanyRepository, DealRepository } from '@/server/repositories';
+import { ContactRepository, CompanyRepository, DealRepository, ActivityRepository, ActivityParticipantRepository } from '@/server/repositories';
 import { ContactService } from './ContactService';
 import { CompanyService } from './CompanyService';
 import { DealService } from './DealService';
 import { LeadSyncService } from './LeadSyncService';
 import { OfferingService } from './OfferingService';
+import { ActivityService } from './ActivityService';
 
 /**
  * Service factory for creating service instances with proper dependency injection
@@ -18,6 +19,8 @@ export class ServiceFactory {
   private readonly contactRepo: ContactRepository;
   private readonly companyRepo: CompanyRepository;
   private readonly dealRepo: DealRepository;
+  private readonly activityRepo: ActivityRepository;
+  private readonly activityParticipantRepo: ActivityParticipantRepository;
   
   // Service instances (created on demand)
   private leadSyncService?: LeadSyncService;
@@ -25,16 +28,21 @@ export class ServiceFactory {
   private companyService?: CompanyService;
   private dealService?: DealService;
   private offeringService?: OfferingService;
+  private activityService?: ActivityService;
 
   constructor(
     // Allow dependency injection for testing
     contactRepo?: ContactRepository,
     companyRepo?: CompanyRepository,
-    dealRepo?: DealRepository
+    dealRepo?: DealRepository,
+    activityRepo?: ActivityRepository,
+    activityParticipantRepo?: ActivityParticipantRepository
   ) {
     this.contactRepo = contactRepo || new ContactRepository();
     this.companyRepo = companyRepo || new CompanyRepository();
     this.dealRepo = dealRepo || new DealRepository();
+    this.activityRepo = activityRepo || new ActivityRepository();
+    this.activityParticipantRepo = activityParticipantRepo || new ActivityParticipantRepository();
   }
 
   /**
@@ -53,9 +61,11 @@ export class ServiceFactory {
   static createTestInstance(
     contactRepo?: ContactRepository,
     companyRepo?: CompanyRepository,
-    dealRepo?: DealRepository
+    dealRepo?: DealRepository,
+    activityRepo?: ActivityRepository,
+    activityParticipantRepo?: ActivityParticipantRepository
   ): ServiceFactory {
-    return new ServiceFactory(contactRepo, companyRepo, dealRepo);
+    return new ServiceFactory(contactRepo, companyRepo, dealRepo, activityRepo, activityParticipantRepo);
   }
 
   /**
@@ -115,6 +125,23 @@ export class ServiceFactory {
   }
 
   /**
+   * Get ActivityService instance with injected dependencies
+   */
+  getActivityService(): ActivityService {
+    if (!this.activityService) {
+      this.activityService = new ActivityService(
+        this.activityRepo,
+        this.activityParticipantRepo,
+        this.contactRepo,
+        this.companyRepo,
+        this.dealRepo,
+        this.getLeadSyncService()
+      );
+    }
+    return this.activityService;
+  }
+
+  /**
    * Clear service cache (useful for testing)
    */
   clearCache(): void {
@@ -123,6 +150,7 @@ export class ServiceFactory {
     this.companyService = undefined;
     this.dealService = undefined;
     this.offeringService = undefined;
+    this.activityService = undefined;
   }
 }
 
@@ -152,4 +180,8 @@ export function makeLeadSyncService(): LeadSyncService {
 
 export function makeOfferingService(): OfferingService {
   return serviceFactory.getOfferingService();
+}
+
+export function makeActivityService(): ActivityService {
+  return serviceFactory.getActivityService();
 }
