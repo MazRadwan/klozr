@@ -11,6 +11,10 @@ import {
   ArrowLeft, Mail, Phone, MapPin, Building2, Calendar, 
   DollarSign, ExternalLink, User, Globe, Edit, Trash2, Save, X, MessageSquare
 } from "lucide-react";
+import { 
+  formatPhone, formatPostalCode, formatEmail, 
+  isValidPhone, isValidPostalCode, isValidEmail 
+} from "@/lib/formatUtils";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
@@ -102,6 +106,8 @@ export default function ContactDetailPage() {
   });
   const [showPrimaryContactModal, setShowPrimaryContactModal] = useState(false);
   const [existingPrimaryContact, setExistingPrimaryContact] = useState<any>(null);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [isFormValid, setIsFormValid] = useState(true);
 
   const contactId = params.id as string;
 
@@ -110,6 +116,13 @@ export default function ContactDetailPage() {
       fetchContactData();
     }
   }, [contactId]);
+
+  // Validate form when editing starts or data changes
+  useEffect(() => {
+    if (isEditingContactInfo) {
+      validateAllFields();
+    }
+  }, [isEditingContactInfo, editingContactData]);
 
   const fetchContactData = async () => {
     if (!contactId) return;
@@ -192,6 +205,11 @@ export default function ContactDetailPage() {
   const handleSaveContactInfo = async () => {
     if (!contact) return;
     
+    // Validate all fields before saving
+    if (!validateAllFields()) {
+      return; // Don't save if validation fails
+    }
+    
     // If setting this contact as primary, check for conflicts
     if (editingContactData.is_primary && !contact.contact.is_primary) {
       const existingPrimary = await checkForExistingPrimaryContact();
@@ -262,6 +280,96 @@ export default function ContactDetailPage() {
       'Closed Lost': 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700',
     };
     return colors[stage as keyof typeof colors] || 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600';
+  };
+
+  // Validation functions
+  const validateField = (field: string, value: string) => {
+    const errors: {[key: string]: string} = {};
+    
+    switch (field) {
+      case 'first_name':
+        if (!value.trim()) errors.first_name = 'First name is required';
+        break;
+      case 'last_name':
+        if (!value.trim()) errors.last_name = 'Last name is required';
+        break;
+      case 'email':
+        if (!value.trim()) {
+          errors.email = 'Email is required';
+        } else if (!isValidEmail(value)) {
+          errors.email = 'Please enter a valid email address';
+        }
+        break;
+      case 'phone':
+        if (value && !isValidPhone(value)) {
+          errors.phone = 'Phone number must be 10 digits in format (###) ###-####';
+        }
+        break;
+      case 'postal_code':
+        if (value && !isValidPostalCode(value)) {
+          errors.postal_code = 'Postal code must be valid US (12345 or 12345-1234) or Canadian (A1A 1A1) format';
+        }
+        break;
+      case 'city':
+        if (value && !/^[a-zA-Z\s\-'\.]+$/.test(value)) {
+          errors.city = 'City must contain only letters, spaces, hyphens, apostrophes, and periods';
+        }
+        break;
+    }
+    
+    return errors;
+  };
+
+  const validateAllFields = () => {
+    const allErrors: {[key: string]: string} = {};
+    
+    // Validate all fields
+    Object.entries(editingContactData).forEach(([field, value]) => {
+      const fieldErrors = validateField(field, typeof value === 'string' ? value : '');
+      Object.assign(allErrors, fieldErrors);
+    });
+    
+    setValidationErrors(allErrors);
+    const isValid = Object.keys(allErrors).length === 0;
+    setIsFormValid(isValid);
+    return isValid;
+  };
+
+  const handleContactDataChange = (field: string, value: string) => {
+    let formattedValue = value;
+    
+    // Apply formatting
+    switch (field) {
+      case 'phone':
+        formattedValue = formatPhone(value);
+        break;
+      case 'postal_code':
+        formattedValue = formatPostalCode(value);
+        break;
+      case 'email':
+        formattedValue = formatEmail(value);
+        break;
+    }
+    
+    // Update the data
+    setEditingContactData({...editingContactData, [field]: formattedValue});
+    
+    // Validate the field
+    const fieldErrors = validateField(field, formattedValue);
+    setValidationErrors(prev => {
+      const updated = {...prev};
+      if (fieldErrors[field]) {
+        updated[field] = fieldErrors[field];
+      } else {
+        delete updated[field];
+      }
+      return updated;
+    });
+    
+    // Update form validity
+    const allErrors = {...validationErrors, ...fieldErrors};
+    if (!fieldErrors[field]) delete allErrors[field];
+    setIsFormValid(Object.keys(allErrors).length === 0);
   };
 
 
@@ -433,6 +541,8 @@ export default function ContactDetailPage() {
                         variant="ghost"
                         size="sm"
                         onClick={handleSaveContactInfo}
+                        disabled={!isFormValid}
+                        className={!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}
                       >
                         <Save className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                       </Button>
@@ -463,37 +573,46 @@ export default function ContactDetailPage() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          First Name
+                          First Name *
                         </label>
                         <Input
                           value={editingContactData.first_name}
-                          onChange={(e) => setEditingContactData({...editingContactData, first_name: e.target.value})}
+                          onChange={(e) => handleContactDataChange('first_name', e.target.value)}
                           placeholder="First name"
-                          className="text-gray-900 dark:text-gray-100"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.first_name ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.first_name && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.first_name}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Last Name
+                          Last Name *
                         </label>
                         <Input
                           value={editingContactData.last_name}
-                          onChange={(e) => setEditingContactData({...editingContactData, last_name: e.target.value})}
+                          onChange={(e) => handleContactDataChange('last_name', e.target.value)}
                           placeholder="Last name"
-                          className="text-gray-900 dark:text-gray-100"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.last_name ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.last_name && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.last_name}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Email
+                          Email *
                         </label>
                         <Input
                           type="email"
                           value={editingContactData.email}
-                          onChange={(e) => setEditingContactData({...editingContactData, email: e.target.value})}
+                          onChange={(e) => handleContactDataChange('email', e.target.value)}
                           placeholder="Email address"
-                          className="text-gray-900 dark:text-gray-100"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.email ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.email && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -501,10 +620,13 @@ export default function ContactDetailPage() {
                         </label>
                         <Input
                           value={editingContactData.phone}
-                          onChange={(e) => setEditingContactData({...editingContactData, phone: e.target.value})}
-                          placeholder="Phone number"
-                          className="text-gray-900 dark:text-gray-100"
+                          onChange={(e) => handleContactDataChange('phone', e.target.value)}
+                          placeholder="(###) ###-####"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.phone ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.phone && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-4">
@@ -554,10 +676,13 @@ export default function ContactDetailPage() {
                         </label>
                         <Input
                           value={editingContactData.city}
-                          onChange={(e) => setEditingContactData({...editingContactData, city: e.target.value})}
+                          onChange={(e) => handleContactDataChange('city', e.target.value)}
                           placeholder="City"
-                          className="text-gray-900 dark:text-gray-100"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.city ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.city && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.city}</p>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
@@ -577,10 +702,13 @@ export default function ContactDetailPage() {
                           </label>
                           <Input
                             value={editingContactData.postal_code}
-                            onChange={(e) => setEditingContactData({...editingContactData, postal_code: e.target.value})}
-                            placeholder="Postal code"
-                            className="text-gray-900 dark:text-gray-100"
+                            onChange={(e) => handleContactDataChange('postal_code', e.target.value)}
+                            placeholder="12345 or A1A 1A1"
+                            className={`text-gray-900 dark:text-gray-100 ${validationErrors.postal_code ? 'border-red-500 dark:border-red-500' : ''}`}
                           />
+                          {validationErrors.postal_code && (
+                            <p className="text-red-500 text-xs mt-1">{validationErrors.postal_code}</p>
+                          )}
                         </div>
                       </div>
                     </div>
