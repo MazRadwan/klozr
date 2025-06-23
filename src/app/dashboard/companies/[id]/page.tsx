@@ -23,6 +23,11 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
   DropdownMenuSeparator, DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
+import { 
+  formatPhone, formatPostalCode, formatEmail, formatWebsite,
+  isValidPhone, isValidPostalCode, isValidEmail, isValidWebsite, 
+  isValidFoundedYear, isValidEmployeeCount 
+} from '@/lib/formatUtils';
 
 interface Company {
   id: number;
@@ -110,12 +115,21 @@ export default function CompanyDetailPage() {
     employees: '',
     revenue: ''
   });
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [isFormValid, setIsFormValid] = useState(true);
 
   useEffect(() => {
     if (companyId) {
       fetchCompanyData();
     }
   }, [companyId]);
+
+  // Validate form when editing starts or data changes
+  useEffect(() => {
+    if (isEditingCompanyInfo) {
+      validateAllCompanyFields();
+    }
+  }, [isEditingCompanyInfo, editingCompanyData]);
 
   const fetchCompanyData = async () => {
     console.log('📊 fetchCompanyData called for company:', companyId);
@@ -232,6 +246,11 @@ export default function CompanyDetailPage() {
   const handleSaveCompanyInfo = async () => {
     if (!company) return;
     
+    // Validate all fields before saving
+    if (!validateAllCompanyFields()) {
+      return; // Don't save if validation fails
+    }
+    
     try {
       const response = await fetch(`/api/companies/${companyId}`, {
         method: 'PUT',
@@ -290,6 +309,109 @@ export default function CompanyDetailPage() {
       'Finance': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
     };
     return colors[industry || ''] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+  };
+
+  // Validation functions for company
+  const validateCompanyField = (field: string, value: string) => {
+    const errors: {[key: string]: string} = {};
+    
+    switch (field) {
+      case 'name':
+        if (!value.trim()) errors.name = 'Company name is required';
+        break;
+      case 'email':
+        if (value && !isValidEmail(value)) {
+          errors.email = 'Please enter a valid email address';
+        }
+        break;
+      case 'phone':
+        if (value && !isValidPhone(value)) {
+          errors.phone = 'Phone number must be 10 digits in format (###) ###-####';
+        }
+        break;
+      case 'website':
+        if (value && !isValidWebsite(value)) {
+          errors.website = 'Please enter a valid website URL';
+        }
+        break;
+      case 'postal_code':
+        if (value && !isValidPostalCode(value)) {
+          errors.postal_code = 'Postal code must be valid US (12345 or 12345-1234) or Canadian (A1A 1A1) format';
+        }
+        break;
+      case 'city':
+        if (value && !/^[a-zA-Z\s\-'\.]+$/.test(value)) {
+          errors.city = 'City must contain only letters, spaces, hyphens, apostrophes, and periods';
+        }
+        break;
+      case 'founded':
+        if (value && !isValidFoundedYear(value)) {
+          errors.founded = 'Founded year must be a 4-digit year between 1800 and current year';
+        }
+        break;
+      case 'employees':
+        if (value && !isValidEmployeeCount(value)) {
+          errors.employees = 'Employee count must be a positive number';
+        }
+        break;
+    }
+    
+    return errors;
+  };
+
+  const validateAllCompanyFields = () => {
+    const allErrors: {[key: string]: string} = {};
+    
+    // Validate all fields
+    Object.entries(editingCompanyData).forEach(([field, value]) => {
+      const fieldErrors = validateCompanyField(field, typeof value === 'string' ? value : '');
+      Object.assign(allErrors, fieldErrors);
+    });
+    
+    setValidationErrors(allErrors);
+    const isValid = Object.keys(allErrors).length === 0;
+    setIsFormValid(isValid);
+    return isValid;
+  };
+
+  const handleCompanyDataChange = (field: string, value: string) => {
+    let formattedValue = value;
+    
+    // Apply formatting
+    switch (field) {
+      case 'phone':
+        formattedValue = formatPhone(value);
+        break;
+      case 'postal_code':
+        formattedValue = formatPostalCode(value);
+        break;
+      case 'email':
+        formattedValue = formatEmail(value);
+        break;
+      case 'website':
+        formattedValue = formatWebsite(value);
+        break;
+    }
+    
+    // Update the data
+    setEditingCompanyData({...editingCompanyData, [field]: formattedValue});
+    
+    // Validate the field
+    const fieldErrors = validateCompanyField(field, formattedValue);
+    setValidationErrors(prev => {
+      const updated = {...prev};
+      if (fieldErrors[field]) {
+        updated[field] = fieldErrors[field];
+      } else {
+        delete updated[field];
+      }
+      return updated;
+    });
+    
+    // Update form validity
+    const allErrors = {...validationErrors, ...fieldErrors};
+    if (!fieldErrors[field]) delete allErrors[field];
+    setIsFormValid(Object.keys(allErrors).length === 0);
   };
 
   const formatCurrency = (amount?: number) => 
@@ -500,14 +622,17 @@ export default function CompanyDetailPage() {
                     {/* Company Name */}
                     <div className="md:col-span-12">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Company Name
+                        Company Name *
                       </label>
                       <Input
                         value={editingCompanyData.name}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, name: e.target.value})}
+                        onChange={(e) => handleCompanyDataChange('name', e.target.value)}
                         placeholder="Company name"
-                        className="text-gray-900 dark:text-gray-100"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.name ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.name && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.name}</p>
+                      )}
                     </div>
 
                     {/* Address Row */}
@@ -528,10 +653,13 @@ export default function CompanyDetailPage() {
                       </label>
                       <Input
                         value={editingCompanyData.city}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, city: e.target.value})}
+                        onChange={(e) => handleCompanyDataChange('city', e.target.value)}
                         placeholder="City"
-                        className="text-gray-900 dark:text-gray-100"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.city ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.city && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.city}</p>
+                      )}
                     </div>
 
                     {/* State / Postal / Country */}
@@ -552,10 +680,13 @@ export default function CompanyDetailPage() {
                       </label>
                       <Input
                         value={editingCompanyData.postal_code}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, postal_code: e.target.value})}
-                        placeholder="Postal code"
-                        className="text-gray-900 dark:text-gray-100"
+                        onChange={(e) => handleCompanyDataChange('postal_code', e.target.value)}
+                        placeholder="12345 or A1A 1A1"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.postal_code ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.postal_code && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.postal_code}</p>
+                      )}
                     </div>
                     <div className="md:col-span-4">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -577,10 +708,13 @@ export default function CompanyDetailPage() {
                       <Input
                         type="email"
                         value={editingCompanyData.email}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, email: e.target.value})}
+                        onChange={(e) => handleCompanyDataChange('email', e.target.value)}
                         placeholder="Email address"
-                        className="text-gray-900 dark:text-gray-100"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.email ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.email && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+                      )}
                     </div>
                     <div className="md:col-span-3">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -588,10 +722,13 @@ export default function CompanyDetailPage() {
                       </label>
                       <Input
                         value={editingCompanyData.phone}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, phone: e.target.value})}
-                        placeholder="Phone number"
-                        className="text-gray-900 dark:text-gray-100"
+                        onChange={(e) => handleCompanyDataChange('phone', e.target.value)}
+                        placeholder="(###) ###-####"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.phone ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.phone && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+                      )}
                     </div>
                     <div className="md:col-span-4">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -599,10 +736,13 @@ export default function CompanyDetailPage() {
                       </label>
                       <Input
                         value={editingCompanyData.website}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, website: e.target.value})}
-                        placeholder="Website URL"
-                        className="text-gray-900 dark:text-gray-100"
+                        onChange={(e) => handleCompanyDataChange('website', e.target.value)}
+                        placeholder="https://example.com"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.website ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.website && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.website}</p>
+                      )}
                     </div>
 
                     {/* Business Metrics Row */}
@@ -623,10 +763,13 @@ export default function CompanyDetailPage() {
                       </label>
                       <Input
                         value={editingCompanyData.founded}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, founded: e.target.value})}
-                        placeholder="Year"
-                        className="text-gray-900 dark:text-gray-100"
+                        onChange={(e) => handleCompanyDataChange('founded', e.target.value)}
+                        placeholder="YYYY"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.founded ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.founded && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.founded}</p>
+                      )}
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -635,10 +778,13 @@ export default function CompanyDetailPage() {
                       <Input
                         type="number"
                         value={editingCompanyData.employees}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, employees: e.target.value})}
-                        placeholder="#"
-                        className="text-gray-900 dark:text-gray-100"
+                        onChange={(e) => handleCompanyDataChange('employees', e.target.value)}
+                        placeholder="100"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.employees ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.employees && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.employees}</p>
+                      )}
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -678,7 +824,8 @@ export default function CompanyDetailPage() {
                     <Button
                       size="sm"
                       onClick={handleSaveCompanyInfo}
-                      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white"
+                      disabled={!isFormValid}
+                      className={`${!isFormValid ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'} text-white`}
                     >
                       Save
                     </Button>
