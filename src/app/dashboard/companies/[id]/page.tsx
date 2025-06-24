@@ -15,6 +15,7 @@ import { NewContactModal } from '@/components/contacts/NewContactModal';
 import { CompanyDealPicker } from '@/components/deals/CompanyDealPicker';
 import { EntityTypeDropdown } from '@/components/entityTypes/EntityTypeDropdown';
 import { LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads';
+import { ActivityFeed, CreateActivityModal } from '@/components/activities';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
@@ -55,14 +56,6 @@ interface Company {
   created_at?: string;
 }
 
-interface Activity {
-  id: string;
-  type: 'email' | 'call' | 'meeting' | 'note';
-  title: string;
-  description?: string;
-  created_at: string;
-  created_by: string;
-}
 
 interface Contact {
   id: number;
@@ -85,10 +78,10 @@ interface Contact {
 export default function CompanyDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { data: session } = useSession();
   const companyId = params.id as string;
   
   const [company, setCompany] = useState<Company | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +89,13 @@ export default function CompanyDetailPage() {
   // Modal states
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [newContactModalOpen, setNewContactModalOpen] = useState(false);
+  
+  // Activity states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createModalType, setCreateModalType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
+  
+  // Activity refresh functionality
+  const refreshActivityFeedRef = useRef<(() => void) | null>(null);
   
   // Edit states
   const [isEditingDeals, setIsEditingDeals] = useState(false);
@@ -142,32 +142,6 @@ export default function CompanyDetailPage() {
       const companyData = await res.json();
 
 
-      const mockActivities: Activity[] = [
-        {
-          id: 'activity-1',
-          type: 'meeting',
-          title: 'Partnership Discussion',
-          description: 'Met with leadership team to discuss strategic partnership',
-          created_at: '2024-01-16T09:00:00Z',
-          created_by: 'John Doe'
-        },
-        {
-          id: 'activity-2',
-          type: 'email',
-          title: 'Follow-up Email Sent',
-          description: 'Sent follow-up with partnership proposal details',
-          created_at: '2024-01-15T16:30:00Z',
-          created_by: 'Jane Smith'
-        },
-        {
-          id: 'activity-3',
-          type: 'call',
-          title: 'Initial Contact Call',
-          description: 'First outreach call to introduce our services',
-          created_at: '2024-01-12T11:15:00Z',
-          created_by: 'Mike Johnson'
-        }
-      ];
 
       // Fetch real contacts for this company
       const contactsRes = await fetch(`/api/contacts?company_id=${companyId}`);
@@ -188,7 +162,6 @@ export default function CompanyDetailPage() {
       }
 
       setCompany(companyData);
-      setActivities(mockActivities);
       setContacts(realContacts);
       setDeals(realDeals);
       console.log('✅ Updated deals state with:', realDeals.length, 'deals');
@@ -276,30 +249,12 @@ export default function CompanyDetailPage() {
     setIsEditingCompanyInfo(false);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  // Quick action handlers
+  const handleQuickAction = (type: 'call' | 'email' | 'note' | 'meeting' | 'task') => {
+    setCreateModalType(type);
+    setIsCreateModalOpen(true);
   };
 
-  const getActivityIcon = (type: Activity['type']) => {
-    switch (type) {
-      case 'email':
-        return <Mail className="h-4 w-4 text-blue-500" />;
-      case 'call':
-        return <PhoneCall className="h-4 w-4 text-green-500" />;
-      case 'meeting':
-        return <Video className="h-4 w-4 text-purple-500" />;
-      case 'note':
-        return <FileText className="h-4 w-4 text-gray-500" />;
-      default:
-        return <MessageSquare className="h-4 w-4 text-gray-500" />;
-    }
-  };
 
   const getIndustryColor = (industry?: string) => {
     const colors: { [key: string]: string } = {
@@ -904,58 +859,135 @@ export default function CompanyDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Lead Management Section - Only show for leads */}
-          {company.type === 'lead' && (
+          {/* Key Contacts and Lead Management - Side by side layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Sub-Column: Key Contacts */}
             <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  <MessageSquare className="h-5 w-5" />
-                  Lead Management
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Key Contacts ({contacts.length})
                 </CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                  onClick={handleContactManagement}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Manage Contacts
+                </Button>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Lead Status and Temperature - Side by side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                      Lead Status
-                    </label>
-                    <LeadStatusDropdown
-                      entityType="company"
-                      entityId={company.id}
-                      company={{
-                        lead_status: company.lead_status,
-                        lead_temperature: company.lead_temperature,
-                        lead_source: company.lead_source,
-                        lead_owner_id: company.lead_owner_id,
-                        type: company.type
-                      }}
-                      onStatusUpdate={fetchCompanyData}
-                      size="sm"
-                    />
+              <CardContent>
+                <div className="space-y-3">
+                  {contacts.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                      <p className="text-sm">No contacts found for this company.</p>
+                      <p className="text-xs mt-1">Click "Manage Contacts" to add existing contacts or create new ones.</p>
+                    </div>
+                  ) : (
+                    contacts.map((contact) => (
+                    <div 
+                      key={contact.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer transition-colors"
+                      onClick={() => router.push(`/dashboard/contacts/${contact.id}`)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          {contact.avatar || `${contact.first_name?.[0] || ''}${contact.last_name?.[0] || ''}`}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {`${contact.first_name || ''} ${contact.last_name || ''}`.trim()}
+                            </p>
+                            {contact.is_primary && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                Primary Contact
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{contact.contact_type}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {contact.email && (
+                          <a
+                            href={`mailto:${contact.email}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </a>
+                        )}
+                        {contact.phone && (
+                          <a
+                            href={`tel:${contact.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                          >
+                            <Phone className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Right Sub-Column: Lead Management - Only show for leads */}
+            {company.type === 'lead' && (
+              <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <MessageSquare className="h-5 w-5" />
+                    Lead Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Lead Status and Temperature - Side by side */}
+                  <div className="grid grid-cols-1 gap-6">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                        Lead Status
+                      </label>
+                      <LeadStatusDropdown
+                        entityType="company"
+                        entityId={company.id}
+                        company={{
+                          lead_status: company.lead_status,
+                          lead_temperature: company.lead_temperature,
+                          lead_source: company.lead_source,
+                          lead_owner_id: company.lead_owner_id,
+                          type: company.type
+                        }}
+                        onStatusUpdate={fetchCompanyData}
+                        size="sm"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                        Lead Temperature
+                      </label>
+                      <LeadTemperatureDropdown
+                        entityType="company"
+                        entityId={company.id}
+                        company={{
+                          lead_status: company.lead_status,
+                          lead_temperature: company.lead_temperature,
+                          lead_source: company.lead_source,
+                          lead_owner_id: company.lead_owner_id,
+                          type: company.type
+                        }}
+                        onTemperatureUpdate={fetchCompanyData}
+                        size="sm"
+                      />
+                    </div>
                   </div>
                   
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                      Lead Temperature
-                    </label>
-                    <LeadTemperatureDropdown
-                      entityType="company"
-                      entityId={company.id}
-                      company={{
-                        lead_status: company.lead_status,
-                        lead_temperature: company.lead_temperature,
-                        lead_source: company.lead_source,
-                        lead_owner_id: company.lead_owner_id,
-                        type: company.type
-                      }}
-                      onTemperatureUpdate={fetchCompanyData}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -968,8 +1000,6 @@ export default function CompanyDetailPage() {
                         }
                       </p>
                     </div>
-                  </div>
-                  <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Lead Owner
@@ -996,86 +1026,10 @@ export default function CompanyDetailPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Key Contacts */}
-          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Key Contacts ({contacts.length})
-              </CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
-                onClick={handleContactManagement}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Manage Contacts
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {contacts.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-sm">No contacts found for this company.</p>
-                    <p className="text-xs mt-1">Click "Manage Contacts" to add existing contacts or create new ones.</p>
-                  </div>
-                ) : (
-                  contacts.map((contact) => (
-                  <div 
-                    key={contact.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/dashboard/contacts/${contact.id}`)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {contact.avatar || `${contact.first_name?.[0] || ''}${contact.last_name?.[0] || ''}`}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
-                            {`${contact.first_name || ''} ${contact.last_name || ''}`.trim()}
-                          </p>
-                          {contact.is_primary && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                              Primary Contact
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{contact.contact_type}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {contact.email && (
-                        <a
-                          href={`mailto:${contact.email}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </a>
-                      )}
-                      {contact.phone && (
-                        <a
-                          href={`tel:${contact.phone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                        >
-                          <Phone className="h-4 w-4" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
           {/* Related Deals */}
           <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
@@ -1200,70 +1154,72 @@ export default function CompanyDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Quick Actions */}
+          {/* Quick Actions Icon Bar */}
           <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
-                <Mail className="h-4 w-4 mr-2" />
-                Send Email
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
-                <PhoneCall className="h-4 w-4 mr-2" />
-                Schedule Call
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
-                <Video className="h-4 w-4 mr-2" />
-                Schedule Meeting
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" 
-                size="sm"
-                onClick={() => setIsEditingDeals(true)}
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Manage Deals
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Recent Activity
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-gray-900 dark:text-gray-100 text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {activities.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {activity.title}
-                      </p>
-                      {activity.description && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          {activity.description}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {formatDate(activity.created_at)} • {activity.created_by}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex justify-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction('call')}
+                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
+                >
+                  <PhoneCall className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction('email')}
+                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
+                >
+                  <Mail className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction('note')}
+                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction('meeting')}
+                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
+                >
+                  <Video className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingDeals(true)}
+                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-900/20 dark:hover:text-yellow-400 hover:border-yellow-200 dark:hover:border-yellow-800"
+                >
+                  <DollarSign className="h-4 w-4" />
+                </Button>
               </div>
             </CardContent>
           </Card>
+
+          {/* Activity Feed */}
+          {session?.user?.id && (
+            <ActivityFeed
+              entityType="company"
+              entityId={company.id}
+              userId={parseInt(session.user.id)}
+              showQuickActions={false}
+              onRefresh={(refreshFn) => { refreshActivityFeedRef.current = refreshFn; }}
+              className=""
+            />
+          )}
         </div>
       </div>
 

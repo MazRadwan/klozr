@@ -73,7 +73,8 @@ export function ActivityFeed({
       }
       
       const offset = pageNum * ITEMS_PER_PAGE;
-      const response = await fetch(`/api/${entityType}s/${entityId}/activities?include_user=true&include_participants=false&limit=${ITEMS_PER_PAGE}&offset=${offset}`);
+      const entityEndpoint = entityType === 'company' ? 'companies' : `${entityType}s`;
+      const response = await fetch(`/api/${entityEndpoint}/${entityId}/activities?include_user=true&include_participants=false&limit=${ITEMS_PER_PAGE}&offset=${offset}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch activities: ${response.status}`);
@@ -136,7 +137,8 @@ export function ActivityFeed({
   // Handle create activity
   const handleCreateActivity = async (activityData: any) => {
     try {
-      const response = await fetch(`/api/${entityType}s/${entityId}/activities`, {
+      const entityEndpoint = entityType === 'company' ? 'companies' : `${entityType}s`;
+      const response = await fetch(`/api/${entityEndpoint}/${entityId}/activities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
