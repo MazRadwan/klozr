@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -35,6 +35,7 @@ interface ActivityFeedProps {
   showQuickActions?: boolean;
   maxItems?: number;
   className?: string;
+  onRefresh?: (refreshFn: () => void) => void;
 }
 
 export function ActivityFeed({
@@ -43,7 +44,8 @@ export function ActivityFeed({
   userId,
   showQuickActions = true,
   maxItems,
-  className = ''
+  className = '',
+  onRefresh
 }: ActivityFeedProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,33 +53,85 @@ export function ActivityFeed({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createModalType, setCreateModalType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
   const [replyToActivityId, setReplyToActivityId] = useState<number | null>(null);
+  
+  // Lazy loading state
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const ITEMS_PER_PAGE = 20;
 
-  // Fetch activities
-  const fetchActivities = async () => {
+  // Fetch activities with pagination
+  const fetchActivities = async (pageNum = 0, append = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!append) {
+        setLoading(true);
+        setError(null);
+        setPage(0);
+        setHasMore(true);
+      } else {
+        setLoadingMore(true);
+      }
       
-      const response = await fetch(`/api/${entityType}s/${entityId}/activities?include_user=true&include_participants=false`);
+      const offset = pageNum * ITEMS_PER_PAGE;
+      const response = await fetch(`/api/${entityType}s/${entityId}/activities?include_user=true&include_participants=false&limit=${ITEMS_PER_PAGE}&offset=${offset}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch activities: ${response.status}`);
       }
       
       const data = await response.json();
-      setActivities(data);
+      
+      if (append) {
+        setActivities(prev => [...prev, ...data]);
+      } else {
+        setActivities(data);
+      }
+      
+      // Check if we have more data
+      if (data.length < ITEMS_PER_PAGE) {
+        setHasMore(false);
+      }
+      
+      setPage(pageNum);
     } catch (err) {
       console.error('Error fetching activities:', err);
       setError(err instanceof Error ? err.message : 'Failed to load activities');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
+
+  // Load more activities
+  const loadMoreActivities = async () => {
+    if (!hasMore || loadingMore) return;
+    await fetchActivities(page + 1, true);
+  };
+
+  // Intersection observer for lazy loading
+  const observerRef = useRef<IntersectionObserver>();
+  const lastActivityElementRef = useCallback((node: HTMLDivElement) => {
+    if (loading || loadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMoreActivities();
+      }
+    });
+    if (node) observerRef.current.observe(node);
+  }, [loading, loadingMore, hasMore]);
 
   // Initial fetch
   useEffect(() => {
     fetchActivities();
   }, [entityType, entityId]);
+
+  // Expose refresh function to parent
+  useEffect(() => {
+    if (onRefresh) {
+      onRefresh(fetchActivities);
+    }
+  }, [onRefresh]);
 
   // Handle create activity
   const handleCreateActivity = async (activityData: any) => {
@@ -237,7 +291,7 @@ export function ActivityFeed({
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 max-h-[72rem] overflow-y-auto">
           {/* Quick Actions */}
           {showQuickActions && (
             <>
@@ -268,8 +322,12 @@ export function ActivityFeed({
             </div>
           ) : (
             <div className="space-y-4">
-              {displayActivities.map((activity) => (
-                <div key={activity.id} className="space-y-2">
+              {displayActivities.map((activity, index) => (
+                <div 
+                  key={activity.id} 
+                  className="space-y-2"
+                  ref={index === displayActivities.length - 1 ? lastActivityElementRef : null}
+                >
                   <ActivityCard
                     activity={activity}
                     onReply={handleReply}
@@ -295,7 +353,22 @@ export function ActivityFeed({
                 </div>
               ))}
               
-              {/* Show more button */}
+              {/* Loading indicator for lazy loading */}
+              {loadingMore && (
+                <div className="text-center py-4">
+                  <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mx-auto" />
+                  <p className="text-gray-500 text-xs mt-1">Loading more activities...</p>
+                </div>
+              )}
+              
+              {/* End of list indicator */}
+              {!hasMore && activities.length > ITEMS_PER_PAGE && (
+                <div className="text-center py-4">
+                  <p className="text-gray-500 text-xs">No more activities to load</p>
+                </div>
+              )}
+              
+              {/* Show more button (for maxItems display limit) */}
               {maxItems && activities.length > maxItems && (
                 <div className="text-center pt-3">
                   <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400">
