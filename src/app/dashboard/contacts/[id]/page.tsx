@@ -1,26 +1,32 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { 
   ArrowLeft, Mail, Phone, MapPin, Building2, Calendar, 
-  DollarSign, ExternalLink, User, Globe, Plus, MessageSquare,
-  FileText, Clock, Send, Edit, Trash2, Save, X
+  DollarSign, ExternalLink, User, Globe, Edit, Trash2, Save, X, MessageSquare,
+  FileText, CheckSquare
 } from "lucide-react";
+import { 
+  formatPhone, formatPostalCode, formatEmail, 
+  isValidPhone, isValidPostalCode, isValidEmail 
+} from "@/lib/formatUtils";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { CompanyPicker } from "@/components/companies/CompanyPicker";
 import { DealPicker } from "@/components/deals/DealPicker";
 import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown";
 import { LeadStatusDropdown, LeadTemperatureDropdown } from "@/components/leads";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
+import { ActivityFeed, CreateActivityModal } from "@/components/activities";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface Contact {
   contact: {
@@ -80,31 +86,14 @@ interface Contact {
   }>;
 }
 
-interface Note {
-  id: string;
-  content: string;
-  created_at: string;
-  author: string;
-}
-
-interface Activity {
-  id: string;
-  type: string;
-  description: string;
-  created_at: string;
-  author: string;
-}
 
 export default function ContactDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [newNote, setNewNote] = useState("");
-  const [addingNote, setAddingNote] = useState(false);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isEditingDeals, setIsEditingDeals] = useState(false);
   const [isEditingContactInfo, setIsEditingContactInfo] = useState(false);
@@ -122,16 +111,30 @@ export default function ContactDetailPage() {
   });
   const [showPrimaryContactModal, setShowPrimaryContactModal] = useState(false);
   const [existingPrimaryContact, setExistingPrimaryContact] = useState<any>(null);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [isFormValid, setIsFormValid] = useState(true);
+  
+  // Activity Feed state
+  const [showCreateActivityModal, setShowCreateActivityModal] = useState(false);
+  const [activityType, setActivityType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const refreshActivityFeedRef = useRef<(() => void) | null>(null);
 
   const contactId = params.id as string;
 
   useEffect(() => {
     if (contactId) {
       fetchContactData();
-      fetchNotes();
-      fetchActivities();
     }
   }, [contactId]);
+
+  // Validate form when editing starts or data changes
+  useEffect(() => {
+    if (isEditingContactInfo) {
+      validateAllFields();
+    }
+  }, [isEditingContactInfo, editingContactData]);
 
   const fetchContactData = async () => {
     if (!contactId) return;
@@ -153,89 +156,6 @@ export default function ContactDetailPage() {
     }
   };
 
-  const fetchNotes = async () => {
-    // Mock notes data - in real app, this would fetch from API
-    setNotes([
-      {
-        id: "note-1",
-        content: "Had a great conversation about their upcoming project requirements. They're looking to implement a new CRM system and are very interested in our enterprise solution.",
-        created_at: "2025-01-15T14:30:00Z",
-        author: "John Smith"
-      },
-      {
-        id: "note-2", 
-        content: "Follow-up scheduled for next week to discuss technical specifications and pricing. They mentioned budget approval process takes 2-3 weeks.",
-        created_at: "2025-01-16T10:15:00Z",
-        author: "Jane Doe"
-      }
-    ]);
-  };
-
-  const fetchActivities = async () => {
-    // Mock activities data - in real app, this would fetch from API
-    setActivities([
-      {
-        id: "activity-1",
-        type: "email",
-        description: "Sent product demo email with pricing information",
-        created_at: "2025-01-15T09:00:00Z",
-        author: "System"
-      },
-      {
-        id: "activity-2",
-        type: "call",
-        description: "Phone call - 45 minutes discussion about requirements and implementation timeline",
-        created_at: "2025-01-15T14:30:00Z", 
-        author: "John Smith"
-      },
-      {
-        id: "activity-3",
-        type: "meeting",
-        description: "Scheduled follow-up meeting for next Tuesday at 2 PM",
-        created_at: "2025-01-16T16:00:00Z",
-        author: "Jane Doe"
-      },
-      {
-        id: "activity-4",
-        type: "note",
-        description: "Added note about budget approval process",
-        created_at: "2025-01-16T16:30:00Z",
-        author: "Jane Doe"
-      }
-    ]);
-  };
-
-  const addNote = async () => {
-    if (!newNote.trim()) return;
-    
-    setAddingNote(true);
-    
-    try {
-      // In real app, this would POST to API
-      const note: Note = {
-        id: Math.random().toString(36), // Temporary ID for UI
-        content: newNote,
-        created_at: new Date().toISOString(),
-        author: "Current User"
-      };
-      
-      setNotes(prev => [note, ...prev]);
-      
-      // Add activity for the note
-      const activity: Activity = {
-        id: Math.random().toString(36), // Temporary ID for UI
-        type: "note",
-        description: `Added note: ${newNote.substring(0, 50)}${newNote.length > 50 ? '...' : ''}`,
-        created_at: new Date().toISOString(),
-        author: "Current User"
-      };
-      setActivities(prev => [activity, ...prev]);
-      
-      setNewNote("");
-    } finally {
-      setAddingNote(false);
-    }
-  };
 
   const handleCompanyChange = (newCompany: any) => {
     setContact(prev => {
@@ -296,6 +216,11 @@ export default function ContactDetailPage() {
 
   const handleSaveContactInfo = async () => {
     if (!contact) return;
+    
+    // Validate all fields before saving
+    if (!validateAllFields()) {
+      return; // Don't save if validation fails
+    }
     
     // If setting this contact as primary, check for conflicts
     if (editingContactData.is_primary && !contact.contact.is_primary) {
@@ -369,35 +294,144 @@ export default function ContactDetailPage() {
     return colors[stage as keyof typeof colors] || 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600';
   };
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'email': return <Mail className="h-4 w-4" />;
-      case 'call': return <Phone className="h-4 w-4" />;
-      case 'meeting': return <Calendar className="h-4 w-4" />;
-      case 'note': return <FileText className="h-4 w-4" />;
-      default: return <MessageSquare className="h-4 w-4" />;
+  // Validation functions
+  const validateField = (field: string, value: string) => {
+    const errors: {[key: string]: string} = {};
+    
+    switch (field) {
+      case 'first_name':
+        if (!value.trim()) errors.first_name = 'First name is required';
+        break;
+      case 'last_name':
+        if (!value.trim()) errors.last_name = 'Last name is required';
+        break;
+      case 'email':
+        if (!value.trim()) {
+          errors.email = 'Email is required';
+        } else if (!isValidEmail(value)) {
+          errors.email = 'Please enter a valid email address';
+        }
+        break;
+      case 'phone':
+        if (value && !isValidPhone(value)) {
+          errors.phone = 'Phone number must be 10 digits in format (###) ###-####';
+        }
+        break;
+      case 'postal_code':
+        if (value && !isValidPostalCode(value)) {
+          errors.postal_code = 'Postal code must be valid US (12345 or 12345-1234) or Canadian (A1A 1A1) format';
+        }
+        break;
+      case 'city':
+        if (value && !/^[a-zA-Z\s\-'\.]+$/.test(value)) {
+          errors.city = 'City must contain only letters, spaces, hyphens, apostrophes, and periods';
+        }
+        break;
     }
+    
+    return errors;
   };
 
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case 'email': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'call': return 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400';
-      case 'meeting': return 'bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400';
-      case 'note': return 'bg-gray-100 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400';
-      default: return 'bg-gray-100 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400';
-    }
-  };
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const validateAllFields = () => {
+    const allErrors: {[key: string]: string} = {};
+    
+    // Validate all fields
+    Object.entries(editingContactData).forEach(([field, value]) => {
+      const fieldErrors = validateField(field, typeof value === 'string' ? value : '');
+      Object.assign(allErrors, fieldErrors);
     });
+    
+    setValidationErrors(allErrors);
+    const isValid = Object.keys(allErrors).length === 0;
+    setIsFormValid(isValid);
+    return isValid;
   };
+
+  const handleContactDataChange = (field: string, value: string) => {
+    let formattedValue = value;
+    
+    // Apply formatting
+    switch (field) {
+      case 'phone':
+        formattedValue = formatPhone(value);
+        break;
+      case 'postal_code':
+        formattedValue = formatPostalCode(value);
+        break;
+      case 'email':
+        formattedValue = formatEmail(value);
+        break;
+    }
+    
+    // Update the data
+    setEditingContactData({...editingContactData, [field]: formattedValue});
+    
+    // Validate the field
+    const fieldErrors = validateField(field, formattedValue);
+    setValidationErrors(prev => {
+      const updated = {...prev};
+      if (fieldErrors[field]) {
+        updated[field] = fieldErrors[field];
+      } else {
+        delete updated[field];
+      }
+      return updated;
+    });
+    
+    // Update form validity
+    const allErrors = {...validationErrors, ...fieldErrors};
+    if (!fieldErrors[field]) delete allErrors[field];
+    setIsFormValid(Object.keys(allErrors).length === 0);
+  };
+
+  // Activity handlers
+  const handleOpenActivityModal = (type: 'call' | 'email' | 'note' | 'meeting' | 'task') => {
+    setActivityType(type);
+    setActivityError(null); // Clear any previous errors
+    setShowCreateActivityModal(true);
+  };
+
+  const handleActivitySubmit = async (activityData: any) => {
+    if (!session?.user?.id) return;
+    
+    setActivityLoading(true);
+    setActivityError(null);
+    
+    try {
+      const response = await fetch(`/api/contacts/${contactId}/activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...activityData,
+          primary_entity_type: 'contact',
+          primary_entity_id: parseInt(contactId),
+          user_id: parseInt(session.user.id),
+        }),
+      });
+
+      if (response.ok) {
+        setShowCreateActivityModal(false);
+        setActivityError(null);
+        // Refresh activity feed without affecting bi-directional sync
+        if (refreshActivityFeedRef.current) {
+          refreshActivityFeedRef.current();
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create activity' }));
+        setActivityError(errorData.message || `Failed to create activity (${response.status})`);
+        console.error('Failed to create activity:', errorData);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Network error creating activity';
+      setActivityError(errorMessage);
+      console.error('Error creating activity:', error);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -567,6 +601,8 @@ export default function ContactDetailPage() {
                         variant="ghost"
                         size="sm"
                         onClick={handleSaveContactInfo}
+                        disabled={!isFormValid}
+                        className={!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}
                       >
                         <Save className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                       </Button>
@@ -597,37 +633,46 @@ export default function ContactDetailPage() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          First Name
+                          First Name *
                         </label>
                         <Input
                           value={editingContactData.first_name}
-                          onChange={(e) => setEditingContactData({...editingContactData, first_name: e.target.value})}
+                          onChange={(e) => handleContactDataChange('first_name', e.target.value)}
                           placeholder="First name"
-                          className="text-gray-900 dark:text-gray-100"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.first_name ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.first_name && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.first_name}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Last Name
+                          Last Name *
                         </label>
                         <Input
                           value={editingContactData.last_name}
-                          onChange={(e) => setEditingContactData({...editingContactData, last_name: e.target.value})}
+                          onChange={(e) => handleContactDataChange('last_name', e.target.value)}
                           placeholder="Last name"
-                          className="text-gray-900 dark:text-gray-100"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.last_name ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.last_name && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.last_name}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Email
+                          Email *
                         </label>
                         <Input
                           type="email"
                           value={editingContactData.email}
-                          onChange={(e) => setEditingContactData({...editingContactData, email: e.target.value})}
+                          onChange={(e) => handleContactDataChange('email', e.target.value)}
                           placeholder="Email address"
-                          className="text-gray-900 dark:text-gray-100"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.email ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.email && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -635,10 +680,13 @@ export default function ContactDetailPage() {
                         </label>
                         <Input
                           value={editingContactData.phone}
-                          onChange={(e) => setEditingContactData({...editingContactData, phone: e.target.value})}
-                          placeholder="Phone number"
-                          className="text-gray-900 dark:text-gray-100"
+                          onChange={(e) => handleContactDataChange('phone', e.target.value)}
+                          placeholder="(###) ###-####"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.phone ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.phone && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-4">
@@ -688,10 +736,13 @@ export default function ContactDetailPage() {
                         </label>
                         <Input
                           value={editingContactData.city}
-                          onChange={(e) => setEditingContactData({...editingContactData, city: e.target.value})}
+                          onChange={(e) => handleContactDataChange('city', e.target.value)}
                           placeholder="City"
-                          className="text-gray-900 dark:text-gray-100"
+                          className={`text-gray-900 dark:text-gray-100 ${validationErrors.city ? 'border-red-500 dark:border-red-500' : ''}`}
                         />
+                        {validationErrors.city && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.city}</p>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
@@ -711,10 +762,13 @@ export default function ContactDetailPage() {
                           </label>
                           <Input
                             value={editingContactData.postal_code}
-                            onChange={(e) => setEditingContactData({...editingContactData, postal_code: e.target.value})}
-                            placeholder="Postal code"
-                            className="text-gray-900 dark:text-gray-100"
+                            onChange={(e) => handleContactDataChange('postal_code', e.target.value)}
+                            placeholder="12345 or A1A 1A1"
+                            className={`text-gray-900 dark:text-gray-100 ${validationErrors.postal_code ? 'border-red-500 dark:border-red-500' : ''}`}
                           />
+                          {validationErrors.postal_code && (
+                            <p className="text-red-500 text-xs mt-1">{validationErrors.postal_code}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -826,62 +880,63 @@ export default function ContactDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Lead Management Section - Only show for leads */}
-            {(() => {
-              // Check if this contact should show lead management fields
-              const effectiveType = contact.contact.type || contact.company?.type;
-              return effectiveType === 'lead';
-            })() && (
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                  <MessageSquare className="h-5 w-5" />
-                  Lead Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Lead Status and Temperature - Side by side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                      Lead Status
-                    </label>
-                    <LeadStatusDropdown
-                      entityType="contact"
-                      entityId={contact.contact.id}
-                      contact={{
-                        lead_status: contact.contact.lead_status,
-                        lead_temperature: contact.contact.lead_temperature,
-                        lead_source: contact.contact.lead_source,
-                        lead_owner_id: contact.contact.lead_owner_id,
-                        type: contact.contact.type
-                      }}
-                      onStatusUpdate={fetchContactData}
-                      size="sm"
-                    />
+            {/* Lead Management and Company Information - Side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Lead Management Section - Left sub-column, only show for leads */}
+              {(() => {
+                // Check if this contact should show lead management fields
+                const effectiveType = contact.contact.type || contact.company?.type;
+                return effectiveType === 'lead';
+              })() && (
+              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                    <User className="h-5 w-5" />
+                    Lead Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Lead Status and Temperature - Stacked for sub-column */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                        Lead Status
+                      </label>
+                      <LeadStatusDropdown
+                        entityType="contact"
+                        entityId={contact.contact.id}
+                        contact={{
+                          lead_status: contact.contact.lead_status,
+                          lead_temperature: contact.contact.lead_temperature,
+                          lead_source: contact.contact.lead_source,
+                          lead_owner_id: contact.contact.lead_owner_id,
+                          type: contact.contact.type
+                        }}
+                        onStatusUpdate={fetchContactData}
+                        size="sm"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                        Lead Temperature
+                      </label>
+                      <LeadTemperatureDropdown
+                        entityType="contact"
+                        entityId={contact.contact.id}
+                        contact={{
+                          lead_status: contact.contact.lead_status,
+                          lead_temperature: contact.contact.lead_temperature,
+                          lead_source: contact.contact.lead_source,
+                          lead_owner_id: contact.contact.lead_owner_id,
+                          type: contact.contact.type
+                        }}
+                        onTemperatureUpdate={fetchContactData}
+                        size="sm"
+                      />
+                    </div>
                   </div>
                   
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                      Lead Temperature
-                    </label>
-                    <LeadTemperatureDropdown
-                      entityType="contact"
-                      entityId={contact.contact.id}
-                      contact={{
-                        lead_status: contact.contact.lead_status,
-                        lead_temperature: contact.contact.lead_temperature,
-                        lead_source: contact.contact.lead_source,
-                        lead_owner_id: contact.contact.lead_owner_id,
-                        type: contact.contact.type
-                      }}
-                      onTemperatureUpdate={fetchContactData}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -894,8 +949,6 @@ export default function ContactDetailPage() {
                         }
                       </p>
                     </div>
-                  </div>
-                  <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Lead Owner
@@ -922,67 +975,156 @@ export default function ContactDetailPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            )}
+                </CardContent>
+              </Card>
+              )}
 
-            {/* Notes Section */}
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-gray-900 dark:text-gray-100">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Notes ({notes.length})
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Add Note */}
-                <div className="space-y-3">
-                  <Textarea
-                    placeholder="Add a note about this contact..."
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    className="min-h-[100px] bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                  />
-                  <Button 
-                    onClick={addNote} 
-                    disabled={!newNote.trim() || addingNote}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    {addingNote ? 'Adding...' : 'Add Note'}
-                  </Button>
-                </div>
-
-                {notes.length > 0 && <Separator />}
-
-                {/* Notes List */}
-                {notes.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">
-                      No notes yet. Add the first note above.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {notes.map((note) => (
-                      <div key={note.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
-                        <p className="text-gray-900 dark:text-gray-100 mb-3 leading-relaxed">{note.content}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span className="font-medium">{note.author}</span>
-                          <span>•</span>
-                          <span>{formatDateTime(note.created_at)}</span>
+              {/* Company Information - Right sub-column, spans full width when no lead management */}
+              <div className={(() => {
+                const effectiveType = contact.contact.type || contact.company?.type;
+                return effectiveType === 'lead' ? '' : 'lg:col-span-2';
+              })()}>
+                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-gray-900 dark:text-gray-100">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5" />
+                        Company
+                      </div>
+                      {!isEditingCompany && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingCompany(true)}
+                          className="text-gray-600 dark:text-gray-400"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isEditingCompany ? (
+                      /* Edit Mode - Show Company Management */
+                      <div className="space-y-4">
+                        <CompanyPicker
+                          contactId={parseInt(contactId)}
+                          currentCompany={contact.company || null}
+                          onCompanyChange={handleCompanyChange}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelCompanyEdit}
+                            className="text-gray-600 dark:text-gray-400"
+                          >
+                            Cancel
+                          </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    ) : (
+                      /* Read-Only Mode - Show Company Info */
+                      contact.company ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
+                              {contact.company.name?.substring(0, 2).toUpperCase() || 'CO'}
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                                {contact.company.name || 'Unnamed Company'}
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Company</p>
+                            </div>
+                          </div>
+                          
+                          {(contact.company.website || contact.company.phone || companyFullAddress) && (
+                            <>
+                              <Separator className="bg-gray-200 dark:bg-gray-700" />
+                              
+                              <div className="space-y-3">
+                                {contact.company.website && (
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                      Website
+                                    </label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Globe className="h-4 w-4 text-gray-400" />
+                                      <a
+                                        href={contact.company.website.startsWith('http') ? contact.company.website : `https://${contact.company.website}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
+                                      >
+                                        {contact.company.website}
+                                      </a>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {contact.company.phone && (
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                      Phone
+                                    </label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Phone className="h-4 w-4 text-gray-400" />
+                                      <a 
+                                        href={`tel:${contact.company.phone}`}
+                                        className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                                      >
+                                        {contact.company.phone}
+                                      </a>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {companyFullAddress && (
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                      Address
+                                    </label>
+                                    <div className="flex items-start gap-2 mt-1">
+                                      <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                                      <p className="text-gray-900 dark:text-gray-100 text-sm">
+                                        {companyFullAddress}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                          
+                          <Separator className="bg-gray-200 dark:bg-gray-700" />
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            onClick={() => contact.company && window.open(`/dashboard/companies/${contact.company.id}`, '_blank')}
+                          >
+                            <Building2 className="h-4 w-4 mr-2" />
+                            View Company Details
+                          </Button>
+                        </div>
+                      ) : (
+                        /* No Company Assigned */
+                        <div className="text-center py-6">
+                          <Building2 className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
+                          <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                            No company associated with this contact
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
 
             {/* Related Deals */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
@@ -1092,230 +1234,96 @@ export default function ContactDetailPage() {
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Right Sidebar - Activity Feed */}
           <div className="space-y-6">
-            {/* Company Information */}
+            {/* Quick Actions Icon Bar */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-gray-900 dark:text-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Company
+              <CardHeader className="pb-3">
+                <CardTitle className="text-gray-900 dark:text-gray-100 text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activityError && (
+                  <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                    <p className="text-sm text-red-600 dark:text-red-400">{activityError}</p>
                   </div>
-                  {!isEditingCompany && (
+                )}
+                <div className="flex justify-center gap-3">
+                  <Tooltip content="Log Call">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setIsEditingCompany(true)}
-                      className="text-gray-600 dark:text-gray-400"
+                      onClick={() => handleOpenActivityModal('call')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
                     >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
+                      <Phone className="h-5 w-5" />
                     </Button>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isEditingCompany ? (
-                  /* Edit Mode - Show Company Management */
-                  <div className="space-y-4">
-                    <CompanyPicker
-                      contactId={parseInt(contactId)}
-                      currentCompany={contact.company || null}
-                      onCompanyChange={handleCompanyChange}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCancelCompanyEdit}
-                        className="text-gray-600 dark:text-gray-400"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  /* Read-Only Mode - Show Company Info */
-                  contact.company ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
-                          {contact.company.name?.substring(0, 2).toUpperCase() || 'CO'}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                            {contact.company.name || 'Unnamed Company'}
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Company</p>
-                        </div>
-                      </div>
-                      
-                      {(contact.company.website || contact.company.phone || companyFullAddress) && (
-                        <>
-                          <Separator className="bg-gray-200 dark:bg-gray-700" />
-                          
-                          <div className="space-y-3">
-                            {contact.company.website && (
-                              <div>
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                  Website
-                                </label>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Globe className="h-4 w-4 text-gray-400" />
-                                  <a
-                                    href={contact.company.website.startsWith('http') ? contact.company.website : `https://${contact.company.website}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
-                                  >
-                                    {contact.company.website}
-                                  </a>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {contact.company.phone && (
-                              <div>
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                  Phone
-                                </label>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Phone className="h-4 w-4 text-gray-400" />
-                                  <a 
-                                    href={`tel:${contact.company.phone}`}
-                                    className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                                  >
-                                    {contact.company.phone}
-                                  </a>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {companyFullAddress && (
-                              <div>
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                  Address
-                                </label>
-                                <div className="flex items-start gap-2 mt-1">
-                                  <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                                  <p className="text-gray-900 dark:text-gray-100 text-sm">
-                                    {companyFullAddress}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
-                      
-                      <Separator className="bg-gray-200 dark:bg-gray-700" />
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                        onClick={() => contact.company && window.open(`/dashboard/companies/${contact.company.id}`, '_blank')}
-                      >
-                        <Building2 className="h-4 w-4 mr-2" />
-                        View Company Details
-                      </Button>
-                    </div>
-                  ) : (
-                    /* No Company Assigned */
-                    <div className="text-center py-6">
-                      <Building2 className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
-                      <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                        No company associated with this contact
-                      </p>
-                    </div>
-                  )
-                )}
+                  </Tooltip>
+
+                  <Tooltip content="Send Email">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('email')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
+                    >
+                      <Mail className="h-5 w-5" />
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip content="Add Note">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('note')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
+                    >
+                      <FileText className="h-5 w-5" />
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip content="Schedule Meeting">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('meeting')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
+                    >
+                      <Calendar className="h-5 w-5" />
+                    </Button>
+                  </Tooltip>
+
+                  <Tooltip content="Create Task">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('task')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-800"
+                    >
+                      <CheckSquare className="h-5 w-5" />
+                    </Button>
+                  </Tooltip>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Activity Timeline */}
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                  <Clock className="h-5 w-5" />
-                  Recent Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {activities.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
-                    <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                      No activities yet.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {activities.slice(0, 5).map((activity, index) => (
-                      <div key={activity.id} className="flex gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className={`flex h-8 w-8 items-center justify-center rounded-full ${getActivityColor(activity.type)}`}>
-                            {getActivityIcon(activity.type)}
-                          </div>
-                          {index < activities.slice(0, 5).length - 1 && (
-                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mt-2" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-900 dark:text-gray-100 leading-relaxed">
-                            {activity.description}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            <span>{activity.author}</span>
-                            <span>•</span>
-                            <span>{formatDateTime(activity.created_at)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {activities.length > 5 && (
-                      <div className="text-center pt-3">
-                        <Button variant="ghost" size="sm" className="text-blue-600 dark:text-blue-400">
-                          View All Activities ({activities.length})
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-gray-100">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Email
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  <Phone className="h-4 w-4 mr-2" />
-                  Schedule Call
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  onClick={() => setIsEditingDeals(true)}
-                >
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Manage Deals
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Activity Feed */}
+            {session?.user?.id && (
+              <ActivityFeed
+                entityType="contact"
+                entityId={parseInt(contactId)}
+                userId={parseInt(session.user.id)}
+                showQuickActions={false}
+                className=""
+                onRefresh={(refreshFn) => {
+                  refreshActivityFeedRef.current = refreshFn;
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1335,6 +1343,19 @@ export default function ContactDetailPage() {
         cancelText="Cancel"
         variant="warning"
       />
+
+      {/* Create Activity Modal */}
+      {session?.user?.id && (
+        <CreateActivityModal
+          isOpen={showCreateActivityModal}
+          onClose={() => setShowCreateActivityModal(false)}
+          onSubmit={handleActivitySubmit}
+          initialType={activityType}
+          entityType="contact"
+          entityId={parseInt(contactId)}
+          userId={parseInt(session.user.id)}
+        />
+      )}
     </ClientDashboardLayout>
   );
 } 

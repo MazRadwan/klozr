@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { ClientDashboardLayout } from '@/components/layout/ClientDashboardLayout';
@@ -15,15 +15,22 @@ import { NewContactModal } from '@/components/contacts/NewContactModal';
 import { CompanyDealPicker } from '@/components/deals/CompanyDealPicker';
 import { EntityTypeDropdown } from '@/components/entityTypes/EntityTypeDropdown';
 import { LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads';
+import { ActivityFeed, CreateActivityModal } from '@/components/activities';
+import { Tooltip } from '@/components/ui/tooltip';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
-  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink, Check, Save, X
+  FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink, Check
 } from 'lucide-react';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
   DropdownMenuSeparator, DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
+import { 
+  formatPhone, formatPostalCode, formatEmail, formatWebsite,
+  isValidPhone, isValidPostalCode, isValidEmail, isValidWebsite, 
+  isValidFoundedYear, isValidEmployeeCount 
+} from '@/lib/formatUtils';
 
 interface Company {
   id: number;
@@ -50,21 +57,6 @@ interface Company {
   created_at?: string;
 }
 
-interface Note {
-  id: string;
-  content: string;
-  created_at: string;
-  created_by: string;
-}
-
-interface Activity {
-  id: string;
-  type: 'email' | 'call' | 'meeting' | 'note';
-  title: string;
-  description?: string;
-  created_at: string;
-  created_by: string;
-}
 
 interface Contact {
   id: number;
@@ -87,24 +79,30 @@ interface Contact {
 export default function CompanyDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { data: session } = useSession();
   const companyId = params.id as string;
   
   const [company, setCompany] = useState<Company | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newNote, setNewNote] = useState('');
   
   // Modal states
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [newContactModalOpen, setNewContactModalOpen] = useState(false);
   
+  // Activity states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createModalType, setCreateModalType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
+  
+  // Activity refresh functionality
+  const refreshActivityFeedRef = useRef<(() => void) | null>(null);
+  
   // Edit states
   const [isEditingDeals, setIsEditingDeals] = useState(false);
   const [isEditingCompanyInfo, setIsEditingCompanyInfo] = useState(false);
   const [editingCompanyData, setEditingCompanyData] = useState({
+    name: '',
     email: '',
     phone: '',
     website: '',
@@ -119,12 +117,21 @@ export default function CompanyDetailPage() {
     employees: '',
     revenue: ''
   });
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [isFormValid, setIsFormValid] = useState(true);
 
   useEffect(() => {
     if (companyId) {
       fetchCompanyData();
     }
   }, [companyId]);
+
+  // Validate form when editing starts or data changes
+  useEffect(() => {
+    if (isEditingCompanyInfo) {
+      validateAllCompanyFields();
+    }
+  }, [isEditingCompanyInfo, editingCompanyData]);
 
   const fetchCompanyData = async () => {
     console.log('📊 fetchCompanyData called for company:', companyId);
@@ -135,47 +142,7 @@ export default function CompanyDetailPage() {
       if (!res.ok) throw new Error('Failed to fetch company');
       const companyData = await res.json();
 
-      const mockNotes: Note[] = [
-        {
-          id: 'note-1',
-          content: 'Initial company research completed. Strong technology portfolio and growing market presence.',
-          created_at: '2024-01-15T10:30:00Z',
-          created_by: 'John Doe'
-        },
-        {
-          id: 'note-2', 
-          content: 'Discussed potential partnership opportunities. Follow up meeting scheduled for next week.',
-          created_at: '2024-01-10T14:20:00Z',
-          created_by: 'Jane Smith'
-        }
-      ];
 
-      const mockActivities: Activity[] = [
-        {
-          id: 'activity-1',
-          type: 'meeting',
-          title: 'Partnership Discussion',
-          description: 'Met with leadership team to discuss strategic partnership',
-          created_at: '2024-01-16T09:00:00Z',
-          created_by: 'John Doe'
-        },
-        {
-          id: 'activity-2',
-          type: 'email',
-          title: 'Follow-up Email Sent',
-          description: 'Sent follow-up with partnership proposal details',
-          created_at: '2024-01-15T16:30:00Z',
-          created_by: 'Jane Smith'
-        },
-        {
-          id: 'activity-3',
-          type: 'call',
-          title: 'Initial Contact Call',
-          description: 'First outreach call to introduce our services',
-          created_at: '2024-01-12T11:15:00Z',
-          created_by: 'Mike Johnson'
-        }
-      ];
 
       // Fetch real contacts for this company
       const contactsRes = await fetch(`/api/contacts?company_id=${companyId}`);
@@ -196,8 +163,6 @@ export default function CompanyDetailPage() {
       }
 
       setCompany(companyData);
-      setNotes(mockNotes);
-      setActivities(mockActivities);
       setContacts(realContacts);
       setDeals(realDeals);
       console.log('✅ Updated deals state with:', realDeals.length, 'deals');
@@ -208,19 +173,6 @@ export default function CompanyDetailPage() {
     }
   };
 
-  const handleAddNote = async () => {
-    if (!newNote.trim()) return;
-    
-    const note: Note = {
-      id: Math.random().toString(36), // Temporary ID for UI
-      content: newNote,
-      created_at: new Date().toISOString(),
-      created_by: 'Current User'
-    };
-    
-    setNotes(prev => [note, ...prev]);
-    setNewNote('');
-  };
 
   const handleContactManagement = () => {
     setContactPickerOpen(true);
@@ -248,6 +200,7 @@ export default function CompanyDetailPage() {
     if (!company) return;
     
     setEditingCompanyData({
+      name: company.name || '',
       email: company.email || '',
       phone: company.phone || '',
       website: company.website || '',
@@ -267,6 +220,11 @@ export default function CompanyDetailPage() {
 
   const handleSaveCompanyInfo = async () => {
     if (!company) return;
+    
+    // Validate all fields before saving
+    if (!validateAllCompanyFields()) {
+      return; // Don't save if validation fails
+    }
     
     try {
       const response = await fetch(`/api/companies/${companyId}`, {
@@ -292,30 +250,46 @@ export default function CompanyDetailPage() {
     setIsEditingCompanyInfo(false);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  // Quick action handlers
+  const handleQuickAction = (type: 'call' | 'email' | 'note' | 'meeting' | 'task') => {
+    setCreateModalType(type);
+    setIsCreateModalOpen(true);
   };
 
-  const getActivityIcon = (type: Activity['type']) => {
-    switch (type) {
-      case 'email':
-        return <Mail className="h-4 w-4 text-blue-500" />;
-      case 'call':
-        return <PhoneCall className="h-4 w-4 text-green-500" />;
-      case 'meeting':
-        return <Video className="h-4 w-4 text-purple-500" />;
-      case 'note':
-        return <FileText className="h-4 w-4 text-gray-500" />;
-      default:
-        return <MessageSquare className="h-4 w-4 text-gray-500" />;
+  // Handle create activity
+  const handleCreateActivity = async (activityData: any) => {
+    try {
+      console.log('Creating activity with data:', activityData);
+      console.log('Session user ID:', session?.user?.id);
+      
+      const response = await fetch(`/api/companies/${companyId}/activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...activityData,
+          user_id: parseInt(session?.user?.id || '0'),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`Failed to create activity: ${response.status} - ${errorText}`);
+      }
+
+      // Refresh activities
+      if (refreshActivityFeedRef.current) {
+        refreshActivityFeedRef.current();
+      }
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      throw error;
     }
   };
+
 
   const getIndustryColor = (industry?: string) => {
     const colors: { [key: string]: string } = {
@@ -326,6 +300,109 @@ export default function CompanyDetailPage() {
       'Finance': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
     };
     return colors[industry || ''] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+  };
+
+  // Validation functions for company
+  const validateCompanyField = (field: string, value: string) => {
+    const errors: {[key: string]: string} = {};
+    
+    switch (field) {
+      case 'name':
+        if (!value.trim()) errors.name = 'Company name is required';
+        break;
+      case 'email':
+        if (value && !isValidEmail(value)) {
+          errors.email = 'Please enter a valid email address';
+        }
+        break;
+      case 'phone':
+        if (value && !isValidPhone(value)) {
+          errors.phone = 'Phone number must be 10 digits in format (###) ###-####';
+        }
+        break;
+      case 'website':
+        if (value && !isValidWebsite(value)) {
+          errors.website = 'Please enter a valid website URL';
+        }
+        break;
+      case 'postal_code':
+        if (value && !isValidPostalCode(value)) {
+          errors.postal_code = 'Postal code must be valid US (12345 or 12345-1234) or Canadian (A1A 1A1) format';
+        }
+        break;
+      case 'city':
+        if (value && !/^[a-zA-Z\s\-'\.]+$/.test(value)) {
+          errors.city = 'City must contain only letters, spaces, hyphens, apostrophes, and periods';
+        }
+        break;
+      case 'founded':
+        if (value && !isValidFoundedYear(value)) {
+          errors.founded = 'Founded year must be a 4-digit year between 1800 and current year';
+        }
+        break;
+      case 'employees':
+        if (value && !isValidEmployeeCount(value)) {
+          errors.employees = 'Employee count must be a positive number';
+        }
+        break;
+    }
+    
+    return errors;
+  };
+
+  const validateAllCompanyFields = () => {
+    const allErrors: {[key: string]: string} = {};
+    
+    // Validate all fields
+    Object.entries(editingCompanyData).forEach(([field, value]) => {
+      const fieldErrors = validateCompanyField(field, typeof value === 'string' ? value : '');
+      Object.assign(allErrors, fieldErrors);
+    });
+    
+    setValidationErrors(allErrors);
+    const isValid = Object.keys(allErrors).length === 0;
+    setIsFormValid(isValid);
+    return isValid;
+  };
+
+  const handleCompanyDataChange = (field: string, value: string) => {
+    let formattedValue = value;
+    
+    // Apply formatting
+    switch (field) {
+      case 'phone':
+        formattedValue = formatPhone(value);
+        break;
+      case 'postal_code':
+        formattedValue = formatPostalCode(value);
+        break;
+      case 'email':
+        formattedValue = formatEmail(value);
+        break;
+      case 'website':
+        formattedValue = formatWebsite(value);
+        break;
+    }
+    
+    // Update the data
+    setEditingCompanyData({...editingCompanyData, [field]: formattedValue});
+    
+    // Validate the field
+    const fieldErrors = validateCompanyField(field, formattedValue);
+    setValidationErrors(prev => {
+      const updated = {...prev};
+      if (fieldErrors[field]) {
+        updated[field] = fieldErrors[field];
+      } else {
+        delete updated[field];
+      }
+      return updated;
+    });
+    
+    // Update form validity
+    const allErrors = {...validationErrors, ...fieldErrors};
+    if (!fieldErrors[field]) delete allErrors[field];
+    setIsFormValid(Object.keys(allErrors).length === 0);
   };
 
   const formatCurrency = (amount?: number) => 
@@ -510,30 +587,13 @@ export default function CompanyDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Company Information */}
-          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800 max-w-screen-md w-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Company Information
               </CardTitle>
               <div className="flex gap-2">
-                {isEditingCompanyInfo ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleSaveCompanyInfo}
-                    >
-                      <Save className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelCompanyInfoEdit}
-                    >
-                      <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                    </Button>
-                  </>
-                ) : (
+                {!isEditingCompanyInfo && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -548,45 +608,26 @@ export default function CompanyDetailPage() {
             <CardContent className="space-y-4">
               {isEditingCompanyInfo ? (
                 // Edit Mode
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
-                    <div>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    {/* Company Name */}
+                    <div className="md:col-span-12">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Email
+                        Company Name *
                       </label>
                       <Input
-                        type="email"
-                        value={editingCompanyData.email}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, email: e.target.value})}
-                        placeholder="Email address"
-                        className="text-gray-900 dark:text-gray-100"
+                        value={editingCompanyData.name}
+                        onChange={(e) => handleCompanyDataChange('name', e.target.value)}
+                        placeholder="Company name"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.name ? 'border-red-500 dark:border-red-500' : ''}`}
                       />
+                      {validationErrors.name && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.name}</p>
+                      )}
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Phone
-                      </label>
-                      <Input
-                        value={editingCompanyData.phone}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, phone: e.target.value})}
-                        placeholder="Phone number"
-                        className="text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Website
-                      </label>
-                      <Input
-                        value={editingCompanyData.website}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, website: e.target.value})}
-                        placeholder="Website URL"
-                        className="text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
+
+                    {/* Address Row */}
+                    <div className="md:col-span-8">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Address
                       </label>
@@ -597,66 +638,106 @@ export default function CompanyDetailPage() {
                         className="text-gray-900 dark:text-gray-100"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          City
-                        </label>
-                        <Input
-                          value={editingCompanyData.city}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, city: e.target.value})}
-                          placeholder="City"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          State
-                        </label>
-                        <Input
-                          value={editingCompanyData.state}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, state: e.target.value})}
-                          placeholder="State"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Postal Code
-                        </label>
-                        <Input
-                          value={editingCompanyData.postal_code}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, postal_code: e.target.value})}
-                          placeholder="Postal code"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Country
-                        </label>
-                        <Input
-                          value={editingCompanyData.country}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, country: e.target.value})}
-                          placeholder="Country"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                    </div>
-                    <div>
+                    <div className="md:col-span-4">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Founded
+                        City
                       </label>
                       <Input
-                        value={editingCompanyData.founded}
-                        onChange={(e) => setEditingCompanyData({...editingCompanyData, founded: e.target.value})}
-                        placeholder="Founded year"
+                        value={editingCompanyData.city}
+                        onChange={(e) => handleCompanyDataChange('city', e.target.value)}
+                        placeholder="City"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.city ? 'border-red-500 dark:border-red-500' : ''}`}
+                      />
+                      {validationErrors.city && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.city}</p>
+                      )}
+                    </div>
+
+                    {/* State / Postal / Country */}
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        State
+                      </label>
+                      <Input
+                        value={editingCompanyData.state}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, state: e.target.value})}
+                        placeholder="State"
                         className="text-gray-900 dark:text-gray-100"
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Postal Code
+                      </label>
+                      <Input
+                        value={editingCompanyData.postal_code}
+                        onChange={(e) => handleCompanyDataChange('postal_code', e.target.value)}
+                        placeholder="12345 or A1A 1A1"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.postal_code ? 'border-red-500 dark:border-red-500' : ''}`}
+                      />
+                      {validationErrors.postal_code && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.postal_code}</p>
+                      )}
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Country
+                      </label>
+                      <Input
+                        value={editingCompanyData.country}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, country: e.target.value})}
+                        placeholder="Country"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    {/* Contact Row */}
+                    <div className="md:col-span-5">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Email
+                      </label>
+                      <Input
+                        type="email"
+                        value={editingCompanyData.email}
+                        onChange={(e) => handleCompanyDataChange('email', e.target.value)}
+                        placeholder="Email address"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.email ? 'border-red-500 dark:border-red-500' : ''}`}
+                      />
+                      {validationErrors.email && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+                      )}
+                    </div>
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Phone
+                      </label>
+                      <Input
+                        value={editingCompanyData.phone}
+                        onChange={(e) => handleCompanyDataChange('phone', e.target.value)}
+                        placeholder="(###) ###-####"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.phone ? 'border-red-500 dark:border-red-500' : ''}`}
+                      />
+                      {validationErrors.phone && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+                      )}
+                    </div>
+                    <div className="md:col-span-4">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Website
+                      </label>
+                      <Input
+                        value={editingCompanyData.website}
+                        onChange={(e) => handleCompanyDataChange('website', e.target.value)}
+                        placeholder="https://example.com"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.website ? 'border-red-500 dark:border-red-500' : ''}`}
+                      />
+                      {validationErrors.website && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.website}</p>
+                      )}
+                    </div>
+
+                    {/* Business Metrics Row */}
+                    <div className="md:col-span-5">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Industry
                       </label>
@@ -667,34 +748,49 @@ export default function CompanyDetailPage() {
                         className="text-gray-900 dark:text-gray-100"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Employees
-                        </label>
-                        <Input
-                          type="number"
-                          value={editingCompanyData.employees}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, employees: e.target.value})}
-                          placeholder="# of employees"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Revenue
-                        </label>
-                        <Input
-                          value={editingCompanyData.revenue}
-                          onChange={(e) => setEditingCompanyData({...editingCompanyData, revenue: e.target.value})}
-                          placeholder="Annual revenue"
-                          className="text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Founded
+                      </label>
+                      <Input
+                        value={editingCompanyData.founded}
+                        onChange={(e) => handleCompanyDataChange('founded', e.target.value)}
+                        placeholder="YYYY"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.founded ? 'border-red-500 dark:border-red-500' : ''}`}
+                      />
+                      {validationErrors.founded && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.founded}</p>
+                      )}
                     </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <div>
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Employees
+                      </label>
+                      <Input
+                        type="number"
+                        value={editingCompanyData.employees}
+                        onChange={(e) => handleCompanyDataChange('employees', e.target.value)}
+                        placeholder="100"
+                        className={`text-gray-900 dark:text-gray-100 ${validationErrors.employees ? 'border-red-500 dark:border-red-500' : ''}`}
+                      />
+                      {validationErrors.employees && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.employees}</p>
+                      )}
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Revenue
+                      </label>
+                      <Input
+                        value={editingCompanyData.revenue}
+                        onChange={(e) => setEditingCompanyData({...editingCompanyData, revenue: e.target.value})}
+                        placeholder="Annual revenue"
+                        className="text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div className="md:col-span-12">
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Description
                       </label>
@@ -706,6 +802,24 @@ export default function CompanyDetailPage() {
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelCompanyInfoEdit}
+                      className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveCompanyInfo}
+                      disabled={!isFormValid}
+                      className={`${!isFormValid ? 'opacity-50 cursor-not-allowed bg-gray-400' : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'} text-white`}
+                    >
+                      Save
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -775,99 +889,140 @@ export default function CompanyDetailPage() {
                       </div>
                     </div>
                   )}
-                  {company.industry && (
-                    <div className="flex items-center space-x-3">
-                      <Building2 className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Industry</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.industry}</p>
-                      </div>
-                    </div>
-                  )}
-                  {company.employees && (
-                    <div className="flex items-center space-x-3">
-                      <Users className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Employees</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.employees.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  )}
-                  {company.revenue && (
-                    <div className="flex items-center space-x-3">
-                      <DollarSign className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Revenue</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.revenue}</p>
-                      </div>
-                    </div>
-                  )}
-                  {company.description && (
-                    <div className="flex items-start space-x-3 md:col-span-2">
-                      <FileText className="h-4 w-4 text-gray-400 mt-1" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Description</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{company.description}</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Lead Management Section - Only show for leads */}
-          {company.type === 'lead' && (
+          {/* Key Contacts and Lead Management - Side by side layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Sub-Column: Key Contacts */}
             <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  <MessageSquare className="h-5 w-5" />
-                  Lead Management
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Key Contacts ({contacts.length})
                 </CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                  onClick={handleContactManagement}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Manage Contacts
+                </Button>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Lead Status and Temperature - Side by side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                      Lead Status
-                    </label>
-                    <LeadStatusDropdown
-                      entityType="company"
-                      entityId={company.id}
-                      company={{
-                        lead_status: company.lead_status,
-                        lead_temperature: company.lead_temperature,
-                        lead_source: company.lead_source,
-                        lead_owner_id: company.lead_owner_id,
-                        type: company.type
-                      }}
-                      onStatusUpdate={fetchCompanyData}
-                      size="sm"
-                    />
+              <CardContent>
+                <div className="space-y-3">
+                  {contacts.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                      <p className="text-sm">No contacts found for this company.</p>
+                      <p className="text-xs mt-1">Click "Manage Contacts" to add existing contacts or create new ones.</p>
+                    </div>
+                  ) : (
+                    contacts.map((contact) => (
+                    <div 
+                      key={contact.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer transition-colors"
+                      onClick={() => router.push(`/dashboard/contacts/${contact.id}`)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          {contact.avatar || `${contact.first_name?.[0] || ''}${contact.last_name?.[0] || ''}`}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {`${contact.first_name || ''} ${contact.last_name || ''}`.trim()}
+                            </p>
+                            {contact.is_primary && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+                                Primary Contact
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{contact.contact_type}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {contact.email && (
+                          <a
+                            href={`mailto:${contact.email}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </a>
+                        )}
+                        {contact.phone && (
+                          <a
+                            href={`tel:${contact.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                          >
+                            <Phone className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Right Sub-Column: Lead Management - Only show for leads */}
+            {company.type === 'lead' && (
+              <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <MessageSquare className="h-5 w-5" />
+                    Lead Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Lead Status and Temperature - Side by side */}
+                  <div className="grid grid-cols-1 gap-6">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                        Lead Status
+                      </label>
+                      <LeadStatusDropdown
+                        entityType="company"
+                        entityId={company.id}
+                        company={{
+                          lead_status: company.lead_status,
+                          lead_temperature: company.lead_temperature,
+                          lead_source: company.lead_source,
+                          lead_owner_id: company.lead_owner_id,
+                          type: company.type
+                        }}
+                        onStatusUpdate={fetchCompanyData}
+                        size="sm"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                        Lead Temperature
+                      </label>
+                      <LeadTemperatureDropdown
+                        entityType="company"
+                        entityId={company.id}
+                        company={{
+                          lead_status: company.lead_status,
+                          lead_temperature: company.lead_temperature,
+                          lead_source: company.lead_source,
+                          lead_owner_id: company.lead_owner_id,
+                          type: company.type
+                        }}
+                        onTemperatureUpdate={fetchCompanyData}
+                        size="sm"
+                      />
+                    </div>
                   </div>
                   
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                      Lead Temperature
-                    </label>
-                    <LeadTemperatureDropdown
-                      entityType="company"
-                      entityId={company.id}
-                      company={{
-                        lead_status: company.lead_status,
-                        lead_temperature: company.lead_temperature,
-                        lead_source: company.lead_source,
-                        lead_owner_id: company.lead_owner_id,
-                        type: company.type
-                      }}
-                      onTemperatureUpdate={fetchCompanyData}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -880,8 +1035,6 @@ export default function CompanyDetailPage() {
                         }
                       </p>
                     </div>
-                  </div>
-                  <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Lead Owner
@@ -908,86 +1061,10 @@ export default function CompanyDetailPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Key Contacts */}
-          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Key Contacts ({contacts.length})
-              </CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
-                onClick={handleContactManagement}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Manage Contacts
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {contacts.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    <Users className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-sm">No contacts found for this company.</p>
-                    <p className="text-xs mt-1">Click "Manage Contacts" to add existing contacts or create new ones.</p>
-                  </div>
-                ) : (
-                  contacts.map((contact) => (
-                  <div 
-                    key={contact.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/dashboard/contacts/${contact.id}`)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {contact.avatar || `${contact.first_name?.[0] || ''}${contact.last_name?.[0] || ''}`}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
-                            {`${contact.first_name || ''} ${contact.last_name || ''}`.trim()}
-                          </p>
-                          {contact.is_primary && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                              Primary Contact
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{contact.contact_type}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {contact.email && (
-                        <a
-                          href={`mailto:${contact.email}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </a>
-                      )}
-                      {contact.phone && (
-                        <a
-                          href={`tel:${contact.phone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                        >
-                          <Phone className="h-4 w-4" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
           {/* Related Deals */}
           <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
@@ -1108,117 +1185,86 @@ export default function CompanyDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Notes Section */}
-          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Add new note */}
-              <div className="space-y-2">
-                <Textarea
-                  placeholder="Add a note about this company..."
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  className="min-h-[80px] resize-none bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                />
-                <div className="flex justify-end">
-                  <Button 
-                    size="sm" 
-                    onClick={handleAddNote}
-                    disabled={!newNote.trim()}
-                  >
-                    Add Note
-                  </Button>
-                </div>
-              </div>
-
-              {/* Existing notes */}
-              <div className="space-y-3">
-                {notes.map((note) => (
-                  <div key={note.id} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-gray-900 dark:text-gray-100 text-sm leading-relaxed">
-                      {note.content}
-                    </p>
-                    <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      <span>By {note.created_by}</span>
-                      <span>{formatDate(note.created_at)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Quick Actions */}
+          {/* Quick Actions Icon Bar */}
           <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
-                <Mail className="h-4 w-4 mr-2" />
-                Send Email
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
-                <PhoneCall className="h-4 w-4 mr-2" />
-                Schedule Call
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" size="sm">
-                <Video className="h-4 w-4 mr-2" />
-                Schedule Meeting
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100" 
-                size="sm"
-                onClick={() => setIsEditingDeals(true)}
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Manage Deals
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Recent Activity
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-gray-900 dark:text-gray-100 text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {activities.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {activity.title}
-                      </p>
-                      {activity.description && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          {activity.description}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {formatDate(activity.created_at)} • {activity.created_by}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex justify-center gap-3">
+                <Tooltip content="Log Call">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction('call')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
+                  >
+                    <PhoneCall className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
+
+                <Tooltip content="Send Email">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction('email')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
+                  >
+                    <Mail className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
+
+                <Tooltip content="Add Note">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction('note')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
+                  >
+                    <FileText className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
+
+                <Tooltip content="Schedule Meeting">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction('meeting')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
+                  >
+                    <Video className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
+
+                <Tooltip content="Manage Deals">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditingDeals(true)}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-900/20 dark:hover:text-yellow-400 hover:border-yellow-200 dark:hover:border-yellow-800"
+                  >
+                    <DollarSign className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
               </div>
             </CardContent>
           </Card>
+
+          {/* Activity Feed */}
+          {session?.user?.id && (
+            <ActivityFeed
+              entityType="company"
+              entityId={company.id}
+              userId={parseInt(session.user.id)}
+              showQuickActions={false}
+              onRefresh={(refreshFn) => { refreshActivityFeedRef.current = refreshFn; }}
+              className=""
+            />
+          )}
         </div>
       </div>
 
@@ -1241,6 +1287,21 @@ export default function CompanyDetailPage() {
         companyName={company?.name || 'Company'}
         onSuccess={handleContactsUpdate}
       />
+
+      {/* Create Activity Modal */}
+      {session?.user?.id && (
+        <CreateActivityModal
+          isOpen={isCreateModalOpen}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+          }}
+          onSubmit={handleCreateActivity}
+          initialType={createModalType}
+          entityType="company"
+          entityId={company.id}
+          userId={parseInt(session.user.id)}
+        />
+      )}
       </div>
     </ClientDashboardLayout>
   );

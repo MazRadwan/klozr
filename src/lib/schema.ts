@@ -139,7 +139,38 @@ export const communications = sqliteTable('communications', {
   updated_at: text('updated_at', { mode: 'text' }),
 });
 
-// 8. Deal line‑items (bridge table: deals ↔ offerings)
+// 8. Activities (comprehensive activity tracking)
+export const activities = sqliteTable('activities', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  activity_type: text('activity_type').notNull(), // 'call', 'email', 'note', 'meeting', 'task'
+  primary_entity_type: text('primary_entity_type').notNull(), // 'contact', 'company', 'deal'
+  primary_entity_id: integer('primary_entity_id').notNull(), // where activity was created
+  user_id: integer('user_id').notNull(), // who created the activity
+  title: text('title'), // optional title/subject
+  content: text('content'), // main activity content (notes, email body, etc.)
+  data: text('data'), // flexible metadata as JSON string: {outcome, duration, sentiment, etc.}
+  parent_id: integer('parent_id'), // for threading (reply to email, follow-up call)
+  status: text('status').default('completed'), // 'completed', 'scheduled', 'pending'
+  scheduled_at: text('scheduled_at'), // for future activities (meetings, tasks)
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
+  updated_at: text('updated_at', { mode: 'text' }),
+});
+
+// 9. Activity Participants (multi-entity relationships)
+export const activity_participants = sqliteTable('activity_participants', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  activity_id: integer('activity_id').notNull(),
+  entity_type: text('entity_type').notNull(), // 'contact', 'company', 'deal'
+  entity_id: integer('entity_id').notNull(), // actual entity ID
+  role: text('role').default('participant'), // 'primary', 'participant', 'mentioned'
+  created_at: text('created_at', { mode: 'text' }).default(sql`(datetime('now'))`),
+},
+  (table) => ({
+    activityParticipantUnique: uniqueIndex('activityParticipantUnique').on(table.activity_id, table.entity_type, table.entity_id)
+  })
+);
+
+// 10. Deal line‑items (bridge table: deals ↔ offerings)
 export const deal_offerings = sqliteTable('deal_offerings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   deal_id: integer('deal_id').notNull(),
