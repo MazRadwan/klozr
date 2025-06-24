@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +119,7 @@ export default function ContactDetailPage() {
   const [activityType, setActivityType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
   const [activityError, setActivityError] = useState<string | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
+  const refreshActivityFeedRef = useRef<(() => void) | null>(null);
 
   const contactId = params.id as string;
 
@@ -413,9 +414,10 @@ export default function ContactDetailPage() {
       if (response.ok) {
         setShowCreateActivityModal(false);
         setActivityError(null);
-        // Activity feed will refresh automatically via its own data fetching
-        // Optionally refresh contact data to ensure any status changes are reflected
-        // This maintains dropdown functionality after activity creation
+        // Refresh activity feed without affecting bi-directional sync
+        if (refreshActivityFeedRef.current) {
+          refreshActivityFeedRef.current();
+        }
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Failed to create activity' }));
         setActivityError(errorData.message || `Failed to create activity (${response.status})`);
@@ -1317,6 +1319,9 @@ export default function ContactDetailPage() {
                 userId={parseInt(session.user.id)}
                 showQuickActions={false}
                 className=""
+                onRefresh={(refreshFn) => {
+                  refreshActivityFeedRef.current = refreshFn;
+                }}
               />
             )}
           </div>
