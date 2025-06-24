@@ -259,6 +259,9 @@ export default function CompanyDetailPage() {
   // Handle create activity
   const handleCreateActivity = async (activityData: any) => {
     try {
+      console.log('Creating activity with data:', activityData);
+      console.log('Session user ID:', session?.user?.id);
+      
       const response = await fetch(`/api/companies/${companyId}/activities`, {
         method: 'POST',
         headers: {
@@ -266,12 +269,14 @@ export default function CompanyDetailPage() {
         },
         body: JSON.stringify({
           ...activityData,
-          user_id: session?.user?.id,
+          user_id: parseInt(session?.user?.id || '0'),
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create activity');
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`Failed to create activity: ${response.status} - ${errorText}`);
       }
 
       // Refresh activities
