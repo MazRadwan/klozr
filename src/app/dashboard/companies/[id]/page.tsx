@@ -16,6 +16,7 @@ import { CompanyDealPicker } from '@/components/deals/CompanyDealPicker';
 import { EntityTypeDropdown } from '@/components/entityTypes/EntityTypeDropdown';
 import { LeadStatusDropdown, LeadTemperatureDropdown } from '@/components/leads';
 import { ActivityFeed, CreateActivityModal } from '@/components/activities';
+import { Tooltip } from '@/components/ui/tooltip';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
   DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
@@ -253,6 +254,35 @@ export default function CompanyDetailPage() {
   const handleQuickAction = (type: 'call' | 'email' | 'note' | 'meeting' | 'task') => {
     setCreateModalType(type);
     setIsCreateModalOpen(true);
+  };
+
+  // Handle create activity
+  const handleCreateActivity = async (activityData: any) => {
+    try {
+      const response = await fetch(`/api/companies/${companyId}/activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...activityData,
+          user_id: session?.user?.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create activity');
+      }
+
+      // Refresh activities
+      if (refreshActivityFeedRef.current) {
+        refreshActivityFeedRef.current();
+      }
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      throw error;
+    }
   };
 
 
@@ -1161,50 +1191,60 @@ export default function CompanyDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="flex justify-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAction('call')}
-                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
-                >
-                  <PhoneCall className="h-4 w-4" />
-                </Button>
+                <Tooltip content="Log Call">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction('call')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
+                  >
+                    <PhoneCall className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAction('email')}
-                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
-                >
-                  <Mail className="h-4 w-4" />
-                </Button>
+                <Tooltip content="Send Email">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction('email')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
+                  >
+                    <Mail className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAction('note')}
-                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
+                <Tooltip content="Add Note">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction('note')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
+                  >
+                    <FileText className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAction('meeting')}
-                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
-                >
-                  <Video className="h-4 w-4" />
-                </Button>
+                <Tooltip content="Schedule Meeting">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction('meeting')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
+                  >
+                    <Video className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditingDeals(true)}
-                  className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-900/20 dark:hover:text-yellow-400 hover:border-yellow-200 dark:hover:border-yellow-800"
-                >
-                  <DollarSign className="h-4 w-4" />
-                </Button>
+                <Tooltip content="Manage Deals">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditingDeals(true)}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-900/20 dark:hover:text-yellow-400 hover:border-yellow-200 dark:hover:border-yellow-800"
+                  >
+                    <DollarSign className="h-5 w-5" />
+                  </Button>
+                </Tooltip>
               </div>
             </CardContent>
           </Card>
@@ -1242,6 +1282,21 @@ export default function CompanyDetailPage() {
         companyName={company?.name || 'Company'}
         onSuccess={handleContactsUpdate}
       />
+
+      {/* Create Activity Modal */}
+      {session?.user?.id && (
+        <CreateActivityModal
+          isOpen={isCreateModalOpen}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+          }}
+          onSubmit={handleCreateActivity}
+          initialType={createModalType}
+          entityType="company"
+          entityId={company.id}
+          userId={parseInt(session.user.id)}
+        />
+      )}
       </div>
     </ClientDashboardLayout>
   );
