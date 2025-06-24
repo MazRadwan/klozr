@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { ReactQueryProvider } from '@/components/ReactQueryProvider';
+import { SessionProvider } from 'next-auth/react';
 
 export default function RootLayout({
   children,
@@ -32,7 +33,9 @@ export default function RootLayout({
       >
         <ReactQueryProvider>
           <ThemeProvider>
-            {children}
+            <SessionProvider>
+              {children}
+            </SessionProvider>
           </ThemeProvider>
         </ReactQueryProvider>
       </body>

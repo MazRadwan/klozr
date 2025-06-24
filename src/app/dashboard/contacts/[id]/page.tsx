@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { 
   ArrowLeft, Mail, Phone, MapPin, Building2, Calendar, 
-  DollarSign, ExternalLink, User, Globe, Edit, Trash2, Save, X, MessageSquare
+  DollarSign, ExternalLink, User, Globe, Edit, Trash2, Save, X, MessageSquare,
+  FileText, CheckSquare
 } from "lucide-react";
 import { 
   formatPhone, formatPostalCode, formatEmail, 
@@ -17,12 +18,15 @@ import {
 } from "@/lib/formatUtils";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { CompanyPicker } from "@/components/companies/CompanyPicker";
 import { DealPicker } from "@/components/deals/DealPicker";
 import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown";
 import { LeadStatusDropdown, LeadTemperatureDropdown } from "@/components/leads";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
+import { ActivityFeed, CreateActivityModal } from "@/components/activities";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Contact {
   contact: {
@@ -86,6 +90,7 @@ interface Contact {
 export default function ContactDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +113,12 @@ export default function ContactDetailPage() {
   const [existingPrimaryContact, setExistingPrimaryContact] = useState<any>(null);
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const [isFormValid, setIsFormValid] = useState(true);
+  
+  // Activity Feed state
+  const [showCreateActivityModal, setShowCreateActivityModal] = useState(false);
+  const [activityType, setActivityType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   const contactId = params.id as string;
 
@@ -370,6 +381,53 @@ export default function ContactDetailPage() {
     const allErrors = {...validationErrors, ...fieldErrors};
     if (!fieldErrors[field]) delete allErrors[field];
     setIsFormValid(Object.keys(allErrors).length === 0);
+  };
+
+  // Activity handlers
+  const handleOpenActivityModal = (type: 'call' | 'email' | 'note' | 'meeting' | 'task') => {
+    setActivityType(type);
+    setActivityError(null); // Clear any previous errors
+    setShowCreateActivityModal(true);
+  };
+
+  const handleActivitySubmit = async (activityData: any) => {
+    if (!session?.user?.id) return;
+    
+    setActivityLoading(true);
+    setActivityError(null);
+    
+    try {
+      const response = await fetch(`/api/contacts/${contactId}/activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...activityData,
+          primary_entity_type: 'contact',
+          primary_entity_id: parseInt(contactId),
+          user_id: parseInt(session.user.id),
+        }),
+      });
+
+      if (response.ok) {
+        setShowCreateActivityModal(false);
+        setActivityError(null);
+        // Activity feed will refresh automatically via its own data fetching
+        // Optionally refresh contact data to ensure any status changes are reflected
+        // This maintains dropdown functionality after activity creation
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create activity' }));
+        setActivityError(errorData.message || `Failed to create activity (${response.status})`);
+        console.error('Failed to create activity:', errorData);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Network error creating activity';
+      setActivityError(errorMessage);
+      console.error('Error creating activity:', error);
+    } finally {
+      setActivityLoading(false);
+    }
   };
 
 
@@ -820,62 +878,63 @@ export default function ContactDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Lead Management Section - Only show for leads */}
-            {(() => {
-              // Check if this contact should show lead management fields
-              const effectiveType = contact.contact.type || contact.company?.type;
-              return effectiveType === 'lead';
-            })() && (
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                  <User className="h-5 w-5" />
-                  Lead Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Lead Status and Temperature - Side by side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                      Lead Status
-                    </label>
-                    <LeadStatusDropdown
-                      entityType="contact"
-                      entityId={contact.contact.id}
-                      contact={{
-                        lead_status: contact.contact.lead_status,
-                        lead_temperature: contact.contact.lead_temperature,
-                        lead_source: contact.contact.lead_source,
-                        lead_owner_id: contact.contact.lead_owner_id,
-                        type: contact.contact.type
-                      }}
-                      onStatusUpdate={fetchContactData}
-                      size="sm"
-                    />
+            {/* Lead Management and Company Information - Side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Lead Management Section - Left sub-column, only show for leads */}
+              {(() => {
+                // Check if this contact should show lead management fields
+                const effectiveType = contact.contact.type || contact.company?.type;
+                return effectiveType === 'lead';
+              })() && (
+              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                    <User className="h-5 w-5" />
+                    Lead Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Lead Status and Temperature - Stacked for sub-column */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                        Lead Status
+                      </label>
+                      <LeadStatusDropdown
+                        entityType="contact"
+                        entityId={contact.contact.id}
+                        contact={{
+                          lead_status: contact.contact.lead_status,
+                          lead_temperature: contact.contact.lead_temperature,
+                          lead_source: contact.contact.lead_source,
+                          lead_owner_id: contact.contact.lead_owner_id,
+                          type: contact.contact.type
+                        }}
+                        onStatusUpdate={fetchContactData}
+                        size="sm"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
+                        Lead Temperature
+                      </label>
+                      <LeadTemperatureDropdown
+                        entityType="contact"
+                        entityId={contact.contact.id}
+                        contact={{
+                          lead_status: contact.contact.lead_status,
+                          lead_temperature: contact.contact.lead_temperature,
+                          lead_source: contact.contact.lead_source,
+                          lead_owner_id: contact.contact.lead_owner_id,
+                          type: contact.contact.type
+                        }}
+                        onTemperatureUpdate={fetchContactData}
+                        size="sm"
+                      />
+                    </div>
                   </div>
                   
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">
-                      Lead Temperature
-                    </label>
-                    <LeadTemperatureDropdown
-                      entityType="contact"
-                      entityId={contact.contact.id}
-                      contact={{
-                        lead_status: contact.contact.lead_status,
-                        lead_temperature: contact.contact.lead_temperature,
-                        lead_source: contact.contact.lead_source,
-                        lead_owner_id: contact.contact.lead_owner_id,
-                        type: contact.contact.type
-                      }}
-                      onTemperatureUpdate={fetchContactData}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -888,8 +947,6 @@ export default function ContactDetailPage() {
                         }
                       </p>
                     </div>
-                  </div>
-                  <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
                         Lead Owner
@@ -916,10 +973,155 @@ export default function ContactDetailPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            )}
+                </CardContent>
+              </Card>
+              )}
+
+              {/* Company Information - Right sub-column, spans full width when no lead management */}
+              <div className={(() => {
+                const effectiveType = contact.contact.type || contact.company?.type;
+                return effectiveType === 'lead' ? '' : 'lg:col-span-2';
+              })()}>
+                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-gray-900 dark:text-gray-100">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5" />
+                        Company
+                      </div>
+                      {!isEditingCompany && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingCompany(true)}
+                          className="text-gray-600 dark:text-gray-400"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isEditingCompany ? (
+                      /* Edit Mode - Show Company Management */
+                      <div className="space-y-4">
+                        <CompanyPicker
+                          contactId={parseInt(contactId)}
+                          currentCompany={contact.company || null}
+                          onCompanyChange={handleCompanyChange}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelCompanyEdit}
+                            className="text-gray-600 dark:text-gray-400"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Read-Only Mode - Show Company Info */
+                      contact.company ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
+                              {contact.company.name?.substring(0, 2).toUpperCase() || 'CO'}
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                                {contact.company.name || 'Unnamed Company'}
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Company</p>
+                            </div>
+                          </div>
+                          
+                          {(contact.company.website || contact.company.phone || companyFullAddress) && (
+                            <>
+                              <Separator className="bg-gray-200 dark:bg-gray-700" />
+                              
+                              <div className="space-y-3">
+                                {contact.company.website && (
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                      Website
+                                    </label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Globe className="h-4 w-4 text-gray-400" />
+                                      <a
+                                        href={contact.company.website.startsWith('http') ? contact.company.website : `https://${contact.company.website}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
+                                      >
+                                        {contact.company.website}
+                                      </a>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {contact.company.phone && (
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                      Phone
+                                    </label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Phone className="h-4 w-4 text-gray-400" />
+                                      <a 
+                                        href={`tel:${contact.company.phone}`}
+                                        className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                                      >
+                                        {contact.company.phone}
+                                      </a>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {companyFullAddress && (
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                      Address
+                                    </label>
+                                    <div className="flex items-start gap-2 mt-1">
+                                      <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                                      <p className="text-gray-900 dark:text-gray-100 text-sm">
+                                        {companyFullAddress}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                          
+                          <Separator className="bg-gray-200 dark:bg-gray-700" />
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            onClick={() => contact.company && window.open(`/dashboard/companies/${contact.company.id}`, '_blank')}
+                          >
+                            <Building2 className="h-4 w-4 mr-2" />
+                            View Company Details
+                          </Button>
+                        </div>
+                      ) : (
+                        /* No Company Assigned */
+                        <div className="text-center py-6">
+                          <Building2 className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
+                          <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+                            No company associated with this contact
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
 
 
             {/* Related Deals */}
@@ -1030,179 +1232,120 @@ export default function ContactDetailPage() {
             </Card>
           </div>
 
-          {/* Sidebar */}
+          {/* Right Sidebar - Activity Feed */}
           <div className="space-y-6">
-            {/* Company Information */}
+            {/* Quick Actions Icon Bar */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-gray-900 dark:text-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Company
-                  </div>
-                  {!isEditingCompany && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditingCompany(true)}
-                      className="text-gray-600 dark:text-gray-400"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                  )}
-                </CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-gray-900 dark:text-gray-100 text-lg">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                {isEditingCompany ? (
-                  /* Edit Mode - Show Company Management */
-                  <div className="space-y-4">
-                    <CompanyPicker
-                      contactId={parseInt(contactId)}
-                      currentCompany={contact.company || null}
-                      onCompanyChange={handleCompanyChange}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCancelCompanyEdit}
-                        className="text-gray-600 dark:text-gray-400"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+                {activityError && (
+                  <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                    <p className="text-sm text-red-600 dark:text-red-400">{activityError}</p>
                   </div>
-                ) : (
-                  /* Read-Only Mode - Show Company Info */
-                  contact.company ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
-                          {contact.company.name?.substring(0, 2).toUpperCase() || 'CO'}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                            {contact.company.name || 'Unnamed Company'}
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Company</p>
-                        </div>
-                      </div>
-                      
-                      {(contact.company.website || contact.company.phone || companyFullAddress) && (
-                        <>
-                          <Separator className="bg-gray-200 dark:bg-gray-700" />
-                          
-                          <div className="space-y-3">
-                            {contact.company.website && (
-                              <div>
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                  Website
-                                </label>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Globe className="h-4 w-4 text-gray-400" />
-                                  <a
-                                    href={contact.company.website.startsWith('http') ? contact.company.website : `https://${contact.company.website}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
-                                  >
-                                    {contact.company.website}
-                                  </a>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {contact.company.phone && (
-                              <div>
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                  Phone
-                                </label>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Phone className="h-4 w-4 text-gray-400" />
-                                  <a 
-                                    href={`tel:${contact.company.phone}`}
-                                    className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                                  >
-                                    {contact.company.phone}
-                                  </a>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {companyFullAddress && (
-                              <div>
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                  Address
-                                </label>
-                                <div className="flex items-start gap-2 mt-1">
-                                  <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                                  <p className="text-gray-900 dark:text-gray-100 text-sm">
-                                    {companyFullAddress}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
-                      
-                      <Separator className="bg-gray-200 dark:bg-gray-700" />
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                        onClick={() => contact.company && window.open(`/dashboard/companies/${contact.company.id}`, '_blank')}
-                      >
-                        <Building2 className="h-4 w-4 mr-2" />
-                        View Company Details
-                      </Button>
-                    </div>
-                  ) : (
-                    /* No Company Assigned */
-                    <div className="text-center py-6">
-                      <Building2 className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
-                      <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                        No company associated with this contact
-                      </p>
-                    </div>
-                  )
                 )}
+                <TooltipProvider>
+                  <div className="flex justify-center gap-3">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenActivityModal('call')}
+                          disabled={activityLoading}
+                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
+                        >
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Log Call</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenActivityModal('email')}
+                          disabled={activityLoading}
+                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Send Email</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenActivityModal('note')}
+                          disabled={activityLoading}
+                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Add Note</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenActivityModal('meeting')}
+                          disabled={activityLoading}
+                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
+                        >
+                          <Calendar className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Schedule Meeting</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenActivityModal('task')}
+                          disabled={activityLoading}
+                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-800"
+                        >
+                          <CheckSquare className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Create Task</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
               </CardContent>
             </Card>
 
-
-            {/* Quick Actions */}
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-gray-100">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Email
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  <Phone className="h-4 w-4 mr-2" />
-                  Schedule Call
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  onClick={() => setIsEditingDeals(true)}
-                >
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Manage Deals
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Activity Feed */}
+            {session?.user && (
+              <ActivityFeed
+                entityType="contact"
+                entityId={parseInt(contactId)}
+                userId={parseInt(session.user.id)}
+                showQuickActions={false}
+                className=""
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1222,6 +1365,19 @@ export default function ContactDetailPage() {
         cancelText="Cancel"
         variant="warning"
       />
+
+      {/* Create Activity Modal */}
+      {session?.user && (
+        <CreateActivityModal
+          isOpen={showCreateActivityModal}
+          onClose={() => setShowCreateActivityModal(false)}
+          onSubmit={handleActivitySubmit}
+          initialType={activityType}
+          entityType="contact"
+          entityId={parseInt(contactId)}
+          userId={parseInt(session.user.id)}
+        />
+      )}
     </ClientDashboardLayout>
   );
 } 
