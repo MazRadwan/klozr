@@ -26,7 +26,7 @@ import { EntityTypeDropdown } from "@/components/entityTypes/EntityTypeDropdown"
 import { LeadStatusDropdown, LeadTemperatureDropdown } from "@/components/leads";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { ActivityFeed, CreateActivityModal } from "@/components/activities";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface Contact {
   contact: {
@@ -1245,99 +1245,72 @@ export default function ContactDetailPage() {
                     <p className="text-sm text-red-600 dark:text-red-400">{activityError}</p>
                   </div>
                 )}
-                <TooltipProvider>
-                  <div className="flex justify-center gap-3">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenActivityModal('call')}
-                          disabled={activityLoading}
-                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
-                        >
-                          <Phone className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Log Call</p>
-                      </TooltipContent>
-                    </Tooltip>
+                <div className="flex justify-center gap-3">
+                  <Tooltip content="Log Call">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('call')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
+                    >
+                      <Phone className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenActivityModal('email')}
-                          disabled={activityLoading}
-                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Send Email</p>
-                      </TooltipContent>
-                    </Tooltip>
+                  <Tooltip content="Send Email">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('email')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenActivityModal('note')}
-                          disabled={activityLoading}
-                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Add Note</p>
-                      </TooltipContent>
-                    </Tooltip>
+                  <Tooltip content="Add Note">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('note')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenActivityModal('meeting')}
-                          disabled={activityLoading}
-                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
-                        >
-                          <Calendar className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Schedule Meeting</p>
-                      </TooltipContent>
-                    </Tooltip>
+                  <Tooltip content="Schedule Meeting">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('meeting')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
+                    >
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenActivityModal('task')}
-                          disabled={activityLoading}
-                          className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-800"
-                        >
-                          <CheckSquare className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create Task</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </TooltipProvider>
+                  <Tooltip content="Create Task">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenActivityModal('task')}
+                      disabled={activityLoading}
+                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-800"
+                    >
+                      <CheckSquare className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                </div>
               </CardContent>
             </Card>
 
             {/* Activity Feed */}
-            {session?.user && (
+            {session?.user?.id && (
               <ActivityFeed
                 entityType="contact"
                 entityId={parseInt(contactId)}
@@ -1367,7 +1340,7 @@ export default function ContactDetailPage() {
       />
 
       {/* Create Activity Modal */}
-      {session?.user && (
+      {session?.user?.id && (
         <CreateActivityModal
           isOpen={showCreateActivityModal}
           onClose={() => setShowCreateActivityModal(false)}
