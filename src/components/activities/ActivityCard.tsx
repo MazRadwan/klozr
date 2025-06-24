@@ -74,17 +74,17 @@ export function ActivityCard({
   const getActivityColor = () => {
     switch (activity.activity_type) {
       case 'call':
-        return 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400';
+        return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
       case 'email':
-        return 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400';
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
       case 'note':
-        return 'bg-gray-100 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400';
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
       case 'meeting':
-        return 'bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400';
+        return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400';
       case 'task':
-        return 'bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400';
+        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400';
       default:
-        return 'bg-gray-100 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400';
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
     }
   };
 
@@ -149,7 +149,7 @@ export function ActivityCard({
   const shouldShowExpandButton = activity.content && activity.content.length > 150;
 
   return (
-    <div className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3 ${isChild ? 'ml-8 border-l-2 border-l-blue-200 dark:border-l-blue-800' : ''}`}>
+    <div className={`bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-4 space-y-3 shadow-sm hover:shadow-md transition-shadow ${isChild ? 'ml-8 border-l-2 border-l-blue-200 dark:border-l-blue-800' : ''}`}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1">
@@ -196,7 +196,7 @@ export function ActivityCard({
         {showActions && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -250,7 +250,7 @@ export function ActivityCard({
 
       {/* Metadata */}
       {activity.data && Object.keys(activity.data).length > 0 && isExpanded && (
-        <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
           <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
             {activity.data.duration && (
               <div>Duration: {activity.data.duration} minutes</div>
@@ -265,33 +265,6 @@ export function ActivityCard({
         </div>
       )}
 
-      {/* Quick Actions (for completed activities) */}
-      {showActions && activity.status === 'completed' && (
-        <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-          {onReply && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onReply(activity.id)}
-              className="text-xs"
-            >
-              <Reply className="h-3 w-3 mr-1" />
-              Reply
-            </Button>
-          )}
-          {onFollowUp && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onFollowUp(activity.id)}
-              className="text-xs"
-            >
-              <Clock className="h-3 w-3 mr-1" />
-              Follow Up
-            </Button>
-          )}
-        </div>
-      )}
     </div>
   );
 }
