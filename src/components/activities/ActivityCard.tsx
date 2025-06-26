@@ -5,9 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Phone, Mail, FileText, Calendar, CheckSquare, 
-  User, ChevronDown, ChevronUp, Reply, Clock,
-  MessageSquare, MoreHorizontal
+  User, ChevronDown, ChevronUp, Reply, Clock, MoreHorizontal
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -15,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ActivityIcon } from './ActivityIcon';
 
 interface ActivityUser {
   id: number;
@@ -52,41 +51,6 @@ export function ActivityCard({
 }: ActivityCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Get activity type icon
-  const getActivityIcon = () => {
-    switch (activity.activity_type) {
-      case 'call':
-        return <Phone className="h-4 w-4" />;
-      case 'email':
-        return <Mail className="h-4 w-4" />;
-      case 'note':
-        return <FileText className="h-4 w-4" />;
-      case 'meeting':
-        return <Calendar className="h-4 w-4" />;
-      case 'task':
-        return <CheckSquare className="h-4 w-4" />;
-      default:
-        return <MessageSquare className="h-4 w-4" />;
-    }
-  };
-
-  // Get activity type color
-  const getActivityColor = () => {
-    switch (activity.activity_type) {
-      case 'call':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
-      case 'email':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'note':
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
-      case 'meeting':
-        return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400';
-      case 'task':
-        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400';
-      default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
-    }
-  };
 
   // Get status badge
   const getStatusBadge = () => {
@@ -154,9 +118,10 @@ export function ActivityCard({
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1">
           {/* Activity Icon */}
-          <div className={`flex h-8 w-8 items-center justify-center rounded-full ${getActivityColor()}`}>
-            {getActivityIcon()}
-          </div>
+          <ActivityIcon 
+            type={activity.activity_type}
+            size="md"
+          />
           
           {/* Activity Info */}
           <div className="flex-1 min-w-0">
