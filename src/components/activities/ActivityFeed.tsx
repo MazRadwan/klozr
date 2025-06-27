@@ -78,7 +78,7 @@ export function ActivityFeed({
   const ITEMS_PER_PAGE = 20;
 
   // Fetch activities with pagination and search
-  const fetchActivities = async (pageNum = 0, append = false, searchQuery?: string) => {
+  const fetchActivities = async (pageNum = 0, append = false, searchQuery?: string, typeFilter?: ActivityType[]) => {
     try {
       if (!append) {
         // Show the full-page loader only for the initial fetch or manual refresh.
@@ -117,15 +117,16 @@ export function ActivityFeed({
       params.append('sort_order', currentSort.order);
       
       // Add activity type filter
-      if (selectedTypes.length > 0) {
-        params.append('activity_type', selectedTypes.join(','));
+      const currentTypes = typeFilter !== undefined ? typeFilter : selectedTypes;
+      if (currentTypes.length > 0) {
+        params.append('activity_type', currentTypes.join(','));
       }
       
       console.log('ActivityFeed fetch params:', {
         searchQuery: currentSearch,
         sortBy: currentSort.field,
         sortOrder: currentSort.order,
-        activityTypeFilter: selectedTypes,
+        activityTypeFilter: currentTypes,
         allParams: params.toString()
       });
       
@@ -206,8 +207,8 @@ export function ActivityFeed({
   const handleTypeFilterChange = (types: ActivityType[]) => {
     setSelectedTypes(types);
     setIsSearching(true);
-    // Reset pagination and fetch with new type filter
-    fetchActivities(0, false, searchTerm).finally(() => {
+    // Reset pagination and fetch with new type filter - pass types directly to avoid state timing issues
+    fetchActivities(0, false, searchTerm, types).finally(() => {
       setIsSearching(false);
     });
   };
