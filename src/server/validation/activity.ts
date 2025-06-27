@@ -88,7 +88,10 @@ export const sortOrderSchema = z.enum(['asc', 'desc']);
 
 // Activity query parameters schema
 export const activityQuerySchema = z.object({
-  activity_type: activityTypeSchema.optional(),
+  activity_type: z.union([
+    activityTypeSchema,
+    z.string().transform(val => val.split(',').filter(t => ['call', 'email', 'note', 'meeting', 'task'].includes(t) as any))
+  ]).optional(), // Support single type or comma-separated types
   status: activityStatusSchema.optional(),
   q: z.string().max(255).optional(), // Search query parameter
   sort_by: sortFieldSchema.optional(), // Sort field parameter
