@@ -72,6 +72,8 @@ export interface ActivityQueryOptions {
   activityType?: ActivityType;
   status?: ActivityStatus;
   searchQuery?: string; // Search parameter for title and content
+  sortBy?: 'created_at' | 'title' | 'activity_type' | 'status'; // Sort field
+  sortOrder?: 'asc' | 'desc'; // Sort order
   limit?: number;
   offset?: number;
   includeParticipants?: boolean;

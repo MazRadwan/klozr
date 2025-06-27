@@ -245,8 +245,15 @@ export class ActivityRepository {
 
     query = query.where(and(...whereConditions));
 
-    // Add ordering
-    query = query.orderBy(desc(activities.created_at));
+    // Add ordering based on options
+    const sortField = options.sortBy || 'created_at';
+    const sortOrder = options.sortOrder || 'desc';
+    
+    if (sortOrder === 'asc') {
+      query = query.orderBy(asc(activities[sortField]));
+    } else {
+      query = query.orderBy(desc(activities[sortField]));
+    }
 
     // Add limit
     if (options.limit) {
@@ -482,8 +489,15 @@ export class ActivityRepository {
       query = query.where(and(...whereConditions));
     }
 
-    // Add ordering
-    query = query.orderBy(desc(activities.created_at));
+    // Add ordering based on options
+    const sortField = options.sortBy || 'created_at';
+    const sortOrder = options.sortOrder || 'desc';
+    
+    if (sortOrder === 'asc') {
+      query = query.orderBy(asc(activities[sortField]));
+    } else {
+      query = query.orderBy(desc(activities[sortField]));
+    }
 
     // Add limit
     if (options.limit) {

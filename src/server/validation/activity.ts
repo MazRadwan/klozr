@@ -82,11 +82,17 @@ export const scheduleFollowUpSchema = z.object({
   parent_id: z.number().int().positive().optional()
 });
 
+// Sorting validation schemas
+export const sortFieldSchema = z.enum(['created_at', 'title', 'activity_type', 'status']);
+export const sortOrderSchema = z.enum(['asc', 'desc']);
+
 // Activity query parameters schema
 export const activityQuerySchema = z.object({
   activity_type: activityTypeSchema.optional(),
   status: activityStatusSchema.optional(),
   q: z.string().max(255).optional(), // Search query parameter
+  sort_by: sortFieldSchema.optional(), // Sort field parameter
+  sort_order: sortOrderSchema.default('desc').optional(), // Sort order parameter
   limit: z.string().transform(val => parseInt(val)).pipe(z.number().int().min(1).max(100)).default('20').optional(),
   offset: z.string().transform(val => parseInt(val)).pipe(z.number().int().min(0)).default('0').optional(),
   include_participants: z.string().transform(val => val === 'true').pipe(z.boolean()).default('false').optional(),
