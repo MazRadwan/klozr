@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Clock, Plus, RefreshCw, MessageSquare } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { ActivitySearchBar } from './ActivitySearchBar';
+import { ActivitySortDropdown, type SortOption } from './ActivitySortDropdown';
 import { QuickActions } from './QuickActions';
 import { CreateActivityModal } from './CreateActivityModal';
 
@@ -59,6 +60,13 @@ export function ActivityFeed({
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   
+  // Sort state
+  const [currentSort, setCurrentSort] = useState<SortOption>({
+    field: 'created_at',
+    order: 'desc',
+    label: 'Newest first'
+  });
+  
   // Lazy loading state
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -99,6 +107,10 @@ export function ActivityFeed({
       if (currentSearch && currentSearch.trim()) {
         params.append('q', currentSearch.trim());
       }
+      
+      // Add sort parameters
+      params.append('sort_by', currentSort.field);
+      params.append('sort_order', currentSort.order);
       
       const response = await fetch(`/api/${entityEndpoint}/${entityId}/activities?${params.toString()}`);
       
@@ -159,6 +171,16 @@ export function ActivityFeed({
     setIsSearching(true);
     // Reset pagination and fetch with new search term
     fetchActivities(0, false, term).finally(() => {
+      setIsSearching(false);
+    });
+  };
+
+  // Sort handler
+  const handleSortChange = (sort: SortOption) => {
+    setCurrentSort(sort);
+    setIsSearching(true);
+    // Reset pagination and fetch with new sort
+    fetchActivities(0, false, searchTerm).finally(() => {
       setIsSearching(false);
     });
   };
@@ -334,31 +356,45 @@ export function ActivityFeed({
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4 max-h-[72rem] overflow-y-auto">
-          {/* Search Bar */}
-          <ActivitySearchBar
-            searchTerm={searchTerm}
-            onSearchChange={handleSearchChange}
-            isLoading={isSearching}
-            placeholder="Search activities by title or content..."
-          />
-          
-          {/* Quick Actions */}
-          {showQuickActions && (
-            <>
-              <QuickActions
-                onLogCall={() => handleQuickAction('call')}
-                onSendEmail={() => handleQuickAction('email')}
-                onAddNote={() => handleQuickAction('note')}
-                onScheduleMeeting={() => handleQuickAction('meeting')}
-                onCreateTask={() => handleQuickAction('task')}
-                disabled={loading}
+        <CardContent className="space-y-4">
+          {/* Sticky Search and Actions Container */}
+          <div className="sticky top-0 bg-white dark:bg-gray-900 z-10 pb-4 space-y-4">
+            {/* Search and Sort Row */}
+            <div className="flex gap-3 items-center">
+              <div className="flex-1">
+                <ActivitySearchBar
+                  searchTerm={searchTerm}
+                  onSearchChange={handleSearchChange}
+                  isLoading={isSearching}
+                  placeholder="Search activities by title or content..."
+                />
+              </div>
+              <ActivitySortDropdown
+                currentSort={currentSort}
+                onSortChange={handleSortChange}
+                className="flex-shrink-0"
               />
-              <Separator />
-            </>
-          )}
+            </div>
+            
+            {/* Quick Actions */}
+            {showQuickActions && (
+              <>
+                <QuickActions
+                  onLogCall={() => handleQuickAction('call')}
+                  onSendEmail={() => handleQuickAction('email')}
+                  onAddNote={() => handleQuickAction('note')}
+                  onScheduleMeeting={() => handleQuickAction('meeting')}
+                  onCreateTask={() => handleQuickAction('task')}
+                  disabled={loading}
+                />
+                <Separator />
+              </>
+            )}
+          </div>
 
-          {/* Activities Feed */}
+          {/* Scrollable Activities Feed */}
+          <div className="max-h-[48rem] overflow-y-auto">
+            {/* Activities Feed */}
           {activities.length === 0 ? (
             <div className="text-center py-8">
               <Clock className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
@@ -434,6 +470,7 @@ export function ActivityFeed({
               )}
             </div>
           )}
+          </div> {/* Close scrollable activities container */}
         </CardContent>
       </Card>
 
