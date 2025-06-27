@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { activities, activity_participants, users, contacts, companies, deals } from '@/lib/schema';
-import { eq, and, or, inArray, desc, asc } from 'drizzle-orm';
+import { eq, and, or, inArray, desc, asc, like } from 'drizzle-orm';
 import { 
   Activity, 
   CreateActivityData, 
@@ -232,6 +232,17 @@ export class ActivityRepository {
       whereConditions.push(eq(activities.status, options.status));
     }
 
+    // Add search condition for title and content
+    if (options.searchQuery && options.searchQuery.trim()) {
+      const searchTerm = `%${options.searchQuery.trim()}%`;
+      whereConditions.push(
+        or(
+          like(activities.title, searchTerm),
+          like(activities.content, searchTerm)
+        )
+      );
+    }
+
     query = query.where(and(...whereConditions));
 
     // Add ordering
@@ -454,6 +465,17 @@ export class ActivityRepository {
 
     if (options.status) {
       whereConditions.push(eq(activities.status, options.status));
+    }
+
+    // Add search condition for title and content
+    if (options.searchQuery && options.searchQuery.trim()) {
+      const searchTerm = `%${options.searchQuery.trim()}%`;
+      whereConditions.push(
+        or(
+          like(activities.title, searchTerm),
+          like(activities.content, searchTerm)
+        )
+      );
     }
 
     if (whereConditions.length > 0) {

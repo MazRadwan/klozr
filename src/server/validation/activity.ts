@@ -86,6 +86,7 @@ export const scheduleFollowUpSchema = z.object({
 export const activityQuerySchema = z.object({
   activity_type: activityTypeSchema.optional(),
   status: activityStatusSchema.optional(),
+  q: z.string().max(255).optional(), // Search query parameter
   limit: z.string().transform(val => parseInt(val)).pipe(z.number().int().min(1).max(100)).default('20').optional(),
   offset: z.string().transform(val => parseInt(val)).pipe(z.number().int().min(0)).default('0').optional(),
   include_participants: z.string().transform(val => val === 'true').pipe(z.boolean()).default('false').optional(),

@@ -22,6 +22,7 @@ export const GET = withAuthParamsHandler(async (
     const activities = await activityService.getActivitiesForEntity('company', companyId, {
       activityType: queryParams.activity_type,
       status: queryParams.status,
+      searchQuery: queryParams.q, // Add search parameter
       limit: queryParams.limit,
       offset: queryParams.offset,
       includeParticipants: queryParams.include_participants,

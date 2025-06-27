@@ -71,6 +71,7 @@ export interface ActivityQueryOptions {
   entityId?: number;
   activityType?: ActivityType;
   status?: ActivityStatus;
+  searchQuery?: string; // Search parameter for title and content
   limit?: number;
   offset?: number;
   includeParticipants?: boolean;
