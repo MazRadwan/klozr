@@ -8,6 +8,7 @@ import { Clock, Plus, RefreshCw, MessageSquare } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { ActivitySearchBar } from './ActivitySearchBar';
 import { ActivitySortDropdown, type SortOption } from './ActivitySortDropdown';
+import { ActivityTypeFilter, type ActivityType } from './ActivityTypeFilter';
 import { QuickActions } from './QuickActions';
 import { CreateActivityModal } from './CreateActivityModal';
 
@@ -67,6 +68,9 @@ export function ActivityFeed({
     label: 'Newest first'
   });
   
+  // Filter state
+  const [selectedTypes, setSelectedTypes] = useState<ActivityType[]>([]);
+  
   // Lazy loading state
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -111,6 +115,19 @@ export function ActivityFeed({
       // Add sort parameters
       params.append('sort_by', currentSort.field);
       params.append('sort_order', currentSort.order);
+      
+      // Add activity type filter
+      if (selectedTypes.length > 0) {
+        params.append('activity_type', selectedTypes.join(','));
+      }
+      
+      console.log('ActivityFeed fetch params:', {
+        searchQuery: currentSearch,
+        sortBy: currentSort.field,
+        sortOrder: currentSort.order,
+        activityTypeFilter: selectedTypes,
+        allParams: params.toString()
+      });
       
       const response = await fetch(`/api/${entityEndpoint}/${entityId}/activities?${params.toString()}`);
       
@@ -180,6 +197,16 @@ export function ActivityFeed({
     setCurrentSort(sort);
     setIsSearching(true);
     // Reset pagination and fetch with new sort
+    fetchActivities(0, false, searchTerm).finally(() => {
+      setIsSearching(false);
+    });
+  };
+
+  // Type filter handler
+  const handleTypeFilterChange = (types: ActivityType[]) => {
+    setSelectedTypes(types);
+    setIsSearching(true);
+    // Reset pagination and fetch with new type filter
     fetchActivities(0, false, searchTerm).finally(() => {
       setIsSearching(false);
     });
@@ -369,11 +396,16 @@ export function ActivityFeed({
                   placeholder="Search activities by title or content..."
                 />
               </div>
-              <ActivitySortDropdown
-                currentSort={currentSort}
-                onSortChange={handleSortChange}
-                className="flex-shrink-0"
-              />
+              <div className="flex gap-2 flex-shrink-0">
+                <ActivityTypeFilter
+                  selectedTypes={selectedTypes}
+                  onTypesChange={handleTypeFilterChange}
+                />
+                <ActivitySortDropdown
+                  currentSort={currentSort}
+                  onSortChange={handleSortChange}
+                />
+              </div>
             </div>
             
             {/* Quick Actions */}
