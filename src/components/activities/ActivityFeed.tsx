@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Clock, Plus, RefreshCw, MessageSquare } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
+import { ActivitySearchBar } from './ActivitySearchBar';
+import { ActivitySortDropdown, type SortOption } from './ActivitySortDropdown';
+import { ActivityTypeFilter, type ActivityType } from './ActivityTypeFilter';
 import { QuickActions } from './QuickActions';
 import { CreateActivityModal } from './CreateActivityModal';
 
@@ -54,17 +57,37 @@ export function ActivityFeed({
   const [createModalType, setCreateModalType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
   const [replyToActivityId, setReplyToActivityId] = useState<number | null>(null);
   
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  
+  // Sort state
+  const [currentSort, setCurrentSort] = useState<SortOption>({
+    field: 'created_at',
+    order: 'desc',
+    label: 'Newest first'
+  });
+  
+  // Filter state
+  const [selectedTypes, setSelectedTypes] = useState<ActivityType[]>([]);
+  
   // Lazy loading state
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const ITEMS_PER_PAGE = 20;
 
-  // Fetch activities with pagination
-  const fetchActivities = async (pageNum = 0, append = false) => {
+  // Fetch activities with pagination and search
+  const fetchActivities = async (pageNum = 0, append = false, searchQuery?: string, typeFilter?: ActivityType[]) => {
     try {
       if (!append) {
-        setLoading(true);
+        // Show the full-page loader only for the initial fetch or manual refresh.
+        // When a search query is present we keep the feed visible so the input
+        // remains focused and the UI doesn't "freeze" while results load.
+        if (!searchQuery || !searchQuery.trim()) {
+          setLoading(true);
+        }
+
         setError(null);
         setPage(0);
         setHasMore(true);
@@ -74,7 +97,40 @@ export function ActivityFeed({
       
       const offset = pageNum * ITEMS_PER_PAGE;
       const entityEndpoint = entityType === 'company' ? 'companies' : `${entityType}s`;
-      const response = await fetch(`/api/${entityEndpoint}/${entityId}/activities?include_user=true&include_participants=false&limit=${ITEMS_PER_PAGE}&offset=${offset}`);
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        include_user: 'true',
+        include_participants: 'false',
+        limit: ITEMS_PER_PAGE.toString(),
+        offset: offset.toString()
+      });
+      
+      // Add search parameter if provided
+      const currentSearch = searchQuery !== undefined ? searchQuery : searchTerm;
+      if (currentSearch && currentSearch.trim()) {
+        params.append('q', currentSearch.trim());
+      }
+      
+      // Add sort parameters
+      params.append('sort_by', currentSort.field);
+      params.append('sort_order', currentSort.order);
+      
+      // Add activity type filter
+      const currentTypes = typeFilter !== undefined ? typeFilter : selectedTypes;
+      if (currentTypes.length > 0) {
+        params.append('activity_type', currentTypes.join(','));
+      }
+      
+      console.log('ActivityFeed fetch params:', {
+        searchQuery: currentSearch,
+        sortBy: currentSort.field,
+        sortOrder: currentSort.order,
+        activityTypeFilter: currentTypes,
+        allParams: params.toString()
+      });
+      
+      const response = await fetch(`/api/${entityEndpoint}/${entityId}/activities?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch activities: ${response.status}`);
@@ -83,7 +139,12 @@ export function ActivityFeed({
       const data = await response.json();
       
       if (append) {
-        setActivities(prev => [...prev, ...data]);
+        // Merge without duplicates to prevent React key collisions
+        setActivities(prev => {
+          const existingIds = new Set(prev.map(a => a.id));
+          const uniqueNew = data.filter((a: Activity) => !existingIds.has(a.id));
+          return [...prev, ...uniqueNew];
+        });
       } else {
         setActivities(data);
       }
@@ -110,7 +171,7 @@ export function ActivityFeed({
   };
 
   // Intersection observer for lazy loading
-  const observerRef = useRef<IntersectionObserver>();
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const lastActivityElementRef = useCallback((node: HTMLDivElement) => {
     if (loading || loadingMore) return;
     if (observerRef.current) observerRef.current.disconnect();
@@ -122,6 +183,36 @@ export function ActivityFeed({
     if (node) observerRef.current.observe(node);
   }, [loading, loadingMore, hasMore]);
 
+  // Search handler
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+    setIsSearching(true);
+    // Reset pagination and fetch with new search term
+    fetchActivities(0, false, term).finally(() => {
+      setIsSearching(false);
+    });
+  };
+
+  // Sort handler
+  const handleSortChange = (sort: SortOption) => {
+    setCurrentSort(sort);
+    setIsSearching(true);
+    // Reset pagination and fetch with new sort
+    fetchActivities(0, false, searchTerm).finally(() => {
+      setIsSearching(false);
+    });
+  };
+
+  // Type filter handler
+  const handleTypeFilterChange = (types: ActivityType[]) => {
+    setSelectedTypes(types);
+    setIsSearching(true);
+    // Reset pagination and fetch with new type filter - pass types directly to avoid state timing issues
+    fetchActivities(0, false, searchTerm, types).finally(() => {
+      setIsSearching(false);
+    });
+  };
+
   // Initial fetch
   useEffect(() => {
     fetchActivities();
@@ -130,9 +221,9 @@ export function ActivityFeed({
   // Expose refresh function to parent
   useEffect(() => {
     if (onRefresh) {
-      onRefresh(fetchActivities);
+      onRefresh(() => fetchActivities(0, false, searchTerm));
     }
-  }, [onRefresh]);
+  }, [onRefresh, searchTerm]);
 
   // Handle create activity
   const handleCreateActivity = async (activityData: any) => {
@@ -155,7 +246,7 @@ export function ActivityFeed({
       }
 
       // Refresh activities
-      await fetchActivities();
+      await fetchActivities(0, false, searchTerm);
       setReplyToActivityId(null);
     } catch (error) {
       console.error('Error creating activity:', error);
@@ -249,7 +340,7 @@ export function ActivityFeed({
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchActivities}
+              onClick={() => fetchActivities(0, false, searchTerm)}
               className="mt-2"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -274,7 +365,7 @@ export function ActivityFeed({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={fetchActivities}
+                onClick={() => fetchActivities(0, false, searchTerm)}
                 className="h-8 w-8 p-0"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -293,32 +384,64 @@ export function ActivityFeed({
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4 max-h-[72rem] overflow-y-auto">
-          {/* Quick Actions */}
-          {showQuickActions && (
-            <>
-              <QuickActions
-                onLogCall={() => handleQuickAction('call')}
-                onSendEmail={() => handleQuickAction('email')}
-                onAddNote={() => handleQuickAction('note')}
-                onScheduleMeeting={() => handleQuickAction('meeting')}
-                onCreateTask={() => handleQuickAction('task')}
-                disabled={loading}
-              />
-              <Separator />
-            </>
-          )}
+        <CardContent className="space-y-4">
+          {/* Sticky Search and Actions Container */}
+          <div className="sticky top-0 bg-white dark:bg-gray-900 z-10 pb-4 space-y-4">
+            {/* Search and Sort Row */}
+            <div className="flex gap-3 items-center">
+              <div className="flex-1">
+                <ActivitySearchBar
+                  searchTerm={searchTerm}
+                  onSearchChange={handleSearchChange}
+                  isLoading={isSearching}
+                  placeholder="Search activities by title or content..."
+                />
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <ActivityTypeFilter
+                  selectedTypes={selectedTypes}
+                  onTypesChange={handleTypeFilterChange}
+                />
+                <ActivitySortDropdown
+                  currentSort={currentSort}
+                  onSortChange={handleSortChange}
+                />
+              </div>
+            </div>
+            
+            {/* Quick Actions */}
+            {showQuickActions && (
+              <>
+                <QuickActions
+                  onLogCall={() => handleQuickAction('call')}
+                  onSendEmail={() => handleQuickAction('email')}
+                  onAddNote={() => handleQuickAction('note')}
+                  onScheduleMeeting={() => handleQuickAction('meeting')}
+                  onCreateTask={() => handleQuickAction('task')}
+                  disabled={loading}
+                />
+                <Separator />
+              </>
+            )}
+          </div>
 
-          {/* Activities Feed */}
+          {/* Scrollable Activities Feed */}
+          <div className="max-h-[48rem] overflow-y-auto">
+            {/* Activities Feed */}
           {activities.length === 0 ? (
             <div className="text-center py-8">
               <Clock className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600" />
               <p className="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-                No activities yet.
+                {searchTerm ? `No activities found for "${searchTerm}"` : 'No activities yet.'}
               </p>
-              {showQuickActions && (
+              {!searchTerm && showQuickActions && (
                 <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
                   Use the quick actions above to get started.
+                </p>
+              )}
+              {searchTerm && (
+                <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
+                  Try searching for different terms or clear the search to see all activities.
                 </p>
               )}
             </div>
@@ -380,6 +503,7 @@ export function ActivityFeed({
               )}
             </div>
           )}
+          </div> {/* Close scrollable activities container */}
         </CardContent>
       </Card>
 
@@ -395,7 +519,7 @@ export function ActivityFeed({
         entityType={entityType}
         entityId={entityId}
         userId={userId}
-        parentActivityId={replyToActivityId}
+        parentActivityId={replyToActivityId ?? undefined}
       />
     </>
   );

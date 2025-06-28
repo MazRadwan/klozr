@@ -12,6 +12,9 @@ export const GET = withAuthHandler(async (req: NextRequest) => {
     const activities = await activityService.getAllActivities({
       activityType: queryParams.activity_type,
       status: queryParams.status,
+      searchQuery: queryParams.q, // Add search parameter
+      sortBy: queryParams.sort_by, // Add sort field parameter
+      sortOrder: queryParams.sort_order, // Add sort order parameter
       limit: queryParams.limit,
       offset: queryParams.offset,
       includeParticipants: queryParams.include_participants,

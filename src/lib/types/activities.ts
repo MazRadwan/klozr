@@ -69,8 +69,11 @@ export interface UpdateActivityInput {
 export interface ActivityQueryOptions {
   entityType?: EntityType;
   entityId?: number;
-  activityType?: ActivityType;
+  activityType?: ActivityType | ActivityType[]; // Support single type or array of types
   status?: ActivityStatus;
+  searchQuery?: string; // Search parameter for title and content
+  sortBy?: 'created_at' | 'title' | 'activity_type' | 'status'; // Sort field
+  sortOrder?: 'asc' | 'desc'; // Sort order
   limit?: number;
   offset?: number;
   includeParticipants?: boolean;

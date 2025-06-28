@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { activities, activity_participants, users, contacts, companies, deals } from '@/lib/schema';
-import { eq, and, or, inArray, desc, asc } from 'drizzle-orm';
+import { eq, and, or, inArray, desc, asc, like, SQL } from 'drizzle-orm';
 import { 
   Activity, 
   CreateActivityData, 
@@ -225,17 +225,55 @@ export class ActivityRepository {
     let whereConditions = [inArray(activities.id, activityIds)];
 
     if (options.activityType) {
-      whereConditions.push(eq(activities.activity_type, options.activityType));
+      if (Array.isArray(options.activityType)) {
+        if (options.activityType.length > 0) {
+          whereConditions.push(inArray(activities.activity_type, options.activityType));
+        }
+      } else {
+        whereConditions.push(eq(activities.activity_type, options.activityType));
+      }
     }
 
     if (options.status) {
       whereConditions.push(eq(activities.status, options.status));
     }
 
+    // Add search condition for title and content
+    if (options.searchQuery && options.searchQuery.trim()) {
+      const searchTerm = `%${options.searchQuery.trim()}%`;
+      whereConditions.push(
+        or(
+          like(activities.title, searchTerm),
+          like(activities.content, searchTerm)
+        )
+      );
+    }
+
     query = query.where(and(...whereConditions));
 
-    // Add ordering
-    query = query.orderBy(desc(activities.created_at));
+    // Add ordering based on options
+    const sortField = options.sortBy || 'created_at';
+    const sortOrder = options.sortOrder || 'desc';
+    
+    console.log('ActivityRepository findByEntities sorting:', { sortField, sortOrder, activityType: options.activityType });
+    
+    // Map sort field to actual column reference
+    const getOrderByColumn = (field: string) => {
+      switch (field) {
+        case 'created_at': return activities.created_at;
+        case 'title': return activities.title;
+        case 'activity_type': return activities.activity_type;
+        case 'status': return activities.status;
+        default: return activities.created_at;
+      }
+    };
+    
+    const orderColumn = getOrderByColumn(sortField);
+    if (sortOrder === 'asc') {
+      query = query.orderBy(asc(orderColumn));
+    } else {
+      query = query.orderBy(desc(orderColumn));
+    }
 
     // Add limit
     if (options.limit) {
@@ -449,19 +487,55 @@ export class ActivityRepository {
     let whereConditions = [];
 
     if (options.activityType) {
-      whereConditions.push(eq(activities.activity_type, options.activityType));
+      if (Array.isArray(options.activityType)) {
+        if (options.activityType.length > 0) {
+          whereConditions.push(inArray(activities.activity_type, options.activityType));
+        }
+      } else {
+        whereConditions.push(eq(activities.activity_type, options.activityType));
+      }
     }
 
     if (options.status) {
       whereConditions.push(eq(activities.status, options.status));
     }
 
+    // Add search condition for title and content
+    if (options.searchQuery && options.searchQuery.trim()) {
+      const searchTerm = `%${options.searchQuery.trim()}%`;
+      whereConditions.push(
+        or(
+          like(activities.title, searchTerm),
+          like(activities.content, searchTerm)
+        )
+      );
+    }
+
     if (whereConditions.length > 0) {
       query = query.where(and(...whereConditions));
     }
 
-    // Add ordering
-    query = query.orderBy(desc(activities.created_at));
+    // Add ordering based on options
+    const sortField = options.sortBy || 'created_at';
+    const sortOrder = options.sortOrder || 'desc';
+    
+    // Map sort field to actual column reference
+    const getOrderByColumn = (field: string) => {
+      switch (field) {
+        case 'created_at': return activities.created_at;
+        case 'title': return activities.title;
+        case 'activity_type': return activities.activity_type;
+        case 'status': return activities.status;
+        default: return activities.created_at;
+      }
+    };
+    
+    const orderColumn = getOrderByColumn(sortField);
+    if (sortOrder === 'asc') {
+      query = query.orderBy(asc(orderColumn));
+    } else {
+      query = query.orderBy(desc(orderColumn));
+    }
 
     // Add limit
     if (options.limit) {
