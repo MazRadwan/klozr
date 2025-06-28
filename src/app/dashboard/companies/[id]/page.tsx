@@ -19,7 +19,7 @@ import { ActivityFeed, CreateActivityModal } from '@/components/activities';
 import { Tooltip } from '@/components/ui/tooltip';
 import { 
   ArrowLeft, Building2, Mail, Phone, Globe, MapPin, Users, 
-  DollarSign, Calendar, MessageSquare, PhoneCall, Video, 
+  DollarSign, Calendar, MessageSquare, CheckSquare, 
   FileText, Edit, Trash2, UserPlus, Plus, MoreHorizontal, ExternalLink, Check
 } from 'lucide-react';
 import { 
@@ -1203,7 +1203,7 @@ export default function CompanyDetailPage() {
                     onClick={() => handleQuickAction('call')}
                     className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
                   >
-                    <PhoneCall className="h-5 w-5" />
+                    <Phone className="h-5 w-5" />
                   </Button>
                 </Tooltip>
 
@@ -1236,18 +1236,18 @@ export default function CompanyDetailPage() {
                     onClick={() => handleQuickAction('meeting')}
                     className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
                   >
-                    <Video className="h-5 w-5" />
+                    <Calendar className="h-5 w-5" />
                   </Button>
                 </Tooltip>
 
-                <Tooltip content="Manage Deals">
+                <Tooltip content="Create Task">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsEditingDeals(true)}
-                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-900/20 dark:hover:text-yellow-400 hover:border-yellow-200 dark:hover:border-yellow-800"
+                    onClick={() => handleQuickAction('task')}
+                    className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-800"
                   >
-                    <DollarSign className="h-5 w-5" />
+                    <CheckSquare className="h-5 w-5" />
                   </Button>
                 </Tooltip>
               </div>
