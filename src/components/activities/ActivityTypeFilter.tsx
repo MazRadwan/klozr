@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,37 +49,25 @@ export function ActivityTypeFilter({
   };
 
   const hasFilters = selectedTypes.length > 0;
-  const isAllSelected = selectedTypes.length === ACTIVITY_TYPES.length;
-  const getButtonText = () => {
-    if (!hasFilters) return 'Filter by type';
-    if (isAllSelected) return 'All types';
-    if (selectedTypes.length === 1) return `${ACTIVITY_TYPES.find(t => t.type === selectedTypes[0])?.label}`;
-    return `${selectedTypes.length} types`;
-  };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm" 
-          className={`h-8 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 ${hasFilters ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400' : ''} ${className}`}
+          className={`h-8 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 ${hasFilters ? 'text-blue-600 dark:text-blue-400' : ''} ${className}`}
         >
-          <ActivityIcon 
-            type={selectedTypes.length === 1 ? selectedTypes[0] : 'note'} 
-            size="sm" 
-            iconOnly={true}
-            className="mr-2"
-          />
-          {getButtonText()}
+          Type
           {hasFilters && (
             <Badge 
               variant="secondary" 
-              className="ml-2 h-4 w-4 p-0 text-xs bg-blue-500 dark:bg-blue-600 text-white border-0 flex items-center justify-center"
+              className="ml-1 h-4 w-4 p-0 text-xs bg-blue-500 dark:bg-blue-600 text-white border-0 flex items-center justify-center"
             >
               {selectedTypes.length}
             </Badge>
           )}
+          <ChevronDown className="h-3 w-3 ml-1" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
