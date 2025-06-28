@@ -115,10 +115,8 @@ export default function ContactDetailPage() {
   const [isFormValid, setIsFormValid] = useState(true);
   
   // Activity Feed state
-  const [showCreateActivityModal, setShowCreateActivityModal] = useState(false);
-  const [activityType, setActivityType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
-  const [activityError, setActivityError] = useState<string | null>(null);
-  const [activityLoading, setActivityLoading] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createModalType, setCreateModalType] = useState<'call' | 'email' | 'note' | 'meeting' | 'task'>('note');
   const refreshActivityFeedRef = useRef<(() => void) | null>(null);
 
   const contactId = params.id as string;
@@ -385,18 +383,12 @@ export default function ContactDetailPage() {
   };
 
   // Activity handlers
-  const handleOpenActivityModal = (type: 'call' | 'email' | 'note' | 'meeting' | 'task') => {
-    setActivityType(type);
-    setActivityError(null); // Clear any previous errors
-    setShowCreateActivityModal(true);
+  const handleQuickAction = (type: 'call' | 'email' | 'note' | 'meeting' | 'task') => {
+    setCreateModalType(type);
+    setIsCreateModalOpen(true);
   };
 
   const handleActivitySubmit = async (activityData: any) => {
-    if (!session?.user?.id) return;
-    
-    setActivityLoading(true);
-    setActivityError(null);
-    
     try {
       const response = await fetch(`/api/contacts/${contactId}/activities`, {
         method: 'POST',
@@ -405,30 +397,21 @@ export default function ContactDetailPage() {
         },
         body: JSON.stringify({
           ...activityData,
-          primary_entity_type: 'contact',
-          primary_entity_id: parseInt(contactId),
-          user_id: parseInt(session.user.id),
+          user_id: parseInt(session?.user?.id || '0'),
         }),
       });
 
-      if (response.ok) {
-        setShowCreateActivityModal(false);
-        setActivityError(null);
-        // Refresh activity feed without affecting bi-directional sync
-        if (refreshActivityFeedRef.current) {
-          refreshActivityFeedRef.current();
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to create activity' }));
-        setActivityError(errorData.message || `Failed to create activity (${response.status})`);
-        console.error('Failed to create activity:', errorData);
+      if (!response.ok) {
+        throw new Error('Failed to create activity');
+      }
+
+      // Refresh activity feed
+      if (refreshActivityFeedRef.current) {
+        refreshActivityFeedRef.current();
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Network error creating activity';
-      setActivityError(errorMessage);
       console.error('Error creating activity:', error);
-    } finally {
-      setActivityLoading(false);
+      throw error;
     }
   };
 
@@ -1236,80 +1219,6 @@ export default function ContactDetailPage() {
 
           {/* Right Sidebar - Activity Feed */}
           <div className="space-y-6">
-            {/* Quick Actions Icon Bar */}
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-none hover:shadow-none">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-gray-900 dark:text-gray-100 text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {activityError && (
-                  <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-                    <p className="text-sm text-red-600 dark:text-red-400">{activityError}</p>
-                  </div>
-                )}
-                <div className="flex justify-center gap-3">
-                  <Tooltip content="Log Call">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenActivityModal('call')}
-                      disabled={activityLoading}
-                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400 hover:border-green-200 dark:hover:border-green-800"
-                    >
-                      <Phone className="h-5 w-5" />
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip content="Send Email">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenActivityModal('email')}
-                      disabled={activityLoading}
-                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
-                    >
-                      <Mail className="h-5 w-5" />
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip content="Add Note">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenActivityModal('note')}
-                      disabled={activityLoading}
-                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400 hover:border-gray-200 dark:hover:border-gray-800"
-                    >
-                      <FileText className="h-5 w-5" />
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip content="Schedule Meeting">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenActivityModal('meeting')}
-                      disabled={activityLoading}
-                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800"
-                    >
-                      <Calendar className="h-5 w-5" />
-                    </Button>
-                  </Tooltip>
-
-                  <Tooltip content="Create Task">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenActivityModal('task')}
-                      disabled={activityLoading}
-                      className="flex-1 text-gray-700 dark:text-gray-300 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-800"
-                    >
-                      <CheckSquare className="h-5 w-5" />
-                    </Button>
-                  </Tooltip>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Activity Feed */}
             {session?.user?.id && (
@@ -1318,6 +1227,8 @@ export default function ContactDetailPage() {
                 entityId={parseInt(contactId)}
                 userId={parseInt(session.user.id)}
                 showQuickActions={false}
+                showQuickActionsInHeader={true}
+                onQuickAction={handleQuickAction}
                 className=""
                 onRefresh={(refreshFn) => {
                   refreshActivityFeedRef.current = refreshFn;
@@ -1347,10 +1258,10 @@ export default function ContactDetailPage() {
       {/* Create Activity Modal */}
       {session?.user?.id && (
         <CreateActivityModal
-          isOpen={showCreateActivityModal}
-          onClose={() => setShowCreateActivityModal(false)}
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
           onSubmit={handleActivitySubmit}
-          initialType={activityType}
+          initialType={createModalType}
           entityType="contact"
           entityId={parseInt(contactId)}
           userId={parseInt(session.user.id)}

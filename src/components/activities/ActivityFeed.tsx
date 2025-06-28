@@ -4,13 +4,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Clock, Plus, RefreshCw, MessageSquare } from 'lucide-react';
+import { Clock, Plus, RefreshCw, MessageSquare, Phone, Mail, FileText, Calendar, CheckSquare } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { ActivitySearchBar } from './ActivitySearchBar';
 import { ActivitySortDropdown, type SortOption } from './ActivitySortDropdown';
 import { ActivityTypeFilter, type ActivityType } from './ActivityTypeFilter';
 import { QuickActions } from './QuickActions';
 import { CreateActivityModal } from './CreateActivityModal';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface ActivityUser {
   id: number;
@@ -36,6 +37,8 @@ interface ActivityFeedProps {
   entityId: number;
   userId: number;
   showQuickActions?: boolean;
+  showQuickActionsInHeader?: boolean;
+  onQuickAction?: (type: 'call' | 'email' | 'note' | 'meeting' | 'task') => void;
   maxItems?: number;
   className?: string;
   onRefresh?: (refreshFn: () => void) => void;
@@ -46,6 +49,8 @@ export function ActivityFeed({
   entityId,
   userId,
   showQuickActions = true,
+  showQuickActionsInHeader = false,
+  onQuickAction,
   maxItems,
   className = '',
   onRefresh
@@ -70,6 +75,64 @@ export function ActivityFeed({
   
   // Filter state
   const [selectedTypes, setSelectedTypes] = useState<ActivityType[]>([]);
+
+  // Quick Actions Header Component
+  const QuickActionsHeader = () => {
+    if (!showQuickActionsInHeader || !onQuickAction) return null;
+
+    const headerActions = [
+      {
+        icon: Phone,
+        label: 'Log Call',
+        type: 'call' as const,
+        color: 'hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400'
+      },
+      {
+        icon: Mail,
+        label: 'Send Email',
+        type: 'email' as const,
+        color: 'hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400'
+      },
+      {
+        icon: FileText,
+        label: 'Add Note',
+        type: 'note' as const,
+        color: 'hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-900/20 dark:hover:text-gray-400'
+      },
+      {
+        icon: Calendar,
+        label: 'Schedule Meeting',
+        type: 'meeting' as const,
+        color: 'hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400'
+      },
+      {
+        icon: CheckSquare,
+        label: 'Create Task',
+        type: 'task' as const,
+        color: 'hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20 dark:hover:text-orange-400'
+      }
+    ];
+
+    return (
+      <div className="flex items-center justify-center gap-5 py-5 border-b border-gray-200 dark:border-gray-700">
+        {headerActions.map((action) => {
+          const IconComponent = action.icon;
+          return (
+            <Tooltip key={action.type} content={action.label}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onQuickAction(action.type)}
+                className={`h-12 w-12 p-0 text-gray-600 dark:text-gray-400 ${action.color} transition-colors`}
+              >
+                <IconComponent className="h-6 w-6" />
+              </Button>
+            </Tooltip>
+          );
+        })}
+      </div>
+    );
+  };
   
   // Lazy loading state
   const [loadingMore, setLoadingMore] = useState(false);
@@ -385,6 +448,9 @@ export function ActivityFeed({
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Quick Actions Header */}
+          <QuickActionsHeader />
+          
           {/* Sticky Search and Actions Container */}
           <div className="sticky top-0 bg-white dark:bg-gray-900 z-10 pb-4 space-y-4">
             {/* Search and Sort Row */}
