@@ -97,12 +97,14 @@ const authOptions: NextAuthConfig = {
           // Check if the user already exists
           const existing = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
           if (!existing.length) {
-            await db.insert(users).values({
+            console.log('[Auth] Creating new OAuth user:', user.email);
+            const result = await db.insert(users).values({
               username: user.name || user.email || '',
               email: user.email,
-              password_hash: '', // Use empty string for federated users
+              password_hash: null, // Use null for federated users
               is_active: true,
-            }).run?.(); // .run() for drizzle-orm, but safe if not present
+            }).returning({ id: users.id });
+            console.log('[Auth] Created OAuth user with ID:', result[0]?.id);
           }
         }
         return true;
@@ -150,8 +152,21 @@ const authOptions: NextAuthConfig = {
       token: JWT;
     }) {
       console.debug('[Auth] session callback', { session, token });
-      if (session.user) {
-        session.user.id = token.sub ?? "";
+      if (session.user?.email) {
+        // Get the local database user ID instead of OAuth provider ID
+        try {
+          const dbUser = await db.select({ id: users.id }).from(users).where(eq(users.email, session.user.email)).limit(1);
+          if (dbUser.length > 0) {
+            session.user.id = dbUser[0].id.toString();
+            console.debug('[Auth] Using local DB user ID:', session.user.id);
+          } else {
+            console.warn('[Auth] No local user found for email:', session.user.email);
+            session.user.id = token.sub ?? "";
+          }
+        } catch (error) {
+          console.error('[Auth] Error getting local user ID:', error);
+          session.user.id = token.sub ?? "";
+        }
       }
       return session;
     },

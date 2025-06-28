@@ -259,18 +259,20 @@ export default function CompanyDetailPage() {
   // Handle create activity
   const handleCreateActivity = async (activityData: any) => {
     try {
+      console.log('=== CLIENT SESSION DEBUG ===');
       console.log('Creating activity with data:', activityData);
       console.log('Session user ID:', session?.user?.id);
+      console.log('Session user email:', session?.user?.email);
+      console.log('Session user name:', session?.user?.name);
+      console.log('Full session object:', session);
+      console.log('============================');
       
       const response = await fetch(`/api/companies/${companyId}/activities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...activityData,
-          user_id: parseInt(session?.user?.id || '0'),
-        }),
+        body: JSON.stringify(activityData),
       });
 
       if (!response.ok) {

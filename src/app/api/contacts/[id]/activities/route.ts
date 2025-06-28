@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuthParamsHandler, throwError } from '@/server/lib';
+import { requireAuth, isAuthError } from '@/server/lib';
 import { makeActivityService } from '@/server/services';
 import { parseCreateNoteInput, parseLogCallInput, parseActivityQueryParams } from '@/server/validation';
 
-export const GET = withAuthParamsHandler(async (
+export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) => {
+): Promise<NextResponse> {
+  // Verify authentication
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
   const { id } = await params;
   const contactId = parseInt(id);
   
   if (isNaN(contactId)) {
-    throwError.badRequest('Invalid contact ID');
+    return NextResponse.json({ error: 'Invalid contact ID' }, { status: 400 });
   }
   
   try {
@@ -35,21 +40,27 @@ export const GET = withAuthParamsHandler(async (
   } catch (error) {
     console.error('Error fetching contact activities:', error);
     if (error instanceof Error && error.message.includes('not found')) {
-      throwError.notFound('Contact not found');
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
     }
-    throwError.internal('Failed to fetch contact activities');
+    return NextResponse.json({ error: 'Failed to fetch contact activities' }, { status: 500 });
   }
-});
+}
 
-export const POST = withAuthParamsHandler(async (
+export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) => {
+): Promise<NextResponse> {
+  // Verify authentication and get user ID
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+  const authenticatedUserId = parseInt(authResult.user.id!);
   const { id } = await params;
   const contactId = parseInt(id);
   
   if (isNaN(contactId)) {
-    throwError.badRequest('Invalid contact ID');
+    return NextResponse.json({ error: 'Invalid contact ID' }, { status: 400 });
   }
   
   try {
@@ -68,7 +79,7 @@ export const POST = withAuthParamsHandler(async (
           'contact',
           contactId,
           noteData.content,
-          noteData.user_id,
+          authenticatedUserId,
           noteData.title
         );
         break;
@@ -85,7 +96,7 @@ export const POST = withAuthParamsHandler(async (
             sentiment: callData.sentiment,
             followUpRequired: callData.followUpRequired
           },
-          callData.user_id
+          authenticatedUserId
         );
         break;
         
@@ -95,7 +106,7 @@ export const POST = withAuthParamsHandler(async (
           activity_type: activityType,
           primary_entity_type: 'contact' as const,
           primary_entity_id: contactId,
-          user_id: body.user_id,
+          user_id: authenticatedUserId,
           title: body.title,
           content: body.content,
           data: body.data,
@@ -112,12 +123,12 @@ export const POST = withAuthParamsHandler(async (
     console.error('Error creating contact activity:', error);
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
-        throwError.notFound(error.message);
+        return NextResponse.json({ error: error.message }, { status: 404 });
       }
       if (error.message.includes('Invalid') || error.message.includes('required')) {
-        throwError.badRequest(error.message);
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }
-    throwError.internal('Failed to create contact activity');
+    return NextResponse.json({ error: 'Failed to create contact activity' }, { status: 500 });
   }
-});
+}
