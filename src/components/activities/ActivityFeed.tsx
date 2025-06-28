@@ -114,7 +114,7 @@ export function ActivityFeed({
     ];
 
     return (
-      <div className="flex items-center justify-center gap-2 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-center gap-5 py-5 border-b border-gray-200 dark:border-gray-700">
         {headerActions.map((action) => {
           const IconComponent = action.icon;
           return (
@@ -123,9 +123,9 @@ export function ActivityFeed({
                 variant="ghost"
                 size="sm"
                 onClick={() => onQuickAction(action.type)}
-                className={`h-9 w-9 p-0 text-gray-600 dark:text-gray-400 ${action.color} transition-colors`}
+                className={`h-12 w-12 p-0 text-gray-600 dark:text-gray-400 ${action.color} transition-colors`}
               >
-                <IconComponent className="h-4 w-4" />
+                <IconComponent className="h-6 w-6" />
               </Button>
             </Tooltip>
           );
