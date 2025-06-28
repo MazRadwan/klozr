@@ -59,14 +59,12 @@ export const updateActivitySchema = z.object({
 // Quick action schemas for convenience endpoints
 export const createNoteSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  content: z.string().min(1).max(10000),
-  user_id: z.number().int().positive()
+  content: z.string().min(1).max(10000)
 });
 
 export const logCallSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   content: z.string().max(10000).optional(),
-  user_id: z.number().int().positive(),
   duration: z.number().int().min(0).optional(),
   outcome: z.string().max(100).optional(),
   sentiment: z.enum(['positive', 'neutral', 'negative']).optional(),
@@ -90,7 +88,7 @@ export const sortOrderSchema = z.enum(['asc', 'desc']);
 export const activityQuerySchema = z.object({
   activity_type: z.union([
     activityTypeSchema,
-    z.string().transform(val => val.split(',').filter(t => ['call', 'email', 'note', 'meeting', 'task'].includes(t) as any))
+    z.string().transform(val => val.split(',').filter(t => ['call', 'email', 'note', 'meeting', 'task'].includes(t)) as ('call' | 'email' | 'note' | 'meeting' | 'task')[])
   ]).optional(), // Support single type or comma-separated types
   status: activityStatusSchema.optional(),
   q: z.string().max(255).optional(), // Search query parameter

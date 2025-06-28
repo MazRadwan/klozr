@@ -395,10 +395,7 @@ export default function ContactDetailPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...activityData,
-          user_id: parseInt(session?.user?.id || '0'),
-        }),
+        body: JSON.stringify(activityData),
       });
 
       if (!response.ok) {
