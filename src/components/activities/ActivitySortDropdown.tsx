@@ -51,23 +51,21 @@ export function ActivitySortDropdown({
   };
 
   const getCurrentLabel = () => {
-    const option = SORT_OPTIONS.find(
-      opt => opt.field === currentSort.field && opt.order === currentSort.order
-    );
-    return option?.label || 'Sort by';
+    // Return empty string to show only icon
+    return '';
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm" 
-          className={`h-8 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 ${className}`}
+          className={`h-8 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 ${className}`}
+          title={`Sort: ${SORT_OPTIONS.find(opt => opt.field === currentSort.field && opt.order === currentSort.order)?.label || 'Sort by'}`}
         >
-          <ArrowUpDown className="h-3 w-3 mr-2" />
-          {getCurrentLabel()}
-          <ChevronDown className="h-3 w-3 ml-2" />
+          <ArrowUpDown className="h-3 w-3" />
+          <ChevronDown className="h-3 w-3 ml-1" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
