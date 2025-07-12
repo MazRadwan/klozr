@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuthParamsHandler, throwError } from '@/server/lib';
+import { throwError, requireAuth, isAuthError } from '@/server/lib';
 import { makeActivityService } from '@/server/services';
 import { parseCreateNoteInput, parseLogCallInput, parseActivityQueryParams } from '@/server/validation';
 
-export const GET = withAuthParamsHandler(async (
+export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) => {
+) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+  
   const { id } = await params;
   const dealId = parseInt(id);
   
@@ -39,12 +44,17 @@ export const GET = withAuthParamsHandler(async (
     }
     throwError.internal('Failed to fetch deal activities');
   }
-});
+}
 
-export const POST = withAuthParamsHandler(async (
+export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) => {
+) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) {
+    return authResult;
+  }
+  
   const { id } = await params;
   const dealId = parseInt(id);
   
@@ -55,6 +65,7 @@ export const POST = withAuthParamsHandler(async (
   try {
     const body = await req.json();
     const activityService = makeActivityService();
+    const authenticatedUserId = parseInt(authResult.user.id!);
     
     // Determine activity type from request and handle accordingly
     const activityType = body.activity_type || body.type;
@@ -68,7 +79,7 @@ export const POST = withAuthParamsHandler(async (
           'deal',
           dealId,
           noteData.content,
-          noteData.user_id,
+          authenticatedUserId,
           noteData.title
         );
         break;
@@ -85,7 +96,7 @@ export const POST = withAuthParamsHandler(async (
             sentiment: callData.sentiment,
             followUpRequired: callData.followUpRequired
           },
-          callData.user_id
+          authenticatedUserId
         );
         break;
         
@@ -95,7 +106,7 @@ export const POST = withAuthParamsHandler(async (
           activity_type: activityType,
           primary_entity_type: 'deal' as const,
           primary_entity_id: dealId,
-          user_id: body.user_id,
+          user_id: authenticatedUserId,
           title: body.title,
           content: body.content,
           data: body.data,
@@ -120,4 +131,4 @@ export const POST = withAuthParamsHandler(async (
     }
     throwError.internal('Failed to create deal activity');
   }
-});
+}
