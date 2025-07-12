@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTheme } from 'next-themes';
-import { Moon, Sun, PanelLeft, PanelLeftClose, BarChart3, Users, Handshake, Wallet, Settings, Menu } from 'lucide-react';
+import { Moon, Sun, PanelLeft, PanelLeftClose, BarChart3, Users, Handshake, Wallet, Settings, Menu, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -151,11 +151,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-500/10 hover:text-red-400 transition-colors text-white/60 w-full text-left"
               type="button"
             >
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out">
-                <path d="M9 16l-4-4 4-4"/>
-                <path d="M5 12h12"/>
-                <path d="M17 16v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2 2v1"/>
-              </svg>
+              <LogOut size={20} />
               <span>Logout</span>
             </button>
           </div>
